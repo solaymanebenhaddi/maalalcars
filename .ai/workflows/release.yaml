@@ -1,0 +1,21 @@
+name: Release
+description: Workflow for creating a release
+
+steps:
+  - name: pre_release_check
+    actions:
+      - all quality gates pass (critical level)
+      - no open critical/high issues
+      - CHANGELOG updated
+      - version bumped
+  - name: build
+    actions: [clean build, verify output]
+  - name: final_tests
+    actions: [full test suite, integration tests]
+  - name: security_audit
+    agent: security-engineer
+    actions: [dependency audit, final security review]
+  - name: release
+    actions: [tag, release notes, deploy]
+
+quality_gate: critical

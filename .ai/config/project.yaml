@@ -1,0 +1,66 @@
+project:
+  name: MAALAL CARS
+  version: "0.1.0"
+  type: responsive-web-application
+  locale: fr-MA
+  country: Morocco
+  currency: MAD
+  currency_display: DH
+  description: Automotive business management platform
+
+stack:
+  framework: next.js
+  language: typescript
+  styling: tailwind-css
+  orm: prisma
+  database: sqlite
+  auth: session-based
+  testing: vitest
+  package_manager: npm
+
+references:
+  uiux:
+    path: reference-uiux
+    count: 40
+    format: png
+
+persistence:
+  current: sqlite
+  future:
+    - postgresql
+    - mysql
+
+architecture:
+  pattern: layered
+  layers:
+    - ui (app/ components/)
+    - application (services/)
+    - domain (domain/ validation/)
+    - data-access (repositories/)
+    - infrastructure (lib/ config/)
+
+context_loading:
+  level_0: AGENTS.md / CLAUDE.md
+  level_1: .ai/config/project.yaml
+  level_2: docs/architecture/
+  level_3: docs/specs/{feature}.md
+  level_4: relevant source files
+  level_5: runtime/testing evidence
+
+safety:
+  default_execution_mode: READ_ONLY
+  modes:
+    - READ_ONLY
+    - SAFE_WRITE
+    - PRIVILEGED
+    - PRODUCTION
+
+risk:
+  default_level: normal
+  critical_features:
+    - authentication
+    - payments
+    - permissions
+    - schema-changes
+    - security
+    - infrastructure

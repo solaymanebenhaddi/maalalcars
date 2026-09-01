@@ -30,8 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# keep .env.example
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +45,28 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# database
+prisma/dev.db
+prisma/dev.db-journal
+prisma/test.db
+prisma/test.db-journal
+
+# storage uploads
+storage/vehicles/*
+storage/documents/*
+storage/invoices/*
+storage/contracts/*
+storage/inspections/*
+storage/expenses/*
+storage/insurance/*
+storage/warranties/*
+storage/temp/*
+!storage/**/.gitkeep
+
+# logs
+*.log
+
+# Local Claude Code config
+.claude/
+.claude-flow/

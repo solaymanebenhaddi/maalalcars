@@ -1,0 +1,78 @@
+name: Feature Development
+description: Standard workflow for implementing new features
+
+levels:
+  small_change:
+    description: Minor fixes, typos, config changes
+    steps:
+      - name: analysis
+        agent: backend-engineer or frontend-engineer
+        actions: [read spec, identify changes]
+      - name: implementation
+        agent: backend-engineer or frontend-engineer
+        actions: [implement change]
+      - name: targeted_tests
+        agent: qa-engineer
+        actions: [write/run targeted tests]
+      - name: verification
+        actions: [run lint, typecheck, targeted tests]
+    quality_gate: small_change
+
+  feature:
+    description: New feature or significant enhancement
+    steps:
+      - name: specification
+        agent: system-architect
+        actions: [read spec, review UI references, impact analysis]
+      - name: implementation
+        agents: [backend-engineer, frontend-engineer]
+        actions: [implement backend, implement frontend]
+      - name: testing
+        agent: qa-engineer
+        actions: [write tests, run tests]
+      - name: security_review
+        agent: security-engineer
+        actions: [review for vulnerabilities]
+      - name: independent_review
+        agent: principal-reviewer
+        actions: [review all changes]
+      - name: verification
+        actions: [run all quality gates]
+    quality_gate: feature
+
+  critical:
+    description: Auth, payments, permissions, schema, security
+    steps:
+      - name: research
+        agent: system-architect
+        actions: [research approach, review prior art]
+      - name: architecture
+        agent: system-architect
+        actions: [design solution, create ADR]
+      - name: threat_model
+        agent: security-engineer
+        actions: [identify threats, define mitigations]
+      - name: implementation_plan
+        agent: system-architect
+        actions: [break into tasks, define order]
+      - name: implementation
+        agents: [backend-engineer, frontend-engineer]
+        actions: [implement per plan]
+      - name: unit_tests
+        agent: qa-engineer
+        actions: [comprehensive unit tests]
+      - name: integration_tests
+        agent: qa-engineer
+        actions: [integration tests with real DB]
+      - name: security_review
+        agent: security-engineer
+        actions: [thorough security review]
+      - name: performance_check
+        agent: qa-engineer
+        actions: [performance baseline]
+      - name: independent_review
+        agent: principal-reviewer
+        actions: [full review]
+      - name: runtime_validation
+        actions: [browser validation, smoke tests]
+    quality_gate: critical

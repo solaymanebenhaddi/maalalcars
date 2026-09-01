@@ -1,0 +1,20 @@
+name: Bugfix
+description: Workflow for fixing bugs
+
+steps:
+  - name: reproduce
+    skill: systematic-debugging
+    actions: [observe, reproduce, gather evidence]
+  - name: diagnose
+    skill: systematic-debugging
+    actions: [hypothesize, isolate, identify root cause]
+  - name: fix
+    agent: backend-engineer or frontend-engineer
+    actions: [apply minimal fix]
+  - name: regression_test
+    agent: qa-engineer
+    actions: [verify fix, check regressions]
+  - name: verification
+    actions: [run quality gates for affected area]
+
+quality_gate: small_change (or feature if fix is complex)

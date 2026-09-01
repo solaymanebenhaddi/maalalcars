@@ -1,0 +1,47 @@
+quality_gates:
+  small_change:
+    description: Minor fixes, typos, small adjustments
+    required:
+      - lint
+      - typecheck
+      - targeted_tests
+
+  feature:
+    description: New feature or significant enhancement
+    required:
+      - build
+      - lint
+      - typecheck
+      - targeted_tests
+      - regression_tests
+      - runtime_verification
+    recommended:
+      - security_review
+      - independent_review
+
+  critical:
+    description: Auth, payments, permissions, schema, security, infrastructure
+    required:
+      - build
+      - lint
+      - typecheck
+      - unit_tests
+      - integration_tests
+      - security_scan
+      - dependency_scan
+      - migration_check
+      - runtime_verification
+      - independent_review
+    recommended:
+      - performance_benchmark
+      - threat_model_review
+
+commands:
+  lint: npm run lint
+  typecheck: npx tsc --noEmit
+  build: npm run build
+  test: npm test
+  test_unit: npm run test:unit
+  test_integration: npm run test:integration
+  security_scan: npm audit
+  format_check: npx prettier --check .

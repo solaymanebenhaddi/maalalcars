@@ -1,26 +1,66 @@
 {
-  "name": "maalal-temp",
+  "name": "maalal-cars",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --pool=forks --no-file-parallelism",
+    "test:watch": "vitest --pool=forks",
+    "test:unit": "vitest run --pool=forks tests/unit",
+    "test:integration": "vitest run --pool=forks tests/integration",
+    "test:coverage": "vitest run --pool=forks --coverage",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "tsx scripts/db-reset.ts",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@prisma/client": "^6.19.3",
+    "@tanstack/react-table": "^9.2.4",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "lightningcss": "^1.33.0",
+    "lucide-react": "^1.39.0",
     "next": "16.3.4",
+    "prisma": "^6.19.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-hook-form": "^7.87.0",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.6.0",
+    "uuid": "^14.0.2",
+    "zod": "^4.5.4"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.6",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "jsdom": "^27.0.1",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }

@@ -1,0 +1,29 @@
+name: New Project Setup
+description: Phase 1 foundation workflow (this was used to bootstrap the project)
+
+steps:
+  - name: inspect
+    actions: [check existing state, inventory files]
+  - name: stack_selection
+    actions: [choose framework, DB, ORM, tools]
+    output: ADRs for each decision
+  - name: project_init
+    actions: [create project, install dependencies]
+  - name: database_foundation
+    actions: [ORM setup, schema, migrations, seed]
+  - name: auth_foundation
+    actions: [password hashing, sessions, middleware]
+  - name: storage_foundation
+    actions: [file storage architecture, safety]
+  - name: design_system
+    actions: [tokens, primitives, dark theme]
+  - name: ai_engineering
+    actions: [agents, skills, workflows, policies]
+  - name: testing
+    actions: [test infrastructure, smoke tests]
+  - name: documentation
+    actions: [docs structure, ADRs, templates]
+  - name: verification
+    actions: [all deterministic checks pass]
+
+status: COMPLETED
