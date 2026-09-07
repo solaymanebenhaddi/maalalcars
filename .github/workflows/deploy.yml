@@ -115,22 +115,31 @@ jobs:
           }
           EOF
 
+          # Génération du template SQLite de production avec toutes les tables
+          DATABASE_URL="file:./prisma/production.db" npx prisma db push --skip-generate
+          cp prisma/production.db .next/standalone/prisma/ 2>/dev/null || true
+
           # Déclencheur Phusion Passenger : horodate unique pour forcer le hot-reload au transfert FTP
           date +%s > .next/standalone/tmp/restart.txt
 
-          # Point d'entrée Phusion Passenger pour cPanel (Option B.2 : Auto-migration SQLite au démarrage)
+          # Point d'entrée Phusion Passenger pour cPanel
           cat << 'EOF' > .next/standalone/app.js
           // Point d'entrée Phusion Passenger / cPanel Node.js
           process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-          // Option B.2 : Synchronisation automatique du schéma SQLite au démarrage
+          // Auto-initialisation SQLite instantanée par copie du template (sans appel npx)
           try {
-            console.log('[MAALAL CARS] Vérification du schéma de base de données...');
-            const { execSync } = require('child_process');
-            execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
-            console.log('[MAALAL CARS] ✅ Base de données prête et à jour.');
-          } catch (err) {
-            console.warn('[MAALAL CARS] Note synchro DB :', err.message);
+            const fs = require('fs');
+            const path = require('path');
+            const targetDb = '/home/eaiconst/maalalcars_data/production.db';
+            const templateDb = path.join(__dirname, 'prisma', 'production.db');
+            if (!fs.existsSync(targetDb) && fs.existsSync(templateDb)) {
+              fs.mkdirSync(path.dirname(targetDb), { recursive: true });
+              fs.copyFileSync(templateDb, targetDb);
+              console.log('[MAALAL CARS] ✅ Base de données initialisée depuis le template.');
+            }
+          } catch (e) {
+            console.warn('[MAALAL CARS] Note template DB :', e.message);
           }
 
           // Démarrage du serveur Next.js
