@@ -147,7 +147,7 @@ jobs:
           port: ${{ secrets.FTP_PORT || 21 }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
           local-dir: .next/standalone/
-          server-dir: ${{ secrets.FTP_SERVER_DIR || '/maalalcars_app/' }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR != '' && (endsWith(secrets.FTP_SERVER_DIR, '/') && secrets.FTP_SERVER_DIR || format('{0}/', secrets.FTP_SERVER_DIR)) || '/maalalcars_app/' }}
           dangerous-clean-slate: false
           exclude: |
             **/.env*
