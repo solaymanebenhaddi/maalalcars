@@ -128,13 +128,62 @@ jobs:
           # Déclencheur Phusion Passenger : horodate unique pour forcer le hot-reload au transfert FTP
           date +%s > .next/standalone/tmp/restart.txt
 
-          # Point d'entrée Phusion Passenger pour cPanel
+          # Copie des scripts de diagnostic et maintenance
+          mkdir -p .next/standalone/scripts
+          cp scripts/diagnose.js .next/standalone/scripts/diagnose.js
+
+          # Point d'entrée Phusion Passenger pour cPanel avec traçage temps réel et route /__debug
           cat << 'EOF' > .next/standalone/app.js
-          // Point d'entrée Phusion Passenger / cPanel Node.js
+          // Point d'entrée Phusion Passenger / cPanel Node.js avec traçage temps réel
           process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
           const fs = require('fs');
           const path = require('path');
+          const http = require('http');
+
+          const debugLog = path.join(__dirname, 'debug.log');
+          function log(msg) {
+            const line = `[${new Date().toISOString()}] ${msg}\n`;
+            try { fs.appendFileSync(debugLog, line); } catch (_) {}
+            console.log(msg);
+          }
+
+          log('====================================================');
+          log('🚀 [MAALAL CARS] app.js DÉMARRAGE DU PROCESSUS');
+          log('Node.js: ' + process.version + ' | CWD: ' + process.cwd() + ' | __dirname: ' + __dirname);
+
+          process.on('uncaughtException', (err) => {
+            log('💥 [EXCEPTION NON GÉRÉE] ' + (err && err.stack ? err.stack : err));
+          });
+          process.on('unhandledRejection', (reason) => {
+            log('💥 [REJECTION NON GÉRÉE] ' + (reason && reason.stack ? reason.stack : reason));
+          });
+
+          // Interception HTTP pour route de secours /__debug
+          try {
+            const origCreateServer = http.createServer;
+            http.createServer = function(...args) {
+              log('🌐 [HTTP] http.createServer intercepté avec succès');
+              const origHandler = args[args.length - 1];
+              if (typeof origHandler === 'function') {
+                args[args.length - 1] = function(req, res) {
+                  if (req.url === '/__debug' || req.url === '/api/diagnostic') {
+                    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+                    try {
+                      const content = fs.readFileSync(debugLog, 'utf8');
+                      return res.end(content);
+                    } catch (e) {
+                      return res.end('Fichier debug.log introuvable : ' + e.message);
+                    }
+                  }
+                  return origHandler.call(this, req, res);
+                };
+              }
+              return origCreateServer.apply(this, args);
+            };
+          } catch (e) {
+            log('⚠️ Note interception HTTP : ' + e.message);
+          }
 
           // 1. Charge les variables d'environnement depuis .env.production ou .env si présent
           try {
@@ -157,10 +206,11 @@ jobs:
                     }
                   }
                 });
+                log('📄 Variables chargées depuis ' + file);
               }
             }
           } catch (e) {
-            console.warn('[MAALAL CARS] Note lecture .env :', e.message);
+            log('⚠️ Note lecture .env : ' + e.message);
           }
 
           // 2. Définir et exporter explicitement DATABASE_URL vers maalalcars/prisma/production.db
@@ -171,8 +221,9 @@ jobs:
             targetDb = path.join(__dirname, 'prisma', 'production.db');
             process.env.DATABASE_URL = 'file:' + targetDb;
           }
+          log('🗄️ DATABASE_URL = ' + process.env.DATABASE_URL);
 
-          // 3. Auto-initialisation SQLite instantanée par copie du template si production.db n'existe pas encore ou est vide (0 octet)
+          // 3. Auto-initialisation SQLite instantanée par copie du template
           try {
             const candidates = [
               path.join(__dirname, 'prisma', 'production.init.template'),
@@ -182,15 +233,20 @@ jobs:
               path.join(__dirname, 'maalalcars', 'prisma', 'production.template'),
             ];
             const templateDb = candidates.find((f) => fs.existsSync(f));
+            log('🔍 Recherche template : ' + (templateDb ? templateDb : 'AUCUN'));
+
             const stat = fs.existsSync(targetDb) ? fs.statSync(targetDb) : null;
-            // Une base complète avec toutes les tables Prisma fait ~675 Ko. Une base vide fait moins de 100 Ko.
+            log('📊 Statut ' + targetDb + ' : ' + (stat ? stat.size + ' octets' : 'INEXISTANT'));
+
             if (!stat || stat.size < 100000) {
               if (templateDb) {
                 fs.mkdirSync(path.dirname(targetDb), { recursive: true });
+                try { fs.unlinkSync(targetDb); } catch (_) {}
                 fs.copyFileSync(templateDb, targetDb);
-                console.log('[MAALAL CARS] ✅ Base de données initialisée depuis ' + templateDb + ' vers ' + targetDb);
+                const newStat = fs.statSync(targetDb);
+                log('✅ Base de données initialisée depuis ' + templateDb + ' (' + newStat.size + ' octets)');
               } else {
-                console.warn('[MAALAL CARS] Template DB introuvable parmi :', candidates);
+                log('❌ AVERTISSEMENT : Aucun template DB trouvé parmi les candidats');
               }
             }
             if (fs.existsSync(targetDb)) {
@@ -198,23 +254,35 @@ jobs:
               try { fs.chmodSync(path.dirname(targetDb), 0o777); } catch (_) {}
             }
           } catch (e) {
-            console.warn('[MAALAL CARS] Note template DB :', e.message);
+            log('⚠️ Erreur init SQLite : ' + e.message);
           }
 
           // 4. Démarrage du serveur Next.js
+          log('⏳ Chargement de ./server.js...');
           require('./server.js');
+          log('✅ ./server.js requis sans erreur synchrone');
           EOF
 
           # Dupliquer app.js en App.js au cas où cPanel a été configuré avec une majuscule
           cp .next/standalone/app.js .next/standalone/App.js
 
-          # Mettre à jour package.json standalone pour que 'npm start' lance 'node app.js'
+          # Injecter un log trace au début de server.js au cas où Passenger appelle server.js directement
+          node -e '
+            const fs = require("fs");
+            const p = ".next/standalone/server.js";
+            const c = fs.readFileSync(p, "utf8");
+            const trace = "try{require(\"fs\").appendFileSync(require(\"path\").join(__dirname,\"debug.log\"),\"[\"+new Date().toISOString()+\"] ⚡ SERVER.JS EXECUTION\\n\");}catch(_){}\n";
+            fs.writeFileSync(p, trace + c);
+          '
+
+          # Mettre à jour package.json standalone avec scripts start et diagnose
           node -e '
             const fs = require("fs");
             const p = ".next/standalone/package.json";
             const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
             pkg.scripts = pkg.scripts || {};
             pkg.scripts.start = "node app.js";
+            pkg.scripts.diagnose = "node scripts/diagnose.js";
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
           '
 
