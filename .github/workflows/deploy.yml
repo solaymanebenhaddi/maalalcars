@@ -1,9 +1,7 @@
 name: Deploy MAALAL CARS (Shared Hosting FTP CI/CD)
 
+# Déclenchement UNIQUEMENT manuel via l'interface GitHub Actions (bouton Run Workflow)
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       skip_tests:
@@ -199,14 +197,15 @@ jobs:
             const fs = require("fs");
             let raw = "${{ secrets.FTP_SERVER_DIR }}".trim();
             let dir = raw;
-            const lower = dir.toLowerCase().replace(/\\/g, "/");
-            if (!dir || dir === "/" || dir === "./" || dir === "." || lower === "maalalcars" || lower === "maalalcars/" || lower === "/maalalcars" || lower === "/maalalcars/") {
-              dir = "/";
+            const lower = dir.toLowerCase().replace(/\\/g, "/").replace(/\/+$/, "");
+            // Si le secret est vide, racine, ou contient maalalcars (puisque le compte FTP pointe déjà dessus)
+            if (!dir || dir === "/" || dir === "./" || dir === "." || lower.endsWith("maalalcars")) {
+              dir = "./";
             } else {
               dir = dir.replace(/^\/home\/[^\/]+(\/|$)/, "");
               dir = dir.replace(/^\/+/, "");
               if (dir && !dir.endsWith("/")) dir += "/";
-              if (!dir) dir = "/";
+              if (!dir) dir = "./";
             }
             console.log("Dossier cible FTP resolu :", dir);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `server_dir=${dir}\n`);
