@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       skip_tests:
-        description: 'Ignorer les tests (déploiement d’urgence)'
+        description: "Ignorer les tests (déploiement d’urgence)"
         required: false
         type: boolean
         default: false
@@ -29,7 +29,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📦 Installation Dépendances
         run: npm ci
@@ -59,7 +59,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📦 Installation Dépendances
         run: npm ci
@@ -175,7 +175,8 @@ jobs:
           try {
             const templateDb = path.join(__dirname, 'prisma', 'production.template');
             const stat = fs.existsSync(targetDb) ? fs.statSync(targetDb) : null;
-            if (!stat || stat.size < 10000) {
+            // Une base complète avec toutes les tables Prisma fait ~675 Ko. Une base vide fait moins de 100 Ko.
+            if (!stat || stat.size < 100000) {
               if (fs.existsSync(templateDb)) {
                 fs.mkdirSync(path.dirname(targetDb), { recursive: true });
                 fs.copyFileSync(templateDb, targetDb);
