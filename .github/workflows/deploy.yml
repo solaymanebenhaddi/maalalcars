@@ -154,19 +154,22 @@ jobs:
           require('./server.js');
           EOF
 
-      # RÉSOLUTION DU CHEMIN RELATIF FTP (Anti-doublon /home/username/)
+      # RÉSOLUTION DU CHEMIN RELATIF FTP (Anti-doublon et respect de la racine /)
       - name: 🧹 Résolution Automatique du Répertoire Cible FTP
         id: resolve-dir
         run: |
           node -e '
             const fs = require("fs");
-            let dir = "${{ secrets.FTP_SERVER_DIR }}".trim();
-            if (!dir) dir = "maalalcars/";
-            // Si l utilisateur a renseigne le chemin complet Linux (/home/username/maalalcars), extraire le chemin relatif FTP
-            dir = dir.replace(/^\/home\/[^\/]+(\/|$)/, "");
-            dir = dir.replace(/^\/+/, "");
-            if (dir && !dir.endsWith("/")) dir += "/";
-            if (!dir) dir = "/";
+            let raw = "${{ secrets.FTP_SERVER_DIR }}".trim();
+            let dir = raw;
+            if (raw === "/" || raw === "./" || raw === "." || !raw) {
+              dir = "/";
+            } else {
+              dir = dir.replace(/^\/home\/[^\/]+(\/|$)/, "");
+              dir = dir.replace(/^\/+/, "");
+              if (dir && !dir.endsWith("/")) dir += "/";
+              if (!dir) dir = "/";
+            }
             console.log("Dossier cible FTP resolu :", dir);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `server_dir=${dir}\n`);
           '
