@@ -122,6 +122,8 @@ jobs:
 
           # Copie du template SQLite de production avec toutes les tables déjà prêtes
           cp prisma/production.template .next/standalone/prisma/production.template
+          cp prisma/production.template .next/standalone/prisma/production.init.template
+          cp prisma/production.template .next/standalone/production.init.template
 
           # Déclencheur Phusion Passenger : horodate unique pour forcer le hot-reload au transfert FTP
           date +%s > .next/standalone/tmp/restart.txt
@@ -172,16 +174,23 @@ jobs:
 
           // 3. Auto-initialisation SQLite instantanée par copie du template si production.db n'existe pas encore ou est vide (0 octet)
           try {
-            const templateDb = path.join(__dirname, 'prisma', 'production.template');
+            const candidates = [
+              path.join(__dirname, 'prisma', 'production.init.template'),
+              path.join(__dirname, 'prisma', 'production.template'),
+              path.join(__dirname, 'production.init.template'),
+              path.join(__dirname, 'production.template'),
+              path.join(__dirname, 'maalalcars', 'prisma', 'production.template'),
+            ];
+            const templateDb = candidates.find((f) => fs.existsSync(f));
             const stat = fs.existsSync(targetDb) ? fs.statSync(targetDb) : null;
             // Une base complète avec toutes les tables Prisma fait ~675 Ko. Une base vide fait moins de 100 Ko.
             if (!stat || stat.size < 100000) {
-              if (fs.existsSync(templateDb)) {
+              if (templateDb) {
                 fs.mkdirSync(path.dirname(targetDb), { recursive: true });
                 fs.copyFileSync(templateDb, targetDb);
-                console.log('[MAALAL CARS] ✅ Base de données initialisée depuis le template dans ' + targetDb);
+                console.log('[MAALAL CARS] ✅ Base de données initialisée depuis ' + templateDb + ' vers ' + targetDb);
               } else {
-                console.warn('[MAALAL CARS] Template DB introuvable :', templateDb);
+                console.warn('[MAALAL CARS] Template DB introuvable parmi :', candidates);
               }
             }
             if (fs.existsSync(targetDb)) {
