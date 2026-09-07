@@ -122,7 +122,7 @@ jobs:
 
           # Génération du template SQLite de production avec toutes les tables
           DATABASE_URL="file:./prisma/production.db" npx prisma db push --skip-generate
-          cp prisma/production.db .next/standalone/prisma/ 2>/dev/null || true
+          cp prisma/production.db .next/standalone/prisma/production.template 2>/dev/null || true
 
           # Déclencheur Phusion Passenger : horodate unique pour forcer le hot-reload au transfert FTP
           date +%s > .next/standalone/tmp/restart.txt
@@ -162,18 +162,18 @@ jobs:
             console.warn('[MAALAL CARS] Note lecture .env :', e.message);
           }
 
-          // 2. Définir et exporter explicitement DATABASE_URL
+          // 2. Définir et exporter explicitement DATABASE_URL vers maalalcars/prisma/production.db
           let targetDb = '';
           if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('file:')) {
             targetDb = process.env.DATABASE_URL.replace(/^file:/, '');
           } else {
-            targetDb = path.resolve(__dirname, '..', 'maalalcars_data', 'production.db');
+            targetDb = path.join(__dirname, 'prisma', 'production.db');
             process.env.DATABASE_URL = 'file:' + targetDb;
           }
 
-          // 3. Auto-initialisation SQLite instantanée par copie du template (sans appel npx)
+          // 3. Auto-initialisation SQLite instantanée par copie du template si production.db n'existe pas encore
           try {
-            const templateDb = path.join(__dirname, 'prisma', 'production.db');
+            const templateDb = path.join(__dirname, 'prisma', 'production.template');
             if (targetDb && !fs.existsSync(targetDb)) {
               if (fs.existsSync(templateDb)) {
                 fs.mkdirSync(path.dirname(targetDb), { recursive: true });
@@ -182,6 +182,10 @@ jobs:
               } else {
                 console.warn('[MAALAL CARS] Template DB introuvable :', templateDb);
               }
+            }
+            if (fs.existsSync(targetDb)) {
+              try { fs.chmodSync(targetDb, 0o666); } catch (_) {}
+              try { fs.chmodSync(path.dirname(targetDb), 0o777); } catch (_) {}
             }
           } catch (e) {
             console.warn('[MAALAL CARS] Note template DB :', e.message);
@@ -207,6 +211,8 @@ jobs:
             **/.env*
             **/data/**
             **/storage/**
-            **/*.db*
+            **/*.db
             **/*.db-journal*
+            **/*.db-wal*
+            **/*.db-shm*
             **/node_modules/.cache/**
