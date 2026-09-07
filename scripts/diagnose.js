@@ -2,17 +2,39 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('==============================================');
-console.log('       MAALAL CARS DIAGNOSTICS & REPAIR       ');
-console.log('==============================================');
-console.log('Timestamp:', new Date().toISOString());
-console.log('Node version:', process.version);
-console.log('Platform:', process.platform);
-console.log('Current working directory:', process.cwd());
-console.log('Script directory (__dirname):', __dirname);
+const logPath = path.join(__dirname, '..', 'diagnostic-log.txt');
+try { fs.writeFileSync(logPath, 'STARTING DIAGNOSTICS: ' + new Date().toISOString() + '\n'); } catch (_) {}
+
+function logStep(msg) {
+  try {
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch (_) {}
+  console.log(msg);
+}
+
+logStep('==============================================');
+logStep('       MAALAL CARS DIAGNOSTICS & REPAIR       ');
+logStep('==============================================');
+logStep('Node version: ' + process.version);
+logStep('Platform: ' + process.platform);
+logStep('Current working directory: ' + process.cwd());
+logStep('Script directory (__dirname): ' + __dirname);
+
+process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
 
 const appDir = path.resolve(__dirname, '..');
 console.log('App root directory:', appDir);
+
+try {
+  const engineDir = path.join(appDir, 'node_modules', '.prisma', 'client');
+  if (fs.existsSync(engineDir)) {
+    fs.readdirSync(engineDir).forEach((f) => {
+      if (f.startsWith('query-engine')) {
+        try { fs.chmodSync(path.join(engineDir, f), 0o755); } catch (_) {}
+      }
+    });
+  }
+} catch (_) {}
 
 // 1. Check directory contents
 console.log('\n--- 1. ROOT DIRECTORY LISTING ---');
@@ -138,24 +160,29 @@ console.log('DATABASE_URL set to:', process.env.DATABASE_URL);
 
 async function testPrisma() {
   try {
+    logStep('Loading @prisma/client module...');
     const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    console.log('PrismaClient instantiated. Running test queries...');
+    logStep('Instantiating PrismaClient...');
+    const prisma = new PrismaClient({
+      log: ['error', 'warn'],
+    });
+    logStep('PrismaClient instantiated. Connecting to SQLite...');
+    await prisma.$connect();
+    logStep('Prisma connected! Querying prisma.user.count()...');
 
     const userCount = await prisma.user.count();
-    console.log('✅ Query prisma.user.count() succeeded! User count =', userCount);
+    logStep('✅ prisma.user.count() = ' + userCount);
 
     const vehicleCount = await prisma.vehicle.count();
-    console.log('✅ Query prisma.vehicle.count() succeeded! Vehicle count =', vehicleCount);
+    logStep('✅ prisma.vehicle.count() = ' + vehicleCount);
 
     const reservationCount = await prisma.reservation.count();
-    console.log('✅ Query prisma.reservation.count() succeeded! Reservation count =', reservationCount);
+    logStep('✅ prisma.reservation.count() = ' + reservationCount);
 
     await prisma.$disconnect();
-    console.log('\n🎉 ALL CHECKS PASSED: APPLICATION & DATABASE ARE 100% OPERATIONAL!');
+    logStep('\n🎉 ALL CHECKS PASSED: APPLICATION & DATABASE ARE 100% OPERATIONAL!');
   } catch (err) {
-    console.error('❌ Prisma query failed:', err.message);
-    if (err.stack) console.error(err.stack);
+    logStep('❌ Prisma error: ' + err.message + '\n' + err.stack);
   }
 }
 

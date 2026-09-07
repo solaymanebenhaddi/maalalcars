@@ -107,6 +107,7 @@ jobs:
           mkdir -p .next/standalone/node_modules
           cp -r node_modules/.prisma .next/standalone/node_modules/ 2>/dev/null || true
           cp -r node_modules/@prisma .next/standalone/node_modules/ 2>/dev/null || true
+          chmod +x .next/standalone/node_modules/.prisma/client/query-engine* 2>/dev/null || true
 
           # Script de migration manuel exécutable depuis l'interface cPanel "Run JS Script"
           cat << 'EOF' > .next/standalone/scripts/migrate.js
@@ -136,10 +137,23 @@ jobs:
           cat << 'EOF' > .next/standalone/app.js
           // Point d'entrée Phusion Passenger / cPanel Node.js avec traçage temps réel
           process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+          process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
 
           const fs = require('fs');
           const path = require('path');
           const http = require('http');
+
+          // Assurer les droits d'exécution sur les moteurs binaires Prisma
+          try {
+            const engineDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
+            if (fs.existsSync(engineDir)) {
+              fs.readdirSync(engineDir).forEach((f) => {
+                if (f.startsWith('query-engine')) {
+                  try { fs.chmodSync(path.join(engineDir, f), 0o755); } catch (_) {}
+                }
+              });
+            }
+          } catch (_) {}
 
           const debugLog = path.join(__dirname, 'debug.log');
           function log(msg) {
