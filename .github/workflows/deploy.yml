@@ -120,9 +120,8 @@ jobs:
           }
           EOF
 
-          # Génération du template SQLite de production avec toutes les tables
-          DATABASE_URL="file:./prisma/production.db" npx prisma db push --skip-generate
-          cp prisma/production.db .next/standalone/prisma/production.template 2>/dev/null || true
+          # Copie du template SQLite de production avec toutes les tables déjà prêtes
+          cp prisma/production.template .next/standalone/prisma/production.template
 
           # Déclencheur Phusion Passenger : horodate unique pour forcer le hot-reload au transfert FTP
           date +%s > .next/standalone/tmp/restart.txt
