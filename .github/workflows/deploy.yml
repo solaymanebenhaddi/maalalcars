@@ -1,7 +1,9 @@
 name: Deploy MAALAL CARS (Shared Hosting FTP CI/CD)
 
-# Déclenchement UNIQUEMENT manuel via l'interface GitHub Actions (bouton Run Workflow)
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       skip_tests:
@@ -189,29 +191,7 @@ jobs:
           require('./server.js');
           EOF
 
-      # RÉSOLUTION DU CHEMIN RELATIF FTP (Anti-doublon et respect de la racine /)
-      - name: 🧹 Résolution Automatique du Répertoire Cible FTP
-        id: resolve-dir
-        run: |
-          node -e '
-            const fs = require("fs");
-            let raw = "${{ secrets.FTP_SERVER_DIR }}".trim();
-            let dir = raw;
-            const lower = dir.toLowerCase().replace(/\\/g, "/").replace(/\/+$/, "");
-            // Si le secret est vide, racine, ou contient maalalcars (puisque le compte FTP pointe déjà dessus)
-            if (!dir || dir === "/" || dir === "./" || dir === "." || lower.endsWith("maalalcars")) {
-              dir = "./";
-            } else {
-              dir = dir.replace(/^\/home\/[^\/]+(\/|$)/, "");
-              dir = dir.replace(/^\/+/, "");
-              if (dir && !dir.endsWith("/")) dir += "/";
-              if (!dir) dir = "./";
-            }
-            console.log("Dossier cible FTP resolu :", dir);
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, `server_dir=${dir}\n`);
-          '
-
-      # DÉPLOIEMENT INCRÉMENTAL VIA FTP / FTPS
+      # DÉPLOIEMENT INCRÉMENTAL VIA FTP / FTPS (Toujours à la racine ./ du compte FTP)
       - name: 🚀 Déploiement Incrémental via FTP / FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -221,7 +201,7 @@ jobs:
           port: ${{ secrets.FTP_PORT || 21 }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
           local-dir: .next/standalone/
-          server-dir: ${{ steps.resolve-dir.outputs.server_dir }}
+          server-dir: ./
           dangerous-clean-slate: false
           exclude: |
             **/.env*
