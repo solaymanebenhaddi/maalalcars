@@ -103,6 +103,11 @@ jobs:
           # Copie du package.json
           cp package.json .next/standalone/
 
+          # Copie explicite des moteurs Prisma (.prisma / @prisma)
+          mkdir -p .next/standalone/node_modules
+          cp -r node_modules/.prisma .next/standalone/node_modules/ 2>/dev/null || true
+          cp -r node_modules/@prisma .next/standalone/node_modules/ 2>/dev/null || true
+
           # Script de migration manuel exécutable depuis l'interface cPanel "Run JS Script"
           cat << 'EOF' > .next/standalone/scripts/migrate.js
           const { execSync } = require('child_process');
@@ -127,30 +132,62 @@ jobs:
           // Point d'entrée Phusion Passenger / cPanel Node.js
           process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-          // Auto-initialisation SQLite instantanée par copie du template (sans appel npx)
-          try {
-            const fs = require('fs');
-            const path = require('path');
-            
-            // Chemin dynamique basé sur DATABASE_URL ou relatif au dossier parent
-            let targetDb = '';
-            if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('file:')) {
-              targetDb = process.env.DATABASE_URL.replace(/^file:/, '');
-            } else {
-              targetDb = path.resolve(__dirname, '..', 'maalalcars_data', 'production.db');
-            }
+          const fs = require('fs');
+          const path = require('path');
 
+          // 1. Charge les variables d'environnement depuis .env.production ou .env si présent
+          try {
+            const envFiles = ['.env.production', '.env.local', '.env'];
+            for (const file of envFiles) {
+              const fullPath = path.join(__dirname, file);
+              if (fs.existsSync(fullPath)) {
+                const content = fs.readFileSync(fullPath, 'utf8');
+                content.split(/\r?\n/).forEach((line) => {
+                  const trimmed = line.trim();
+                  if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+                    const idx = trimmed.indexOf('=');
+                    const key = trimmed.slice(0, idx).trim();
+                    let val = trimmed.slice(idx + 1).trim();
+                    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                      val = val.slice(1, -1);
+                    }
+                    if (!process.env[key]) {
+                      process.env[key] = val;
+                    }
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('[MAALAL CARS] Note lecture .env :', e.message);
+          }
+
+          // 2. Définir et exporter explicitement DATABASE_URL
+          let targetDb = '';
+          if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('file:')) {
+            targetDb = process.env.DATABASE_URL.replace(/^file:/, '');
+          } else {
+            targetDb = path.resolve(__dirname, '..', 'maalalcars_data', 'production.db');
+            process.env.DATABASE_URL = 'file:' + targetDb;
+          }
+
+          // 3. Auto-initialisation SQLite instantanée par copie du template (sans appel npx)
+          try {
             const templateDb = path.join(__dirname, 'prisma', 'production.db');
-            if (targetDb && !fs.existsSync(targetDb) && fs.existsSync(templateDb)) {
-              fs.mkdirSync(path.dirname(targetDb), { recursive: true });
-              fs.copyFileSync(templateDb, targetDb);
-              console.log('[MAALAL CARS] ✅ Base de données initialisée depuis le template dans ' + targetDb);
+            if (targetDb && !fs.existsSync(targetDb)) {
+              if (fs.existsSync(templateDb)) {
+                fs.mkdirSync(path.dirname(targetDb), { recursive: true });
+                fs.copyFileSync(templateDb, targetDb);
+                console.log('[MAALAL CARS] ✅ Base de données initialisée depuis le template dans ' + targetDb);
+              } else {
+                console.warn('[MAALAL CARS] Template DB introuvable :', templateDb);
+              }
             }
           } catch (e) {
             console.warn('[MAALAL CARS] Note template DB :', e.message);
           }
 
-          // Démarrage du serveur Next.js
+          // 4. Démarrage du serveur Next.js
           require('./server.js');
           EOF
 
@@ -162,7 +199,8 @@ jobs:
             const fs = require("fs");
             let raw = "${{ secrets.FTP_SERVER_DIR }}".trim();
             let dir = raw;
-            if (raw === "/" || raw === "./" || raw === "." || !raw) {
+            const lower = dir.toLowerCase().replace(/\\/g, "/");
+            if (!dir || dir === "/" || dir === "./" || dir === "." || lower === "maalalcars" || lower === "maalalcars/" || lower === "/maalalcars" || lower === "/maalalcars/") {
               dir = "/";
             } else {
               dir = dir.replace(/^\/home\/[^\/]+(\/|$)/, "");
