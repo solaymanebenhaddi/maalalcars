@@ -60,27 +60,10 @@ export async function getActiveUserRole(): Promise<ActiveUserRoleInfo> {
     }
   }
 
-  // Default: Super Admin (Maalal Admin)
-  const superAdminUser = await prisma.user.findFirst({
-    where: {
-      role: { name: { in: ['Super Admin', 'SUPER_ADMIN'] } },
-    },
-    include: { role: true },
-  })
-
-  if (superAdminUser) {
-    return {
-      id: superAdminUser.id,
-      name: superAdminUser.name,
-      email: superAdminUser.email,
-      role: superAdminUser.role.name,
-      isSuperAdmin: isSuperAdminRole(superAdminUser.role.name),
-    }
-  }
-
+  // If not authenticated, return guest with NO admin privileges
   return {
     id: 'anonymous',
-    name: 'Utilisateur',
+    name: 'Non connecté',
     email: '',
     role: 'Invité',
     isSuperAdmin: false,

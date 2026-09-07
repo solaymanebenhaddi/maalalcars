@@ -27,10 +27,13 @@ import { repairRepository } from '@/repositories/repair.repository'
 import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
 import { financialService } from '@/services/financial.service'
 import prisma from '@/lib/db'
+import { requireAuth } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
+  await requireAuth()
+
   // Preemptively expire any reservations due
   await vehicleStateMachine.expireDueReservations()
 

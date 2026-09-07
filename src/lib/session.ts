@@ -50,17 +50,34 @@ export async function getServerSession(): Promise<SessionUser | null> {
 }
 
 /**
+ * Require an authenticated session.
+ * Redirects to /login if no valid session is active.
+ */
+export async function requireAuth(redirectTo = '/login'): Promise<SessionUser> {
+  const user = await getServerSession()
+  if (!user) {
+    redirect(redirectTo)
+  }
+  return user
+}
+
+/**
  * Require an authenticated session with a specific role.
- * Redirects to the target path if the check fails.
+ * Redirects to /login if unauthenticated, or to / if role check fails.
  */
 export async function requireRole(
   roleName: string,
-  redirectTo = '/dashboard',
+  redirectTo = '/login',
 ): Promise<SessionUser> {
   const user = await getServerSession()
 
-  if (!user || user.role.name !== roleName) {
+  if (!user) {
     redirect(redirectTo)
+  }
+
+  // Super Admin bypasses specific role requirement
+  if (user.role.name !== roleName && user.role.name !== 'Super Admin' && user.role.name !== 'SUPER_ADMIN') {
+    redirect('/')
   }
 
   return user

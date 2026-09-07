@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const user = await getActiveUserRole()
+    if (!user || user.role === 'Invité' || !user.email) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
 
     const [vehicleCount, parkCount, activeReservationCount, parks] = await Promise.all([
       prisma.vehicle.count({ where: { archivedAt: null } }),

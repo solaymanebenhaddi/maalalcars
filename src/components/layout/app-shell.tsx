@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { QuickActionModal } from '@/components/modals/quick-action-modal'
@@ -53,6 +53,7 @@ const ROUTE_TO_FEATURE_MAP: Record<string, { featureKey: string; name: string }>
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const pathname = usePathname()
   const { isEnabled } = useFeatures()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
@@ -62,11 +63,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [layoutData, setLayoutData] = useState<LayoutData | null>(null)
 
   useEffect(() => {
+    if (pathname === '/login') return
     fetch('/api/layout')
-      .then((res) => res.ok ? res.json() as Promise<LayoutData> : null)
+      .then((res) => {
+        if (res.status === 401) {
+          router.push('/login')
+          return null
+        }
+        return res.ok ? (res.json() as Promise<LayoutData>) : null
+      })
       .then((data) => { if (data) setLayoutData(data) })
       .catch((err) => console.error('Layout data fetch error:', err))
-  }, [])
+  }, [pathname, router])
 
   // Check if current route belongs to a disabled feature flag
   const matchedRoute = Object.entries(ROUTE_TO_FEATURE_MAP).find(
