@@ -107,6 +107,12 @@ jobs:
           mkdir -p .next/standalone/node_modules
           cp -r node_modules/.prisma .next/standalone/node_modules/ 2>/dev/null || true
           cp -r node_modules/@prisma .next/standalone/node_modules/ 2>/dev/null || true
+          # Assurer l'alias debian-openssl-1.0.x si manquant pour CloudLinux 7
+          if [ -f .next/standalone/node_modules/.prisma/client/query-engine-rhel-openssl-1.1.x ]; then
+            cp .next/standalone/node_modules/.prisma/client/query-engine-rhel-openssl-1.1.x .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.0.x 2>/dev/null || true
+          elif [ -f .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.1.x ]; then
+            cp .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.1.x .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.0.x 2>/dev/null || true
+          fi
           chmod +x .next/standalone/node_modules/.prisma/client/query-engine* 2>/dev/null || true
 
           # Script de migration manuel exécutable depuis l'interface cPanel "Run JS Script"
@@ -143,10 +149,18 @@ jobs:
           const path = require('path');
           const http = require('http');
 
-          // Assurer les droits d'exécution sur les moteurs binaires Prisma
+          // Assurer les droits d'exécution et l'alias de runtime sur les moteurs binaires Prisma
           try {
             const engineDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
             if (fs.existsSync(engineDir)) {
+              const deb10 = path.join(engineDir, 'query-engine-debian-openssl-1.0.x');
+              if (!fs.existsSync(deb10)) {
+                const files = fs.readdirSync(engineDir);
+                const existingEngine = files.find((f) => f.startsWith('query-engine-') && !f.endsWith('.js'));
+                if (existingEngine) {
+                  try { fs.copyFileSync(path.join(engineDir, existingEngine), deb10); } catch (_) {}
+                }
+              }
               fs.readdirSync(engineDir).forEach((f) => {
                 if (f.startsWith('query-engine')) {
                   try { fs.chmodSync(path.join(engineDir, f), 0o755); } catch (_) {}

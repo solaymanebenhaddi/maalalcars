@@ -28,6 +28,15 @@ console.log('App root directory:', appDir);
 try {
   const engineDir = path.join(appDir, 'node_modules', '.prisma', 'client');
   if (fs.existsSync(engineDir)) {
+    const files = fs.readdirSync(engineDir);
+    const existingEngine = files.find(f => f.startsWith('query-engine-') && !f.endsWith('.js'));
+    const deb10 = path.join(engineDir, 'query-engine-debian-openssl-1.0.x');
+    if (!fs.existsSync(deb10) && existingEngine) {
+      try {
+        fs.copyFileSync(path.join(engineDir, existingEngine), deb10);
+        console.log('Auto-created engine alias:', deb10);
+      } catch (_) {}
+    }
     fs.readdirSync(engineDir).forEach((f) => {
       if (f.startsWith('query-engine')) {
         try { fs.chmodSync(path.join(engineDir, f), 0o755); } catch (_) {}
