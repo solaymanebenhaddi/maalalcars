@@ -171,10 +171,11 @@ jobs:
             process.env.DATABASE_URL = 'file:' + targetDb;
           }
 
-          // 3. Auto-initialisation SQLite instantanée par copie du template si production.db n'existe pas encore
+          // 3. Auto-initialisation SQLite instantanée par copie du template si production.db n'existe pas encore ou est vide (0 octet)
           try {
             const templateDb = path.join(__dirname, 'prisma', 'production.template');
-            if (targetDb && !fs.existsSync(targetDb)) {
+            const stat = fs.existsSync(targetDb) ? fs.statSync(targetDb) : null;
+            if (!stat || stat.size < 10000) {
               if (fs.existsSync(templateDb)) {
                 fs.mkdirSync(path.dirname(targetDb), { recursive: true });
                 fs.copyFileSync(templateDb, targetDb);
