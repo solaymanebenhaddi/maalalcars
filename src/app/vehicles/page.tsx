@@ -29,6 +29,7 @@ import clsx from 'clsx'
 
 import { VehiclesPageActions } from '@/components/vehicles/vehicles-page-actions'
 import prisma from '@/lib/db'
+import { requireAuth } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,8 @@ interface Props {
 }
 
 export default async function VehiclesPage({ searchParams }: Props) {
+  await requireAuth()
+
   // Preemptively expire reservations
   await vehicleStateMachine.expireDueReservations()
 

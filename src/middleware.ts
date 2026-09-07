@@ -5,28 +5,33 @@ import { SESSION_CONFIG } from '@/config/constants'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 1. Allow Next.js internal files and static assets with extensions (.png, .ico, .svg, etc.)
+  const isStaticAsset = /\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|eot)$/i.test(pathname)
+
+  // 1. Allow Next.js internal files, login endpoint, and static assets (excluding /api/)
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/auth/login') ||
-    pathname.includes('.')
+    pathname === '/api/auth/login' ||
+    (isStaticAsset && !pathname.startsWith('/api/'))
   ) {
     return NextResponse.next()
   }
 
   const sessionToken = request.cookies.get(SESSION_CONFIG.cookieName)?.value
+  const isValidSessionToken =
+    typeof sessionToken === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionToken)
 
   // 2. If user is accessing /login
   if (pathname === '/login') {
-    // If already authenticated with a session cookie, redirect to dashboard
-    if (sessionToken) {
+    // If already authenticated with a valid session cookie, redirect to dashboard
+    if (isValidSessionToken) {
       return NextResponse.redirect(new URL('/', request.url))
     }
     return NextResponse.next()
   }
 
-  // 3. For all other routes, require an active session cookie
-  if (!sessionToken) {
+  // 3. For all other routes, require an active valid session token
+  if (!isValidSessionToken) {
     // If it's an API route, return 401 Unauthorized
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(

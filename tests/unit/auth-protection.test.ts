@@ -46,16 +46,28 @@ describe('Security & Authentication Guard Suite', () => {
     expect(staticRes.status).toBe(200)
   })
 
-  it('middleware redirects authenticated users from /login to dashboard', () => {
+  it('middleware redirects authenticated users with valid UUID token from /login to dashboard', () => {
     const req = new NextRequest('https://maalalcars.com/login', {
       headers: {
-        cookie: 'maalal_session=valid-test-token-uuid-1234',
+        cookie: 'maalal_session=c4b69324-1c60-4e3e-a894-3158c5382346',
       },
     })
     const res = middleware(req)
 
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toBe('https://maalalcars.com/')
+  })
+
+  it('middleware rejects malformed/forged session tokens and treats as unauthenticated', () => {
+    const req = new NextRequest('https://maalalcars.com/vehicles', {
+      headers: {
+        cookie: 'maalal_session=forged-or-empty-token',
+      },
+    })
+    const res = middleware(req)
+
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toBe('https://maalalcars.com/login?callbackUrl=%2Fvehicles')
   })
 
   it('getActiveUserRole NEVER falls back to Super Admin when unauthenticated', async () => {

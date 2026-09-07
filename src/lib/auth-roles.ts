@@ -27,45 +27,47 @@ export interface ActiveUserRoleInfo {
  * and allowing dynamic role switching for testing through the `maalal_active_role` cookie.
  */
 export async function getActiveUserRole(): Promise<ActiveUserRoleInfo> {
-  const cookieStore = await cookies()
-  const overrideRole = cookieStore.get('maalal_active_role')?.value
+  // 1. Check actual authenticated session first
+  const sessionUser: SessionUser | null = await getServerSession()
+  if (!sessionUser) {
+    // If not authenticated, strictly return guest with NO privileges
+    return {
+      id: 'anonymous',
+      name: 'Non connecté',
+      email: '',
+      role: 'Invité',
+      isSuperAdmin: false,
+    }
+  }
 
-  // If role is explicitly overridden for testing to 'vendeur'
-  if (overrideRole === 'vendeur') {
-    const vendeurUser = await prisma.user.findFirst({
-      where: { role: { name: 'Vendeur' }, isActive: true },
-      include: { role: true },
-    })
+  // 2. Only authenticated Super Admins can simulate role views for testing
+  if (isSuperAdminRole(sessionUser.role.name)) {
+    const cookieStore = await cookies()
+    const overrideRole = cookieStore.get('maalal_active_role')?.value
 
-    if (vendeurUser) {
-      return {
-        id: vendeurUser.id,
-        name: vendeurUser.name,
-        email: vendeurUser.email,
-        role: vendeurUser.role.name,
-        isSuperAdmin: isSuperAdminRole(vendeurUser.role.name),
+    if (overrideRole === 'vendeur') {
+      const vendeurUser = await prisma.user.findFirst({
+        where: { role: { name: 'Vendeur' }, isActive: true },
+        include: { role: true },
+      })
+
+      if (vendeurUser) {
+        return {
+          id: sessionUser.id,
+          name: `${sessionUser.name} (Simulation Vendeur)`,
+          email: sessionUser.email,
+          role: vendeurUser.role.name,
+          isSuperAdmin: false,
+        }
       }
     }
   }
 
-  // Check actual session
-  const sessionUser: SessionUser | null = await getServerSession()
-  if (sessionUser) {
-    return {
-      id: sessionUser.id,
-      name: sessionUser.name,
-      email: sessionUser.email,
-      role: sessionUser.role.name,
-      isSuperAdmin: isSuperAdminRole(sessionUser.role.name),
-    }
-  }
-
-  // If not authenticated, return guest with NO admin privileges
   return {
-    id: 'anonymous',
-    name: 'Non connecté',
-    email: '',
-    role: 'Invité',
-    isSuperAdmin: false,
+    id: sessionUser.id,
+    name: sessionUser.name,
+    email: sessionUser.email,
+    role: sessionUser.role.name,
+    isSuperAdmin: isSuperAdminRole(sessionUser.role.name),
   }
 }

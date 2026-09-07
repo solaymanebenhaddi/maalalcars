@@ -14,10 +14,12 @@ import { Currency } from '@/components/shared/currency'
 import { EmptyState } from '@/components/shared/empty-state'
 import { operationsRepository } from '@/repositories/operations.repository'
 import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
+import { requireAuth } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ReservationsPage() {
+  await requireAuth()
   await vehicleStateMachine.expireDueReservations()
   const reservations = await operationsRepository.getReservations()
 

@@ -79,18 +79,9 @@ export function AppInitialLoader() {
 
   if (!isVisible) return null
 
-  const handleSkip = () => {
-    setIsFadingOut(true)
-    sessionStorage.setItem('maalal_app_initial_loaded', 'true')
-    setTimeout(() => {
-      setIsVisible(false)
-    }, 450)
-  }
-
   return (
     <div
-      onClick={handleSkip}
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070709] transition-all duration-700 select-none cursor-pointer ${
+      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070709] transition-all duration-700 select-none cursor-default ${
         isFadingOut
           ? 'opacity-0 scale-105 pointer-events-none'
           : 'opacity-100 scale-100'
@@ -105,12 +96,6 @@ export function AppInitialLoader() {
       }}
       aria-label="Chargement initial de l'application MAALAL CARS"
     >
-      {/* Skip button pill in top corner */}
-      <div className="absolute top-6 right-6 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 text-xs text-zinc-400 backdrop-blur-md hover:border-red-500/40 hover:text-white transition-all">
-        <span>Cliquer pour passer</span>
-        <span className="text-zinc-600">•</span>
-        <span className="font-mono text-[10px] text-zinc-500">ESC / CLIC</span>
-      </div>
 
       {/* Main Wheel Staging Area */}
       <div className="relative flex flex-col items-center justify-center">
