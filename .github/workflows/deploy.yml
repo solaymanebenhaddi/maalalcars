@@ -196,6 +196,19 @@ jobs:
           require('./server.js');
           EOF
 
+          # Dupliquer app.js en App.js au cas où cPanel a été configuré avec une majuscule
+          cp .next/standalone/app.js .next/standalone/App.js
+
+          # Mettre à jour package.json standalone pour que 'npm start' lance 'node app.js'
+          node -e '
+            const fs = require("fs");
+            const p = ".next/standalone/package.json";
+            const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
+            pkg.scripts = pkg.scripts || {};
+            pkg.scripts.start = "node app.js";
+            fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
+          '
+
       # DÉPLOIEMENT INCRÉMENTAL VIA FTP / FTPS (Toujours à la racine ./ du compte FTP)
       - name: 🚀 Déploiement Incrémental via FTP / FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
