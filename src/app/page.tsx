@@ -39,6 +39,12 @@ export default async function DashboardPage() {
   startOfMonth.setDate(1)
   startOfMonth.setHours(0, 0, 0, 0)
 
+  // Date boundary for sparkline/trend queries (12 months back)
+  const twelveMonthsAgo = new Date()
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+  twelveMonthsAgo.setDate(1)
+  twelveMonthsAgo.setHours(0, 0, 0, 0)
+
   // 1. Parallel Operational and Financial Queries from Database
   const [
     vehicleCounts,
@@ -49,6 +55,9 @@ export default async function DashboardPage() {
     activeVehicles,
     allSales,
     activeReservations,
+    sparkVehicles,
+    sparkReservations,
+    sparkRepairs,
   ] = await Promise.all([
     vehicleRepository.countByStatus(),
     saleRepository.countSales({ startDate: startOfMonth }),
@@ -92,6 +101,21 @@ export default async function DashboardPage() {
     prisma.reservation.findMany({
       where: { status: { in: ['ACTIVE', 'EXPIRING'] } },
       select: { depositAmount: true },
+    }),
+    // Sparkline: vehicles created in last 12 months
+    prisma.vehicle.findMany({
+      where: { createdAt: { gte: twelveMonthsAgo } },
+      select: { createdAt: true, purchasePrice: true },
+    }),
+    // Sparkline: reservations created in last 12 months
+    prisma.reservation.findMany({
+      where: { createdAt: { gte: twelveMonthsAgo } },
+      select: { createdAt: true },
+    }),
+    // Sparkline: repairs started in last 12 months
+    prisma.repair.findMany({
+      where: { startedAt: { gte: twelveMonthsAgo } },
+      select: { startedAt: true },
     }),
   ])
 
@@ -164,11 +188,21 @@ export default async function DashboardPage() {
 
   const totalCashCollected = totalPaymentsReceived + activeAdvancesHeld
 
-  // 6. Monthly Trend for Recharts Financial Chart (Dynamic Server Data)
+  // 6. Monthly Trend for Recharts Financial Chart — 12 months for period selector + sparklines
   const monthNames = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
   const monthlyData: FinancialDataPoint[] = []
 
-  for (let i = 5; i >= 0; i--) {
+  // Sparkline arrays (per-month counts/sums for KPI mini-charts)
+  const sparkVehicleAddedArr: number[] = []
+  const sparkReservationArr: number[] = []
+  const sparkRepairArr: number[] = []
+  const sparkSalesCountArr: number[] = []
+  const sparkCapitalArr: number[] = []
+  const sparkRevenueArr: number[] = []
+  const sparkProfitArr: number[] = []
+  const sparkCashInArr: number[] = []
+
+  for (let i = 11; i >= 0; i--) {
     const d = new Date()
     d.setMonth(d.getMonth() - i)
     const year = d.getFullYear()
@@ -198,15 +232,68 @@ export default async function DashboardPage() {
       profit: prf,
       barValue: Math.max(prf, rev * 0.28),
       marginPct: rev > 0 ? Math.round((prf / rev) * 1000) / 10 : 0,
+      year,
+      monthIndex: monthIdx,
     })
+
+    // Sparkline: count vehicles added this month
+    sparkVehicleAddedArr.push(
+      sparkVehicles.filter((v) => {
+        const c = new Date(v.createdAt)
+        return c.getFullYear() === year && c.getMonth() === monthIdx
+      }).length
+    )
+
+    // Sparkline: count reservations created this month
+    sparkReservationArr.push(
+      sparkReservations.filter((r) => {
+        const c = new Date(r.createdAt)
+        return c.getFullYear() === year && c.getMonth() === monthIdx
+      }).length
+    )
+
+    // Sparkline: count repairs started this month
+    sparkRepairArr.push(
+      sparkRepairs.filter((r) => {
+        const c = new Date(r.startedAt)
+        return c.getFullYear() === year && c.getMonth() === monthIdx
+      }).length
+    )
+
+    // Sparkline: sales count, revenue, profit, cash-in
+    sparkSalesCountArr.push(monthSales.length)
+    sparkRevenueArr.push(rev)
+    sparkProfitArr.push(prf)
+
+    // Sparkline: capital invested (purchase prices of vehicles added this month)
+    sparkCapitalArr.push(
+      sparkVehicles
+        .filter((v) => {
+          const c = new Date(v.createdAt)
+          return c.getFullYear() === year && c.getMonth() === monthIdx
+        })
+        .reduce((sum, v) => sum + v.purchasePrice, 0)
+    )
+
+    // Sparkline: cash collected from sales this month
+    sparkCashInArr.push(
+      monthSales.reduce((sum, s) => {
+        const paid = (s.advanceAmount || 0) + s.payments.reduce((ps, p) => ps + p.amount, 0)
+        return sum + paid
+      }, 0)
+    )
   }
 
-  // If no historical data, leave monthlyData as-is (all zeros) — the chart will show an empty state
-
-  const periodRevenue = monthlyData.reduce((sum, d) => sum + d.revenue, 0)
-  const periodProfit = monthlyData.reduce((sum, d) => sum + d.profit, 0)
-  const periodAvgMargin =
-    periodRevenue > 0 ? Math.round((periodProfit / periodRevenue) * 1000) / 10 : 0
+  // Use last 6 months for KPI sparklines
+  const last6 = <T,>(arr: T[]) => arr.slice(-6)
+  const sparkVehicleAdded6 = last6(sparkVehicleAddedArr)
+  const sparkReservation6 = last6(sparkReservationArr)
+  const sparkRepair6 = last6(sparkRepairArr)
+  const sparkSalesCount6 = last6(sparkSalesCountArr)
+  const sparkCapital6 = last6(sparkCapitalArr)
+  const sparkRevenue6 = last6(sparkRevenueArr)
+  const sparkProfit6 = last6(sparkProfitArr)
+  const sparkCashIn6 = last6(sparkCashInArr)
 
   // 7. Dynamic Radar Metrics Computed From Live DB Ratios
   const totalSalesRevenue = allSales.reduce((sum, s) => sum + s.salePrice, 0)
@@ -299,7 +386,9 @@ export default async function DashboardPage() {
           }}
           topLeftBadge={{ iconType: 'dollar', color: 'emerald' }}
           topRightBadge={{ iconType: 'car', color: 'cyan', isCircle: true }}
-          sparklineType="cyan-wave"
+          sparklineData={sparkVehicleAdded6}
+          sparklineVariant="line"
+          sparklineColor="cyan"
         />
 
         {/* Card 2: Réservés */}
@@ -314,7 +403,9 @@ export default async function DashboardPage() {
           }}
           topLeftBadge={{ iconType: 'bookmark', color: 'amber' }}
           topRightBadge={{ iconType: 'bookmark', color: 'amber' }}
-          sparklineType="amber-wave"
+          sparklineData={sparkReservation6}
+          sparklineVariant="line"
+          sparklineColor="amber"
         />
 
         {/* Card 3: En Réparation */}
@@ -328,7 +419,9 @@ export default async function DashboardPage() {
           }}
           topLeftBadge={{ iconType: 'wrench', color: 'purple' }}
           topRightBadge={{ iconType: 'wrench', color: 'purple' }}
-          sparklineType="purple-beam"
+          sparklineData={sparkRepair6}
+          sparklineVariant="line"
+          sparklineColor="purple"
         />
 
         {/* Card 4: Vendus Ce Mois */}
@@ -342,7 +435,9 @@ export default async function DashboardPage() {
           }}
           topLeftBadge={{ iconType: 'dollar', color: 'emerald' }}
           topRightBadge={{ iconType: 'dollar', color: 'cyan', isCircle: true }}
-          sparklineType="teal-wave"
+          sparklineData={sparkSalesCount6}
+          sparklineVariant="line"
+          sparklineColor="teal"
         />
       </div>
 
@@ -359,7 +454,9 @@ export default async function DashboardPage() {
             color: 'emerald',
           }}
           topRightBadge={{ iconType: 'layers', color: 'cyan' }}
-          sparklineType="cyan-equalizer"
+          sparklineData={sparkCapital6}
+          sparklineVariant="bar"
+          sparklineColor="cyan"
         />
 
         {/* Card 2: Chiffre d'Affaires Ce Mois */}
@@ -373,7 +470,9 @@ export default async function DashboardPage() {
             color: 'cyan',
           }}
           topRightBadge={{ iconType: 'chart', color: 'blue' }}
-          sparklineType="blue-equalizer"
+          sparklineData={sparkRevenue6}
+          sparklineVariant="bar"
+          sparklineColor="blue"
         />
 
         {/* Card 3: Bénéfice Net Réalisé */}
@@ -387,7 +486,9 @@ export default async function DashboardPage() {
             color: 'emerald',
           }}
           topRightBadge={{ iconType: 'trending', color: 'emerald' }}
-          sparklineType="green-mountain"
+          sparklineData={sparkProfit6}
+          sparklineVariant="area"
+          sparklineColor="green"
         />
 
         {/* Card 4: Trésorerie Encaissée */}
@@ -401,7 +502,9 @@ export default async function DashboardPage() {
             color: 'zinc',
           }}
           topRightBadge={{ iconType: 'wallet', color: 'amber' }}
-          sparklineType="amber-equalizer"
+          sparklineData={sparkCashIn6}
+          sparklineVariant="bar"
+          sparklineColor="amber"
         />
       </div>
 
@@ -412,9 +515,6 @@ export default async function DashboardPage() {
           <div className="w-full">
             <FinancialPerformanceChart
               data={monthlyData}
-              totalRevenue={periodRevenue}
-              totalProfit={periodProfit}
-              averageMargin={periodAvgMargin}
             />
           </div>
         </div>

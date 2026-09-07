@@ -291,7 +291,7 @@ export default function NewFinancingDossierPage() {
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 font-semibold mb-1">Propriétaire d'un bien ?</label>
+                  <label className="block text-zinc-400 font-semibold mb-1">Propriétaire d&apos;un bien ?</label>
                   <div className="flex items-center gap-4 h-10 px-3 rounded-lg border border-[#282834] bg-[#18181f]">
                     <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300">
                       <input

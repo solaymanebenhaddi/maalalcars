@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Changa+One:ital@0;1&display=swap');
 @import "tailwindcss";
 
 @theme inline {
@@ -103,4 +104,111 @@ body {
 ::selection {
   background-color: var(--brand-red-dark);
   color: var(--text-primary);
+}
+
+/* Changa One Brand Font */
+.font-changa {
+  font-family: 'Changa One', cursive, sans-serif;
+  letter-spacing: 0.08em;
+}
+
+/* Realistic Wheel Spinner & Loader Animations */
+@keyframes realistic-wheel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wheel-accel-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(120deg);
+  }
+  45% {
+    transform: rotate(480deg);
+  }
+  70% {
+    transform: rotate(1280deg);
+  }
+  100% {
+    transform: rotate(2880deg);
+  }
+}
+
+@keyframes letter-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.6);
+    filter: blur(8px);
+    text-shadow: none;
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.15);
+    filter: blur(0px);
+    text-shadow: 0 0 25px rgba(239, 68, 68, 1), 0 0 50px rgba(220, 38, 38, 0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+    text-shadow: 0 0 14px rgba(239, 68, 68, 0.5), 0 2px 4px rgba(0, 0, 0, 0.9);
+  }
+}
+
+@keyframes wheel-shadow-pulse {
+  0%, 100% {
+    transform: scaleX(1) scaleY(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleX(1.1) scaleY(0.9);
+    opacity: 0.95;
+  }
+}
+
+@keyframes tire-smoke-puff {
+  0% {
+    transform: scale(0.4) translateY(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.6) translateY(-14px);
+    opacity: 0;
+  }
+}
+
+.animate-wheel-spin {
+  animation: realistic-wheel-spin 0.85s linear infinite;
+}
+
+.animate-wheel-spin-fast {
+  animation: realistic-wheel-spin 0.45s linear infinite;
+}
+
+.animate-wheel-accel {
+  animation: wheel-accel-spin 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-wheel-shadow {
+  animation: wheel-shadow-pulse 1.8s ease-in-out infinite;
+}
+
+/* Maintain dark theme on browser autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #18202d inset !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

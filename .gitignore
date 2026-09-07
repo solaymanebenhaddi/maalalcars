@@ -70,3 +70,5 @@ storage/temp/*
 # Local Claude Code config
 .claude/
 .claude-flow/
+
+*.stackdump

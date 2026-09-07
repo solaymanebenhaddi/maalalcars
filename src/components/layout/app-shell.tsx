@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { QuickActionModal } from '@/components/modals/quick-action-modal'
 import { NotificationDrawer } from '@/components/modals/notification-drawer'
+import { DataExportModal } from '@/components/modals/data-export-modal'
 import { useFeatures } from '@/contexts/features.context'
 import { ModuleDisabled } from '@/components/shared/module-disabled'
 
@@ -56,6 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { isEnabled } = useFeatures()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false)
   const [layoutData, setLayoutData] = useState<LayoutData | null>(null)
 
@@ -75,6 +77,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     matchedRoute && !isEnabled(matchedRoute[1].featureKey)
   )
 
+  // Dedicated standalone layout for login page
+  if (pathname === '/login') {
+    return <>{children}</>
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-[#f0f0f2]">
       {/* Persistent Sidebar */}
@@ -91,6 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Topbar
           onOpenMobileNav={() => setIsMobileNavOpen(true)}
           onOpenQuickAction={() => setIsQuickActionOpen(true)}
+          onOpenExport={() => setIsExportModalOpen(true)}
           onOpenNotifications={() => setIsNotificationDrawerOpen(true)}
           userName={layoutData?.user.name}
           userEmail={layoutData?.user.email}
@@ -116,6 +124,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <QuickActionModal
         isOpen={isQuickActionOpen}
         onClose={() => setIsQuickActionOpen(false)}
+        onOpenExport={() => setIsExportModalOpen(true)}
+      />
+
+      {/* Universal Data Export Modal */}
+      <DataExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        defaultType="vehicles"
       />
 
       {/* Interactive Notifications Drawer */}

@@ -17,10 +17,12 @@ import {
   LogOut,
   X,
   Building2,
+  Download,
 } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
 import { WheelSpinner } from '@/components/ui/wheel-spinner'
+import { useWheelLoader } from '@/contexts/wheel-loader.context'
 
 interface VehicleSearchResult {
   id: string
@@ -64,6 +66,7 @@ interface TopbarProps {
   onOpenMobileNav: () => void
   onOpenQuickAction: () => void
   onOpenNotifications: () => void
+  onOpenExport?: () => void
   unreadNotificationsCount?: number
   userName?: string
   userEmail?: string
@@ -76,6 +79,7 @@ export function Topbar({
   onOpenMobileNav,
   onOpenQuickAction,
   onOpenNotifications,
+  onOpenExport,
   unreadNotificationsCount = 0,
   userName,
   userEmail,
@@ -84,6 +88,7 @@ export function Topbar({
   totalVehicleCount,
 }: TopbarProps) {
   const router = useRouter()
+  const { showWheelLoader, hideWheelLoader } = useWheelLoader()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -91,6 +96,23 @@ export function Topbar({
   const searchRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
   const parkMenuRef = useRef<HTMLDivElement>(null)
+
+  const handleLogout = async () => {
+    setIsProfileOpen(false)
+    showWheelLoader('Déconnexion en cours...')
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (err) {
+      console.error('Logout error:', err)
+    } finally {
+      sessionStorage.removeItem('maalal_app_initial_loaded')
+      setTimeout(() => {
+        hideWheelLoader()
+        router.push('/login')
+        router.refresh()
+      }, 700)
+    }
+  }
 
   // Handle Search API
   useEffect(() => {
@@ -335,6 +357,19 @@ export function Topbar({
           <span className="hidden sm:inline">Action rapide</span>
         </button>
 
+        {/* Data Export Button */}
+        {onOpenExport && (
+          <button
+            type="button"
+            onClick={onOpenExport}
+            title="Exporter les données"
+            className="flex items-center gap-1.5 rounded-lg border border-[#222228] bg-[#141418] px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Exporter</span>
+          </button>
+        )}
+
         {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
@@ -419,11 +454,8 @@ export function Topbar({
               </div>
               <div className="border-t border-[#222228] pt-1 mt-1">
                 <button
-                  onClick={() => {
-                    setIsProfileOpen(false)
-                    router.push('/login')
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-red-400 hover:bg-red-500/10"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 cursor-pointer"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Se déconnecter</span>

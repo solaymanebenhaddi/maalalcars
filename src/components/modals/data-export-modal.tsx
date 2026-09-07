@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Download, X, FileSpreadsheet, FileText, CheckCircle2 } from 'lucide-react'
+import { useWheelLoader } from '@/contexts/wheel-loader.context'
 
 export interface DataExportModalProps {
   isOpen: boolean
@@ -14,6 +15,7 @@ export function DataExportModal({
   onClose,
   defaultType = 'vehicles',
 }: DataExportModalProps) {
+  const { showWheelLoader, hideWheelLoader } = useWheelLoader()
   const [exportType, setExportType] = useState(defaultType)
   const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>('xlsx')
   const [period, setPeriod] = useState('all')
@@ -26,6 +28,7 @@ export function DataExportModal({
 
   const handleExport = async () => {
     setIsExporting(true)
+    showWheelLoader('Exportation des données en cours...')
 
     try {
       // Simulate real data file generation and trigger browser download
@@ -42,7 +45,7 @@ export function DataExportModal({
       const filename = `MAALALCARS_${typeLabel}_${dateStr}.${format === 'xlsx' ? 'xlsx' : format === 'csv' ? 'csv' : 'pdf'}`
 
       // CSV content will be generated from real database data via export API
-      let content = ''
+      const content = ''
       if (format === 'csv' || format === 'xlsx') {
         const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
         const url = URL.createObjectURL(blob)
@@ -61,11 +64,13 @@ export function DataExportModal({
       setTimeout(() => {
         setDownloadSuccess(false)
         setIsExporting(false)
+        hideWheelLoader()
         onClose()
-      }, 1500)
+      }, 1200)
     } catch (err) {
       console.error(err)
       setIsExporting(false)
+      hideWheelLoader()
     }
   }
 

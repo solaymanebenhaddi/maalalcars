@@ -60,7 +60,7 @@ export async function getActiveUserRole(): Promise<ActiveUserRoleInfo> {
     }
   }
 
-  // Default: Super Admin (Adem Maalal)
+  // Default: Super Admin (Maalal Admin)
   const superAdminUser = await prisma.user.findFirst({
     where: {
       role: { name: { in: ['Super Admin', 'SUPER_ADMIN'] } },

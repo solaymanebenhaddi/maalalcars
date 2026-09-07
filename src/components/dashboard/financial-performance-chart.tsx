@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -20,33 +20,51 @@ export interface FinancialDataPoint {
   profit: number
   marginPct?: number
   barValue?: number
+  year?: number
+  monthIndex?: number
 }
 
 interface FinancialPerformanceChartProps {
   data: FinancialDataPoint[]
-  totalRevenue: number
-  totalProfit: number
-  averageMargin: number
 }
 
 export function FinancialPerformanceChart({
   data,
-  totalRevenue,
-  totalProfit,
-  averageMargin,
 }: FinancialPerformanceChartProps) {
   const [period, setPeriod] = useState<'6M' | '12M' | 'YTD' | 'Tout'>('6M')
   const [granularity, setGranularity] = useState<'Mensuelle' | 'Hebdomadaire'>('Mensuelle')
   const [isGranularityOpen, setIsGranularityOpen] = useState(false)
 
+  const filteredData = useMemo(() => {
+    const now = new Date()
+    switch (period) {
+      case '6M':
+        return data.slice(-6)
+      case '12M':
+        return data.slice(-12)
+      case 'YTD': {
+        const currentYear = now.getFullYear()
+        return data.filter((d) => d.year === currentYear)
+      }
+      case 'Tout':
+        return data
+    }
+  }, [data, period])
+
+  // Compute strip metrics from filtered data
+  const totalRevenue = filteredData.reduce((sum, d) => sum + d.revenue, 0)
+  const totalProfit = filteredData.reduce((sum, d) => sum + d.profit, 0)
+  const averageMargin =
+    totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 1000) / 10 : 0
+
   // Ensure barValue is mapped for the background column bars
-  const chartData = data.map((d) => ({
+  const chartData = filteredData.map((d) => ({
     ...d,
     barValue: d.barValue ?? Math.max(d.profit, d.revenue * 0.28),
     marginPct: d.marginPct ?? (d.revenue > 0 ? Math.round((d.profit / d.revenue) * 1000) / 10 : 0),
   }))
 
-  const hasData = data.some((d) => d.revenue > 0)
+  const hasData = filteredData.some((d) => d.revenue > 0)
 
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#1e2029] bg-[#121318] p-5 shadow-lg shadow-black/40 min-h-[420px]">

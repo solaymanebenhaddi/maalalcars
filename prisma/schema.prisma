@@ -7,10 +7,16 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ==========================================
+// 1. UTILISATEURS, RÔLES & SÉCURITÉ
+// ==========================================
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
   name         String
+  phone        String?
+  avatarUrl    String?
   passwordHash String
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
@@ -20,6 +26,21 @@ model User {
   roleId   String
   role     Role      @relation(fields: [roleId], references: [id])
   sessions Session[]
+
+  // Relations métier
+  assignedLeads       Lead[]
+  assignedTasks       Task[]
+  salesMade           Sale[]
+  purchasesHandled    Purchase[]
+  inspectionsMade     VehicleInspection[]
+  workshopOrders      WorkshopOrder[]
+  activityLogs        ActivityLog[]
+  appointments        Appointment[]
+  createdRegularizations Regularization[]
+  repairsPaid         Repair[]                @relation("RepairPaidBy")
+  purchaseCommissionsPaid Purchase[]          @relation("PurchaseCommissionPaidBy")
+  saleCommissionsPaid Sale[]                  @relation("SaleCommissionPaidBy")
+  salesReceived       Sale[]                  @relation("SaleReceivedBy")
 }
 
 model Role {
@@ -35,31 +56,1123 @@ model Role {
 
 model Permission {
   id        String   @id @default(cuid())
-  action    String
-  subject   String
+  action    String   // read, create, update, delete, export, validate
+  subject   String   // vehicles, sales, finance, users, settings, etc.
   createdAt DateTime @default(now())
 
   roleId String
-  role   Role   @relation(fields: [roleId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 }
 
 model Session {
-  id          String   @id @default(cuid())
-  token       String   @unique
-  expiresAt   DateTime
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  action     String   // VEHICLE_CREATED, SALE_CONFIRMED, PAYMENT_RECEIVED, etc.
+  entityType String   // Vehicle, Sale, Payment, Contact, etc.
+  entityId   String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ==========================================
+// 2. PARAMÈTRES & CONFIGURATIONS GLOBALES
+// ==========================================
 
 model ApplicationSetting {
   id          String   @id @default(cuid())
   key         String   @unique
   value       String
   description String?
+  category    String   @default("general") // general, invoice, vehicle, expense, company
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  description String?
+  enabled     Boolean  @default(false)
+  category    String   // "core", "finance", "crm", "services", "marketing", "system"
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyPrefix   String    @unique
+  keyHash     String
+  permissions String    // JSON string array of permissions
+  status      String    @default("ACTIVE") // ACTIVE, REVOKED, EXPIRED
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model WebhookSubscription {
+  id        String   @id @default(cuid())
+  name      String
+  targetUrl String
+  secret    String
+  events    String   // JSON string array of events
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE, FAILED
+  failures  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// 3. CONTACTS CRM UNIFIÉS (Acheteurs, Vendeurs, Commissionnaires, Fournisseurs, Clients)
+// ==========================================
+
+model Contact {
+  id          String    @id @default(cuid())
+  code        String    @unique // CLT-001, VEN-001, COM-001, FOUR-001
+  type        String    // INDIVIDUAL, COMPANY
+  role        String    // BUYER, SELLER, COMMISSIONER, SUPPLIER, CLIENT, PROSPECT
+  firstName   String?
+  lastName    String?
+  companyName String?
+  cin         String?
+  ice         String?
+  rc          String?
+  email       String?
+  phone       String
+  phoneSecondary String?
+  address     String?
+  city        String    @default("Casablanca")
+  postalCode  String?
+  segment     String?   // VIP, FIDELE, PROSPECT_CHAUD, PROSPECT_FROID, FOURNISSEUR, STANDARD
+  rating      Float     @default(5.0)
+  totalVolume Float     @default(0) // Total MAD transigé
+  currentDebt Float     @default(0) // Encours actuel dû
+  status      String    @default("ACTIVE") // ACTIVE, INACTIVE, BLOCKED
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  archivedAt  DateTime?
+
+  // Relations
+  purchasesAsSeller       Purchase[]              @relation("SellerContact")
+  purchasesAsSupplier     Purchase[]              @relation("SupplierContact")
+  purchasesAsCommissioner Purchase[]              @relation("CommissionerContact")
+  salesAsBuyer            Sale[]                  @relation("BuyerContact")
+  salesAsCommissioner     Sale[]                  @relation("SaleCommissionerContact")
+  reservations            Reservation[]
+  payments                Payment[]
+  regularizations         Regularization[]
+  invoices                Invoice[]
+  contracts               Contract[]
+  leads                   Lead[]
+  financingApplications   FinancingApplication[]
+  warranties              Warranty[]
+  insurances              InsurancePolicy[]
+  registrationDossiers    RegistrationDossier[]
+  workshopOrders          WorkshopOrder[]
+  appointments            Appointment[]
+  communications          CommunicationMessage[]
+  documents               Document[]
+  tickets                 HelpdeskTicket[]
+}
+
+// ==========================================
+// 4. RÉFÉRENTIELS VÉHICULES
+// ==========================================
+
+model VehicleBrand {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  logoUrl   String?
+  country   String         @default("Maroc")
+  models    VehicleModel[]
+  createdAt DateTime       @default(now())
+}
+
+model VehicleModel {
+  id        String        @id @default(cuid())
+  name      String
+  brandId   String
+  brand     VehicleBrand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  bodyType  String        @default("Berline") // SUV, Berline, 4x4 & Pick-up, Citadine, Utilitaire, Coupé
+  vehicles  Vehicle[]
+  createdAt DateTime      @default(now())
+
+  @@unique([brandId, name])
+}
+
+// ==========================================
+// 5. VÉHICULES & STOCKS
+// ==========================================
+
+model Vehicle {
+  id              String    @id @default(cuid())
+  code            String    @unique // V-2026-0001
+  vin             String    @unique
+  matricule       String?   @unique
+  brand           String
+  model           String
+  version         String?
+  bodyType        String    @default("SUV")
+  year            Int
+  colorExterior   String
+  colorInterior   String?
+  fuelType        String    // DIESEL, ESSENCE, HYBRIDE, HYBRIDE_RECHARGEABLE, ELECTRIQUE
+  transmission    String    // AUTOMATIQUE, MANUELLE, SEMI_AUTO, ROBOTISEE
+  mileage         Int       @default(0) // km
+  doors           Int       @default(5)
+  seats           Int       @default(5)
+  fiscalPower     Int       @default(8) // CV
+  options         String?   // JSON string of options tags
+  location        String    @default("Casablanca Showroom")
+  entryDate       DateTime  @default(now())
+  
+  // Coûts et Valorisation (en MAD / DH)
+  purchasePrice   Float     @default(0)
+  targetSalePrice Float     @default(0)
+  minSalePrice    Float?
+  actualSalePrice Float?
+  
+  status          String    @default("IN_STOCK") // IN_STOCK, RESERVED, SOLD, WORKSHOP, TRANSIT, ARCHIVED
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  archivedAt      DateTime?
+
+  modelRelationId String?
+  modelRelation   VehicleModel? @relation(fields: [modelRelationId], references: [id], onDelete: SetNull)
+
+  parkId          String?
+  park            Park?         @relation(fields: [parkId], references: [id], onDelete: SetNull)
+
+  // Relations
+  photos          VehiclePhoto[]
+  documents       Document[]
+  expenses        Expense[]
+  purchases       Purchase[]
+  reservations    Reservation[]
+  sales           Sale[]
+  inspections     VehicleInspection[]
+  workshopOrders  WorkshopOrder[]
+  warranties      Warranty[]
+  insurances      InsurancePolicy[]
+  registrations   RegistrationDossier[]
+  listings        VehicleListing[]
+  statusHistory   VehicleStatusHistory[]
+  financingApplications FinancingApplication[]
+  repairs         Repair[]
+}
+
+model Park {
+  id          String    @id @default(cuid())
+  code        String    @unique // ex: PRK-CAS-01, PRK-FES-01
+  name        String    // ex: "Parc Casablanca — Showroom Principal", "Parc Fès — Agence & Dépôt"
+  city        String    // Casablanca, Fès, etc.
+  address     String?
+  phone       String?
+  managerName String?
+  capacity    Int       @default(40)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  vehicles    Vehicle[]
+}
+
+model VehiclePhoto {
+  id        String   @id @default(cuid())
+  url       String
+  isPrimary Boolean  @default(false)
+  category  String   @default("EXTERIEUR") // EXTERIEUR, INTERIEUR, MOTEUR, DEGATS
+  order     Int      @default(0)
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model VehicleStatusHistory {
+  id        String   @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  oldStatus String?
+  newStatus String
+  reason    String?
+  changedBy String?
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 5bis. RÉPARATIONS (MVP LÉGER)
+// ==========================================
+
+model Repair {
+  id              String    @id @default(cuid())
+  code            String    @unique // REP-2026-0001
+  vehicleId       String
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  repairType      String    // MECANIQUE, CARROSSERIE, ELECTRICITE, PNEUMATIQUES, CLIMATISATION, ENTRETIEN, NETTOYAGE, AUTRE
+  description     String?
+  garageName      String?
+
+  startedAt       DateTime  @default(now())
+  estimatedAmount Float?    // MAD — TODO: migrate to Decimal on PostgreSQL
+  finalAmount     Float?    // MAD — null at creation — TODO: migrate to Decimal on PostgreSQL
+  paidById        String?   // FK to User — ALWAYS null at creation, set only on completion
+  paidBy          User?     @relation("RepairPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  completedAt     DateTime?
+
+  status          String    @default("EN_COURS") // EN_COURS, TERMINEE, ANNULEE
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ==========================================
+// 6. ACHATS & APPROVISIONNEMENTS
+// ==========================================
+
+model Purchase {
+  id                 String    @id @default(cuid())
+  code               String    @unique // ACH-2026-0001 ou BC-2026-0001
+  purchaseDate       DateTime  @default(now())
+  vehicleId          String
+  vehicle            Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  sellerContactId    String?
+  seller             Contact?  @relation("SellerContact", fields: [sellerContactId], references: [id], onDelete: SetNull)
+  supplierContactId  String?
+  supplier           Contact?  @relation("SupplierContact", fields: [supplierContactId], references: [id], onDelete: SetNull)
+  commissionerId     String?
+  commissioner       Contact?  @relation("CommissionerContact", fields: [commissionerId], references: [id], onDelete: SetNull)
+  handledById        String?
+  handledBy          User?     @relation(fields: [handledById], references: [id], onDelete: SetNull)
+
+  // Supplier snapshot columns (MVP without CRM)
+  supplierName                String?
+  supplierPhone               String?
+  supplierCin                 String?
+  supplierAddress             String?
+
+  // Commissioner snapshot columns
+  commissionerName            String?
+  commissionerPhone           String?
+  commissionerCin             String?
+  commissionerAddress         String?
+  commissionPaidById          String?
+  commissionPaidBy            User?     @relation("PurchaseCommissionPaidBy", fields: [commissionPaidById], references: [id], onDelete: SetNull)
+
+  purchasePrice      Float     // MAD
+  commissionAmount   Float     @default(0)
+  paymentMethod      String    @default("VIREMENT") // VIREMENT, CHEQUE, ESPECES, EFFET
+  status             String    @default("CONFIRMED") // DRAFT, CONFIRMED, DELIVERED, CANCELLED
+  invoiceNumber      String?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  payments           Payment[]
+  documents          Document[]
+}
+
+// ==========================================
+// 7. RÉSERVATIONS
+// ==========================================
+
+model Reservation {
+  id              String    @id @default(cuid())
+  code            String    @unique // RES-2026-0001
+  vehicleId       String
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Client snapshot columns (MVP without CRM)
+  clientName      String?
+  clientPhone     String?
+  clientCin       String?
+  clientAddress   String?
+  
+  depositAmount   Float     @default(0) // MAD
+  paymentMethod   String    @default("ESPECES")
+  startDate       DateTime  @default(now())
+  expiryDate      DateTime
+  salespersonName String?
+  status          String    @default("ACTIVE") // ACTIVE, EXPIRING, EXPIRED, CANCELLED, CONVERTED, EXPIREE, ANNULEE, CONVERTIE_EN_VENTE
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  convertedSaleId String?   @unique
+  convertedSale   Sale?     @relation("ConvertedReservation", fields: [convertedSaleId], references: [id], onDelete: SetNull)
+}
+
+// ==========================================
+// 8. VENTES & CALCUL COMMERCIAL
+// ==========================================
+
+model Sale {
+  id                 String       @id @default(cuid())
+  code               String       @unique // VEN-2026-0001 ou CMD-2026-0001
+  saleDate           DateTime     @default(now())
+  vehicleId          String
+  vehicle            Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  buyerContactId     String?
+  buyer              Contact?     @relation("BuyerContact", fields: [buyerContactId], references: [id], onDelete: SetNull)
+  commissionerId     String?
+  commissioner       Contact?     @relation("SaleCommissionerContact", fields: [commissionerId], references: [id], onDelete: SetNull)
+  salespersonId      String?
+  salesperson        User?        @relation(fields: [salespersonId], references: [id], onDelete: SetNull)
+
+  // Buyer snapshot columns (MVP without CRM)
+  buyerName           String?
+  buyerPhone          String?
+  buyerCin            String?
+  buyerAddress        String?
+
+  // Sale Commissioner snapshot
+  commissionerName    String?
+  commissionerPhone   String?
+  commissionerCin     String?
+  commissionerAddress String?
+  commissionPaidById  String?
+  commissionPaidBy    User?        @relation("SaleCommissionPaidBy", fields: [commissionPaidById], references: [id], onDelete: SetNull)
+
+  // Point of sale receipt & advance
+  receivedById        String?
+  receivedBy          User?        @relation("SaleReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+  reservationId       String?
+  advanceAmount       Float        @default(0)
+  
+  salePrice          Float        // MAD (Prix de vente TTC / Net)
+  taxRate            Float        @default(20.0) // %
+  commissionAmount   Float        @default(0) // MAD
+  discountAmount     Float        @default(0) // MAD
+  additionalFees     Float        @default(0) // MAD
+  
+  // Workflow état
+  status             String       @default("CONFIRMED") // NEW, NEGOTIATION, PENDING_PAYMENT, CONFIRMED, PREPARATION, DELIVERED, CANCELLED
+  paymentMethod      String       @default("VIREMENT")
+  expectedDeliveryDate DateTime?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  fromReservation    Reservation? @relation("ConvertedReservation")
+  payments           Payment[]
+  invoices           Invoice[]
+  deliveries         Delivery[]
+  regularizations    Regularization[]
+  documents          Document[]
+}
+
+// ==========================================
+// 9. PAIEMENTS & FINANCES TRANSACTIONNELLES
+// ==========================================
+
+model Payment {
+  id              String    @id @default(cuid())
+  code            String    @unique // PAY-2026-0001 ou ENC-2026-0001
+  type            String    // INFLOW (Encaissement vente), OUTFLOW (Décaissement achat / dépense), COMMISSION
+  amount          Float     // MAD
+  paymentDate     DateTime  @default(now())
+  paymentMethod   String    @default("VIREMENT") // VIREMENT, ESPECES, CHEQUE, CARTE, EFFET
+  referenceNumber String?   // N° chèque / bordereau virement
+  status          String    @default("PAID") // PAID, PENDING, OVERDUE, CANCELLED
+  dueDate         DateTime?
+  receivedBy      String?
+  notes           String?
+  receiptUrl      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  saleId          String?
+  sale            Sale?     @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  purchaseId      String?
+  purchase        Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+}
+
+// ==========================================
+// 10. DÉPENSES VÉHICULES & EXPLOITATION
+// ==========================================
+
+model ExpenseCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique // Transport, Préparation esthétique, Atelier, Carburant, Administratif, Assurance, Pièces, etc.
+  code        String    @unique
+  description String?
+  defaultTax  Float     @default(20.0)
+  isActive    Boolean   @default(true)
+  expenses    Expense[]
+  createdAt   DateTime  @default(now())
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  code          String          @unique // D-2025-0052
+  categoryId    String
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  vehicleId     String?
+  vehicle       Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  
+  label         String
+  amountHT      Float           @default(0) // MAD
+  taxRate       Float           @default(20.0) // %
+  taxAmount     Float           @default(0) // MAD
+  amountTTC     Float           // MAD
+  expenseDate   DateTime        @default(now())
+  supplierName  String?
+  paymentMethod String          @default("CARTE")
+  paidBy        String?
+  status        String          @default("PAID") // PAID, PENDING, REJECTED
+  isRecurring   Boolean         @default(false)
+  receiptUrl    String?
+  notes         String?
+  
+  vehicleName   String?         // e.g. Toyota Land Cruiser, BMW X5, Mercedes GLC
+  mileage       Int?            // e.g. 12650, 45230
+  invoiceRef    String?         // e.g. FAC-2025-041
+  history       String?         // JSON audit trail
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model RecurringExpense {
+  id          String   @id @default(cuid())
+  code        String   @unique // R-2025-001
+  title       String
+  category    String
+  supplier    String
+  frequency   String   @default("Mensuelle")
+  amountTTC   Float
+  status      String   @default("PENDING_VALIDATION") // PENDING_VALIDATION, VALIDATED, CANCELLED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==========================================
+// 11. FACTURES & COMPTABILITÉ
+// ==========================================
+
+model Invoice {
+  id              String        @id @default(cuid())
+  code            String        @unique // FAC-2025-0048
+  type            String        @default("VENTE") // VENTE, ACOMPTE, AVOIR, PROFORMA
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  
+  contactId       String
+  contact         Contact       @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  saleId          String?
+  sale            Sale?         @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  
+  subtotalHT      Float         @default(0) // MAD
+  taxRate         Float         @default(20.0)
+  taxAmount       Float         @default(0)
+  totalTTC        Float         // MAD
+  paidAmount      Float         @default(0)
+  balanceDue      Float         // MAD (totalTTC - paidAmount)
+  
+  status          String        @default("PAID") // DRAFT, SENT, PARTIAL, PAID, OVERDUE, CANCELLED
+  paymentMethod   String        @default("VIREMENT")
+  notes           String?
+  terms           String?
+  pdfUrl          String?
+  
+  clientName      String?       // e.g. Imane Zahiri, Sarah Benali
+  vehicleName     String?       // e.g. Mercedes-Benz GLC, BMW X5
+  saleCode        String?       // e.g. VTE-2025-0034
+  billingAddress  String?       // e.g. 56, Boulevard Zerktouni, 20150 Casablanca, Maroc
+  clientICE       String?       // e.g. 112233441066776
+  history         String?       // JSON audit trail
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  lines           InvoiceLine[]
+  payments        Payment[]
+  regularizations Regularization[]
+}
+
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int      @default(1)
+  unitPriceHT Float
+  taxRate     Float    @default(20.0)
+  totalHT     Float
+  totalTTC    Float
+}
+
+// ==========================================
+// 12. RÉGULARISATIONS & RAPPROCHEMENTS
+// ==========================================
+
+model Regularization {
+  id              String    @id @default(cuid())
+  code            String    @unique // REG-2025-0050
+  type            String    @default("AJUSTEMENT_PRIX") // AJUSTEMENT_PRIX, REMISE_COMMERCIALE, FRAIS_PREPARATION, SOLDE_CLIENT
+  reason          String
+  targetAmount    Float     // MAD
+  adjustedAmount  Float     // MAD
+  difference      Float     // MAD
+  status          String    @default("VALIDATED") // DRAFT, PENDING, RECONCILED, VALIDATED, OVERDUE, CANCELLED
+  
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  saleId          String?
+  sale            Sale?     @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  handledById     String?
+  handledBy       User?     @relation(fields: [handledById], references: [id], onDelete: SetNull)
+  
+  vehicleName     String?   // e.g. Toyota Land Cruiser 2023
+  clientName      String?   // e.g. Imane Zahiri
+  saleCode        String?   // e.g. VEN-2025-0032
+  invoiceCode     String?   // e.g. FAC-2025-0038
+  responsibleName String?   // e.g. Admin Maalal, Nadia K., Youssef M.
+  validationDate  DateTime?
+  auditHistory    String?   // JSON audit timeline events
+  
+  reconciliationData String? // JSON detailing breakdown allocations
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ==========================================
+// 13. CENTRE DE DOCUMENTS
+// ==========================================
+
+model Document {
+  id          String    @id @default(cuid())
+  code        String    @unique // DOC-2026-0001
+  title       String
+  category    String    // Ventes, Achats, Administratif, Assurance, Garantie, Technique, Identite, Maintenance
+  type        String    // Carte Grise, Facture, CIN, Contrat, Bon de Livraison, Quitus Fiscal, etc.
+  fileUrl     String
+  fileSize    Int       @default(0) // bytes
+  mimeType    String    @default("application/pdf")
+  issueDate   DateTime  @default(now())
+  expiryDate  DateTime?
+  status      String    @default("VALID") // VALID, EXPIRING_SOON, EXPIRED
+  tags        String?   // JSON array of strings
+  
+  vehicleId   String?
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  purchaseId  String?
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  saleId      String?
+  sale        Sale?     @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ==========================================
+// 14. CONTRATS
+// ==========================================
+
+model Contract {
+  id          String    @id @default(cuid())
+  code        String    @unique // CTR-2026-0001
+  title       String
+  type        String    // Maintenance flotte, Fourniture pièces, Location, Partenariat, Assurance, Vente
+  startDate   DateTime
+  endDate     DateTime
+  amountHT    Float     @default(0)
+  status      String    @default("ACTIVE") // DRAFT, ACTIVE, EXPIRING_SOON, TERMINATED
+  signatureStatus String @default("SIGNED") // DRAFT, SENT, SIGNED, REJECTED
+  signedAt    DateTime?
+  terms       String?
+  pdfUrl      String?
+  
+  partyContactId String?
+  partyContact   Contact? @relation(fields: [partyContactId], references: [id], onDelete: SetNull)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ==========================================
+// 15. ÉVALUATIONS & INSPECTIONS VÉHICULE
+// ==========================================
+
+model VehicleInspection {
+  id            String    @id @default(cuid())
+  code          String    @unique // INSP-2026-0001
+  vehicleId     String
+  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  inspectorId   String?
+  inspector     User?     @relation(fields: [inspectorId], references: [id], onDelete: SetNull)
+  
+  inspectionDate DateTime @default(now())
+  overallScore  Int       @default(85) // 0 - 100
+  bodyScore     Int       @default(85)
+  mechanicScore Int       @default(85)
+  interiorScore Int       @default(85)
+  electroScore  Int       @default(85)
+  docScore      Int       @default(100)
+  status        String    @default("VALIDATED") // VALIDATED, NEEDS_REVIEW, REJECTED
+  observations  String?   // JSON or text
+  beforeAfterPhotos String? // JSON data
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// 16. LIVRAISONS & REMISES
+// ==========================================
+
+model Delivery {
+  id            String    @id @default(cuid())
+  code          String    @unique // LDV-2026-0001
+  saleId        String
+  sale          Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  scheduledDate DateTime
+  deliveredDate DateTime?
+  status        String    @default("PENDING") // PENDING, SCHEDULED, DELIVERED, CANCELLED
+  checklistData String?   // JSON checklist items
+  receiptPdfUrl String?
+  notes         String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// 17. ATELIER & ENTRETIEN
+// ==========================================
+
+model WorkshopOrder {
+  id                   String    @id @default(cuid())
+  code                 String    @unique // OT-2025-0128
+  vehicleId            String?
+  vehicle              Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  clientId             String?
+  client               Contact?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  technicianId         String?
+  technician           User?     @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  
+  serviceType          String    // Entretien périodique, Diagnostic électronique, Remplacement freins AV, Vidange + filtres, etc.
+  interventionCategory String?   @default("Entretien") // Entretien, Mécanique, Électronique, Carrosserie, Autres
+  priority             String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status               String    @default("IN_PROGRESS") // PLANNED, IN_PROGRESS, WAITING_PARTS, COMPLETED, CANCELLED
+  scheduledDate        DateTime  @default(now())
+  completedDate        DateTime?
+  dueDate              DateTime?
+  partsCostHT          Float     @default(0)
+  laborCostHT          Float     @default(0)
+  taxRate              Float     @default(20.0)
+  totalTTC             Float     @default(0)
+  notes                String?
+  partsList            String?   // JSON list of parts used
+  
+  vehicleName          String?   // e.g. BMW Série 3 320d 190 ch
+  licensePlate         String?   // e.g. WW-123-AA
+  mileage              Int?      // e.g. 98450
+  technicianName       String?   // e.g. Yassine Benali
+  workshopBay          String?   // e.g. Poste 2
+  estimatedDuration    String?   // e.g. 2h30
+  spentDuration        String?   // e.g. 1h45
+  progressPercent      Int?      @default(0)
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+// ==========================================
+// 18. AGENDA & RENDEZ-VOUS
+// ==========================================
+
+model Appointment {
+  id          String    @id @default(cuid())
+  code        String?   @unique // RDV-2025-0137
+  title       String
+  serviceType String    // Entretien 20 000 km, Contrôle technique, Révision complète, Diagnostic électronique, Vidange + Filtres
+  startTime   DateTime
+  endTime     DateTime
+  status      String    @default("CONFIRMED") // CONFIRMED, PENDING, COMPLETED, CANCELLED
+  workshopBay String?   // Atelier 1 – Mécanique, Atelier 2 – Électricité, Atelier 3 – Diagnostic, Carrosserie, Pneumatiques
+  reminderMin Int       @default(15) // Reminder X minutes before
+  notes       String?
+  
+  clientId    String?
+  client      Contact?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  advisorId   String?
+  advisor     User?     @relation(fields: [advisorId], references: [id], onDelete: SetNull)
+  
+  clientName   String?
+  clientPhone  String?
+  clientEmail  String?
+  vehicleName  String?   // e.g. Peugeot 308, Renault Clio, BMW Série 3
+  licensePlate String?   // e.g. WW-123-AA
+  vin          String?   // e.g. VF3**************
+  mileage      Int?      // e.g. 18450
+  advisorName  String?   // e.g. Adem Maalal, Yassine Bejaoui
+  source       String?   @default("Téléphone") // Téléphone, WhatsApp, Site web, Email
+  duration     String?   @default("01:30")
+  repeat       String?   @default("Ne pas répéter")
+  history      String?   // JSON timeline events
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ==========================================
+// 19. LEADS & MARKETING
+// ==========================================
+
+model MarketingCampaign {
+  id          String    @id @default(cuid())
+  name        String
+  channel     String    // Google Ads, Facebook Ads, Instagram, Salon Auto, Parrainage, Site Web
+  budgetMAD   Float     @default(0)
+  spentMAD    Float     @default(0)
+  leadsCount  Int       @default(0)
+  roiPercent  Float     @default(0)
+  status      String    @default("ACTIVE") // ACTIVE, PAUSED, ENDED
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  leads       Lead[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Lead {
+  id              String             @id @default(cuid())
+  code            String             @unique // LEAD-2026-0001
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String
+  source          String             // Google Ads, Facebook Ads, Instagram, Site web, Parrainage, Walk-in
+  interestType    String             @default("Achat d'un véhicule")
+  estimatedBudget Float?
+  status          String             @default("QUALIFIED") // NEW, CONTACTED, QUALIFIED, PROPOSAL, NEGOTIATION, CONVERTED, LOST
+  tags            String?            // JSON tags
+  notes           String?
+  
+  campaignId      String?
+  campaign        MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  assignedToId    String?
+  assignedTo      User?              @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  convertedContactId String?
+  convertedContact Contact?          @relation(fields: [convertedContactId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+// ==========================================
+// 20. FINANCEMENT & CRÉDIT
+// ==========================================
+
+model FinancingApplication {
+  id                 String    @id @default(cuid())
+  code               String    @unique // FIN-2025-00568
+  partnerName        String    // Wafasalaf, CIM Finance, Saham Assurance, Eqdom, Salafin
+  requestedAmount    Float     // MAD
+  downPayment        Float     @default(0)
+  durationMonths     Int       @default(60)
+  monthlyPayment     Float     // MAD
+  interestRate       Float     @default(5.75) // %
+  status             String    @default("IN_ANALYSIS") // SUBMITTED, IN_ANALYSIS, VERIFICATION, APPROVED, CONTRACT, DISBURSED, REJECTED
+  advisorName        String?
+  vehicleModelName   String?
+  registrationNumber String?
+  lastStep           String?   // Analyse crédit, Vérification docs, En approbation, Contrat à signer, Soumis
+  notes              String?
+  
+  clientId           String?
+  client             Contact?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  
+  vehicleId          String?
+  vehicle            Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// ==========================================
+// 21. GARANTIES & SINISTRES
+// ==========================================
+
+model Warranty {
+  id            String          @id @default(cuid())
+  code          String          @unique // GAR-2026-0001
+  vehicleId     String
+  vehicle       Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  clientId      String?
+  client        Contact?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  
+  warrantyType  String          // Garantie constructeur, Extension garantie, Garantie boîte/moteur
+  supplierName  String?         // Toyota Maroc, Premium Warranty
+  startDate     DateTime        @default(now())
+  endDate       DateTime
+  mileageLimit  Int?            @default(120000)
+  ceilingAmount Float           @default(15000) // MAD
+  deductible    Float           @default(150) // MAD Franchise
+  coverageItems String?         // JSON array of covered items
+  status        String          @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  
+  claims        WarrantyClaim[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model WarrantyClaim {
+  id            String    @id @default(cuid())
+  code          String    @unique // SIN-2026-0001
+  warrantyId    String
+  warranty      Warranty  @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
+  incidentDate  DateTime  @default(now())
+  description   String
+  estimatedCost Float     // MAD
+  approvedCost  Float?
+  status        String    @default("IN_PROGRESS") // SUBMITTED, EXPERTISE, APPROVED, REJECTED, REIMBURSED
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// 22. ASSURANCES VÉHICULES
+// ==========================================
+
+model InsurancePolicy {
+  id            String           @id @default(cuid())
+  code          String           @unique // ASS-2026-0001
+  insurerName   String           // AXA Assurance, Allianz, Saham, RMA Watanya, Sanad
+  policyType    String           // Tous risques, Tiers étendu, Tiers simple
+  vehicleId     String
+  vehicle       Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  clientId      String?
+  client        Contact?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  
+  annualPremium Float            // MAD
+  startDate     DateTime         @default(now())
+  expiryDate    DateTime
+  status        String           @default("ACTIVE") // ACTIVE, EXPIRING_SOON, EXPIRED
+  
+  claims        InsuranceClaim[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model InsuranceClaim {
+  id           String          @id @default(cuid())
+  code         String          @unique // SIN-ASS-2026-0001
+  policyId     String
+  policy       InsurancePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  incidentDate DateTime        @default(now())
+  claimType    String          // Dégâts carrosserie, Bris de glace, Vol accessoires, Accident responsable
+  claimAmount  Float?
+  status       String          @default("INSTRUCTION") // DECLARED, EXPERTISE, INSTRUCTION, PAID, CLOSED
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+// ==========================================
+// 23. IMMATRICULATIONS & DOSSIERS ADMIN
+// ==========================================
+
+model RegistrationDossier {
+  id            String    @id @default(cuid())
+  code          String    @unique // IMM-2026-0001
+  vehicleId     String
+  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  clientId      String?
+  client        Contact?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  
+  dossierType   String    @default("Première immatriculation") // Première immatriculation, Mutation Carte Grise, Duplicata, Importation
+  region        String    @default("Casablanca-Settat")
+  prefecture    String    @default("Anfa")
+  feeAmount     Float     @default(800) // MAD
+  status        String    @default("IN_PROGRESS") // DRAFT, IN_PROGRESS, PREFECTURE, CARTE_GRISE_READY, COMPLETED
+  carteGriseNum String?
+  checklistData String?   // JSON
+  notes         String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// 24. TÂCHES & APPROBATIONS
+// ==========================================
+
+model Task {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  category    String         @default("Operations") // Ventes, Atelier, Livraisons, Administratif, Finance
+  priority    String         @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status      String         @default("TODO") // TODO, IN_PROGRESS, IN_APPROVAL, DONE, CANCELLED
+  dueDate     DateTime?
+  checklist   String?        // JSON checklist items
+  assignedToId String?
+  assignedTo  User?          @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  approvals   TaskApproval[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model TaskApproval {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  level     Int      @default(1)
+  approver  String
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  comments  String?
+  approvedAt DateTime?
+}
+
+// ==========================================
+// 25. MESSAGERIE & COMMUNICATIONS OMNICANAL
+// ==========================================
+
+model CommunicationMessage {
+  id          String    @id @default(cuid())
+  channel     String    // WHATSAPP, SMS, EMAIL, APPEL
+  direction   String    @default("OUTBOUND") // INBOUND, OUTBOUND
+  subject     String?
+  content     String
+  status      String    @default("SENT") // DRAFT, QUEUED, SENT, DELIVERED, READ, FAILED
+  recipientId String?
+  recipient   Contact?  @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+  senderName  String    @default("MAALAL CARS")
+  createdAt   DateTime  @default(now())
+}
+
+model CommunicationTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  channel   String   // EMAIL, SMS, WHATSAPP
+  category  String   // Ventes, Relance, Bienvenue, Entretien, Devis
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 26. ANNONCES & DIFFUSION PORTAILS
+// ==========================================
+
+model VehicleListing {
+  id             String    @id @default(cuid())
+  code           String    @unique // ANN-2026-0001
+  title          String
+  vehicleId      String
+  vehicle        Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  priceMAD       Float
+  status         String    @default("ACTIVE") // ACTIVE, PENDING, PAUSED, EXPIRED
+  platformsData  String?   // JSON: [{ platform: "Avito", status: "Active" }, { platform: "Moteur.ma", status: "Active" }]
+  viewsCount     Int       @default(0)
+  leadsCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// ==========================================
+// 27. CENTRE D'AIDE & SAV SUPPORT
+// ==========================================
+
+model HelpdeskTicket {
+  id          String    @id @default(cuid())
+  code        String    @unique // SUP-2026-0001 ou SAV-2026-0001
+  subject     String
+  category    String    // Mécanique, Électronique, Carrosserie, Facturation, Délais, Réclamation
+  priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status      String    @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  description String
+  assignedTo  String?
+  slaDeadline DateTime?
+  resolution  String?
+  satisfactionRating Int? // 1 - 5
+  
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model KnowledgeBaseArticle {
+  id        String   @id @default(cuid())
+  title     String
+  category  String   // Commandes, Livraison, Paiements, Retours & Remboursements, Produits, FAQ
+  content   String
+  views     Int      @default(0)
+  helpful   Int      @default(0)
+  isPublished Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// 28. NOTIFICATIONS & ARCHIVES
+// ==========================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  category  String   // Stock, Paiements, Documents, Reservations, Factures, Clients, Entretien, System
+  severity  String   @default("INFO") // INFO, WARNING, CRITICAL, SUCCESS
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model NotificationRule {
+  id          String   @id @default(cuid())
+  name        String
+  triggerType String   // STOCK_AGING, OVERDUE_PAYMENT, EXPIRING_DOC, EXPIRING_RESERVATION, UPCOMING_MAINTENANCE
+  condition   String   // "> 90 days", "< 15 days", etc.
+  recipient   String   // Admin, Comptabilité, Stock Manager, Atelier
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model ArchiveRecord {
+  id          String   @id @default(cuid())
+  entityType  String   // Vehicle, Contact, Sale, Purchase, Payment
+  entityId    String
+  entityCode  String
+  summary     String
+  dataSnapshot String  // JSON snapshot of deleted/archived object
+  archivedReason String? // Vente annulée, Doublon, Client inactif, Erreur de saisie, Autre
+  archivedBy  String   @default("Admin Maalal")
+  archivedAt  DateTime @default(now())
+  restoredAt  DateTime?
 }

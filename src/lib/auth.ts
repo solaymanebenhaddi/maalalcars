@@ -9,8 +9,10 @@ export const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000 // 30 days in ms
 // Password utilities
 // ---------------------------------------------------------------------------
 
+const SALT_ROUNDS = process.env.NODE_ENV === 'test' ? 6 : 12
+
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12)
+  return bcrypt.hash(password, SALT_ROUNDS)
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {

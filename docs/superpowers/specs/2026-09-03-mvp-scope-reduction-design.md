@@ -6,6 +6,22 @@
 
 ---
 
+## 0. Critical Architectural Rule
+
+**Feature flags control user-facing modules, navigation, routes, and optional widgets. They must NOT deactivate underlying domain services or relational data required by active MVP workflows.**
+
+Even when a module's UI is hidden, its backend services remain operational if referenced by an active workflow. Examples:
+
+- `payments` UI is hidden, but the Payment model is used internally when recording sale/reservation advances
+- `purchases` UI is hidden, but purchase data is persisted when adding a vehicle
+- `expenses` UI is hidden, but repair costs are stored as vehicle-related expenses
+- `stock` UI is hidden, but vehicle counts and stock calculations power the dashboard
+- `documents` service remains active for vehicle photo/document uploads
+
+The feature flag system gates **user navigation and UI visibility only**. It never short-circuits service-layer calls or repository queries.
+
+---
+
 ## 1. Feature Flag System (Database-Driven)
 
 ### Prisma Model
@@ -43,7 +59,9 @@ model FeatureFlag {
 
 A `FeatureGate` component in the root app layout maps route prefixes to feature keys. If the current route's module is disabled, it renders a "Module désactivé" page with a link back to the dashboard.
 
-Routes `/dashboard`, `/login`, and `/settings` are always allowed.
+Routes `/dashboard` and `/login` are always feature-allowed (not gated by feature flags).
+
+`/settings` is always feature-allowed but **admin-protected**: the server-side permission model must enforce that only admin-role users can access it. "Always allowed" means feature-gating does not block it, not that every authenticated user has access.
 
 ---
 
@@ -217,6 +235,38 @@ Aperçu | Achat | Réparations | Réservation | Vente | Photos & Documents | His
 
 ## 8. Repairs
 
+### Schema
+
+The existing `WorkshopOrder` model is too complex for the MVP (technician assignments, workshop bays, parts lists, progress percent, etc.). We create a new lightweight `Repair` model alongside it. `WorkshopOrder` stays untouched for future reactivation.
+
+```prisma
+model Repair {
+  id              String    @id @default(cuid())
+  code            String    @unique // REP-2026-0001
+  vehicleId       String
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  repairType      String    // MECANIQUE, CARROSSERIE, ELECTRICITE, PNEUMATIQUES, CLIMATISATION, ENTRETIEN, NETTOYAGE, AUTRE
+  description     String?
+  garageName      String?   // Garage / réparateur
+
+  startedAt       DateTime  @default(now())
+  estimatedAmount Float?    // DH
+
+  finalAmount     Float?    // DH — filled on completion
+  paidById        String?   // FK to User — null at creation, set on completion
+  paidBy          User?     @relation(fields: [paidById], references: [id], onDelete: SetNull)
+  completedAt     DateTime? // filled on completion
+
+  status          String    @default("EN_COURS") // EN_COURS, TERMINEE, ANNULEE
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+```
+
+A `repairs Repair[]` relation must be added to the `Vehicle` model.
+
 ### Add Repair — Modal
 
 Fields:
@@ -253,6 +303,33 @@ EN_COURS → ANNULEE
 
 ## 9. Reservations
 
+### Schema
+
+The existing `Reservation` model requires `contactId` (FK to `Contact`). Since the MVP must work without the CRM/Contact module, we add client snapshot columns so the reservation is self-contained. The existing `contactId` becomes optional.
+
+Schema changes to existing `Reservation` model:
+
+```
+contactId       String?   // Make optional (was required)
+
+// Add client snapshot columns:
+clientName      String    // Nom complet
+clientPhone     String    // Téléphone
+clientCin       String?   // CIN
+clientAddress   String?   // Adresse
+```
+
+The existing fields are already sufficient for the rest:
+- `depositAmount` (Float) → advance amount
+- `paymentMethod` (String) → payment method
+- `startDate` (DateTime) → reservation date
+- `expiryDate` (DateTime) → expiration date
+- `status` (String) → lifecycle status
+- `notes` (String?) → remarks
+- `convertedSaleId` → link to converted sale
+
+Status values change from `ACTIVE, EXPIRING, EXPIRED, CANCELLED, CONVERTED` to `ACTIVE, EXPIREE, ANNULEE, CONVERTIE_EN_VENTE` for consistency with the French MVP. Existing seed data must be migrated.
+
 ### Create Reservation — Modal
 
 Fields:
@@ -279,7 +356,17 @@ ACTIVE → CONVERTIE_EN_VENTE  (manual conversion)
 
 ### Expiration Handling
 
-A check runs when the dashboard or vehicle list loads: any reservation past its expiration date with status `ACTIVE` gets automatically updated to `EXPIREE` and the vehicle returns to `EN_STOCK`.
+A centralized `expireDueReservations()` function checks for any reservation past its expiration date with status `ACTIVE`, updates it to `EXPIREE`, and returns the vehicle to `EN_STOCK`.
+
+This function is called before every availability-sensitive operation:
+- Vehicle availability lookup
+- Reservation creation
+- Sale creation
+- Vehicle detail page load
+- Vehicle list page load
+- Dashboard load
+
+This ensures correctness even when no user has opened the dashboard. Later, when the application has a server/worker environment, this can become a scheduled task.
 
 ---
 
@@ -295,6 +382,7 @@ A check runs when the dashboard or vehicle list loads: any reservation past its 
 **A. Véhicule (read-only):** Name, matricule, VIN, kilométrage, couleur, date d'entrée, prix d'achat.
 
 **B. Acheteur:** Nom complet, Téléphone, CIN, Adresse (optional). Documents client (multiple upload): CIN Recto, CIN Verso, Permis, Passeport, Contrat signé, Autre.
+*Note : Tout comme pour les réservations, `buyerContactId` devient optionnel (`String?`) pour permettre la vente sans dépendance au module CRM/Contacts.*
 
 **C. Commissionnaire de vente (optional, independent from purchase):**
 Toggle Oui/Non. If yes: Nom, Téléphone, CIN, Adresse, Commission (DH), Commission payée par → Personnel dropdown. Stored as inline columns on Sale record.
@@ -309,6 +397,28 @@ Toggle Oui/Non. If yes: Nom, Téléphone, CIN, Adresse, Commission (DH), Commiss
 - Notes
 
 **Side effect:** Vehicle becomes `VENDU`.
+
+### Financial Truth — Use Existing Payment Model
+
+Sale money handling reuses the existing `Payment` model internally, even though the Payments UI module is hidden. This avoids duplicating financial truth across Sale fields.
+
+**Reservation converted to sale example:**
+
+```
+Reservation advance: 10 000 DH
+  → Payment record: type=INFLOW, amount=10000, method=ESPECES, saleId=...
+
+At sale: customer pays 190 000 DH
+  → Payment record: type=INFLOW, amount=190000, method=VIREMENT, receivedBy=Mohamed, saleId=...
+
+Sale price: 250 000 DH
+Total received: 200 000 DH (sum of Payment records)
+Remaining: 50 000 DH
+```
+
+The Sale record stores `salePrice` and links to its `payments Payment[]` relation. The advance from a reservation is carried forward as a Payment record linked to the new Sale. The UI shows the simplified view (prix de vente, avance, montant reçu) but the backend writes proper Payment records.
+
+The `receivedById` field on Sale stores who received the money at the point of sale. Each Payment record also has its own `receivedBy` for auditability.
 
 ---
 
@@ -332,6 +442,20 @@ Any transition not listed above is rejected:
 - `EN_REPARATION → VENDU` — must return to stock first
 - `RESERVE → EN_REPARATION` — must cancel reservation first
 
+### Business Invariants (Enforced at Service Level)
+
+These rules must be enforced as strict service-layer constraints:
+
+1. **Only one ACTIVE reservation per vehicle.** A vehicle cannot have multiple concurrent active reservations.
+2. **Only one EN_COURS repair per vehicle.** A vehicle cannot enter a second repair while already in repair.
+3. **Cannot reserve an EN_REPARATION vehicle.** Must complete or cancel the repair first.
+4. **Cannot repair a RESERVE vehicle.** Must cancel the reservation first.
+5. **Cannot directly sell a RESERVE vehicle.** The user must use "Convertir en vente" to preserve the client identity and advance.
+6. **Cannot sell an EN_REPARATION vehicle.** Must return to stock first.
+7. **Cannot create another sale for VENDU.** A sold vehicle cannot be resold.
+8. **Cannot convert an expired or cancelled reservation.** Only `ACTIVE` reservations can be converted to sale.
+9. **A VENDU vehicle is terminal.** Once sold, no status changes or operational actions are permitted.
+
 ### Implementation
 
 A `VehicleStateMachine` service with `transition(vehicleId, fromStatus, toStatus)`. Validates the transition, updates the vehicle, creates an audit log entry. All repair, reservation, and sale operations call this service.
@@ -340,9 +464,28 @@ A `VehicleStateMachine` service with `transition(vehicleId, fromStatus, toStatus
 
 ## 12. Prisma Schema Changes
 
-### New model
+### New models
 
-`FeatureFlag` (as described in Section 1).
+1. **`FeatureFlag`** (as described in Section 1):
+   - `id`, `key` (@unique), `label`, `description`, `enabled`, `category`, `sortOrder`.
+
+2. **`Repair`** (as described in Section 8):
+   - `id`, `code` (@unique, e.g. REP-2026-0001), `vehicleId` (FK to Vehicle), `repairType`, `description`, `garageName`, `startedAt`, `estimatedAmount`, `finalAmount`, `paidById` (FK to User, nullable at creation), `completedAt`, `status` (default "EN_COURS"), `notes`.
+   - Add `repairs Repair[]` relation to `Vehicle`.
+
+### Modified — Reservation record
+
+Update existing `Reservation` model:
+
+```prisma
+contactId       String?   // Changed from required to optional
+
+// Add client snapshot columns:
+clientName      String    // Nom complet
+clientPhone     String    // Téléphone
+clientCin       String?   // CIN
+clientAddress   String?   // Adresse
+```
 
 ### Modified — Purchase/Vehicle record
 
@@ -363,9 +506,12 @@ commissionPaidById  String?  → FK to User
 
 ### Modified — Sale record
 
-Add buyer + sale commissioner + financial columns:
+Update existing `Sale` model:
 
-```
+```prisma
+buyerContactId      String?   // Changed from required to optional
+
+// Add buyer + sale commissioner + financial columns:
 buyerName           String
 buyerPhone          String
 buyerCin            String
@@ -384,7 +530,7 @@ advanceAmount       Float    @default(0)
 
 ### Existing models untouched
 
-All existing models (Contact, Supplier, Commissioner, etc.) remain in the schema. They are not exposed in the MVP UI but preserved for future reactivation.
+All existing models (Contact, Supplier, Commissioner, WorkshopOrder, etc.) remain in the schema. They are not exposed in the MVP UI but preserved for future reactivation.
 
 ---
 
@@ -392,7 +538,7 @@ All existing models (Contact, Supplier, Commissioner, etc.) remain in the schema
 
 Each step must pass `npm run verify` before moving to the next.
 
-1. Schema migration — FeatureFlag model + supplier/commissioner snapshot columns on Purchase and Sale
+1. Schema migration — `FeatureFlag` model, `Repair` model, plus snapshot columns on `Purchase`, `Sale`, and `Reservation`
 2. Seed feature flags (enabled/disabled per MVP spec)
 3. Feature flag API (`GET /api/features`, `PATCH /api/features/:key`)
 4. `useFeatures()` hook + `FeaturesProvider` context
