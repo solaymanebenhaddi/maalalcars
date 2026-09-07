@@ -131,12 +131,20 @@ jobs:
           try {
             const fs = require('fs');
             const path = require('path');
-            const targetDb = '/home/eaiconst/maalalcars_data/production.db';
+            
+            // Chemin dynamique basé sur DATABASE_URL ou relatif au dossier parent
+            let targetDb = '';
+            if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('file:')) {
+              targetDb = process.env.DATABASE_URL.replace(/^file:/, '');
+            } else {
+              targetDb = path.resolve(__dirname, '..', 'maalalcars_data', 'production.db');
+            }
+
             const templateDb = path.join(__dirname, 'prisma', 'production.db');
-            if (!fs.existsSync(targetDb) && fs.existsSync(templateDb)) {
+            if (targetDb && !fs.existsSync(targetDb) && fs.existsSync(templateDb)) {
               fs.mkdirSync(path.dirname(targetDb), { recursive: true });
               fs.copyFileSync(templateDb, targetDb);
-              console.log('[MAALAL CARS] ✅ Base de données initialisée depuis le template.');
+              console.log('[MAALAL CARS] ✅ Base de données initialisée depuis le template dans ' + targetDb);
             }
           } catch (e) {
             console.warn('[MAALAL CARS] Note template DB :', e.message);
