@@ -112,8 +112,15 @@ export default async function ReservationsPage() {
                     </td>
                     <td className="py-3.5 text-zinc-400">{new Date(res.startDate).toLocaleDateString('fr-MA')}</td>
                     <td className="py-3.5 text-amber-400 font-semibold">{new Date(res.expiryDate).toLocaleDateString('fr-MA')}</td>
-                    <td className="py-3.5 text-right font-mono font-bold text-emerald-400">
-                      <Currency amount={res.depositAmount} />
+                    <td className="py-3.5 text-right font-mono">
+                      <span className="font-bold text-emerald-400">
+                        <Currency amount={res.depositAmount} />
+                      </span>
+                      {res.salespersonName && (
+                        <span className="block text-[10px] text-zinc-400 font-sans">
+                          Reçu par : <strong className="text-cyan-400">{res.salespersonName}</strong>
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 text-center">
                       <StatusBadge status={res.status} />

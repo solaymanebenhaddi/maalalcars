@@ -66,7 +66,7 @@ async function createReservationAction(formData: FormData) {
 export default async function NewReservationPage({ searchParams }: Props) {
   const { vehicleId } = await searchParams
 
-  const [vehicles, contacts] = await Promise.all([
+  const [vehicles, contacts, personnelList] = await Promise.all([
     prisma.vehicle.findMany({
       where: { status: 'IN_STOCK', archivedAt: null },
       orderBy: { brand: 'asc' },
@@ -74,6 +74,11 @@ export default async function NewReservationPage({ searchParams }: Props) {
     prisma.contact.findMany({
       where: { archivedAt: null },
       orderBy: { lastName: 'asc' },
+    }),
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, role: { select: { name: true } } },
+      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -162,12 +167,21 @@ export default async function NewReservationPage({ searchParams }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1">Commercial Responsable</label>
-            <input
-              type="text"
+            <label className="block text-xs font-semibold text-zinc-300 mb-1">
+              Acompte Reçu Par (Personnel Agence) *
+            </label>
+            <select
               name="salespersonName"
+              required
               className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-red-500 focus:outline-none"
-            />
+            >
+              <option value="">-- Sélectionner le collaborateur ayant encaissé l&apos;acompte --</option>
+              {personnelList.map((p) => (
+                <option key={p.id} value={p.name}>
+                  {p.name} {p.role?.name ? `(${p.role.name})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="sm:col-span-2">

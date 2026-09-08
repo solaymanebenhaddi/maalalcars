@@ -1108,6 +1108,24 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                         <option value="15">15 jours</option>
                       </select>
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                        Acompte Reçu Par (Personnel) *
+                      </label>
+                      <select
+                        name="salespersonName"
+                        required
+                        className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="">-- Qui a reçu l&apos;acompte ? --</option>
+                        {personnelList.map((p) => (
+                          <option key={p.id} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-2">
@@ -1149,7 +1167,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                         <div>
                           <span className="text-zinc-500 block text-[10px] uppercase">Client</span>
                           <span className="font-bold text-white">
@@ -1163,6 +1181,13 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                         <div>
                           <span className="text-zinc-500 block text-[10px] uppercase">Acompte</span>
                           <Currency amount={res.depositAmount} className="text-emerald-400 font-mono font-bold" />
+                        </div>
+                        <div>
+                          <span className="text-zinc-500 block text-[10px] uppercase">Acompte Reçu Par</span>
+                          <span className="font-semibold text-cyan-400 flex items-center gap-1">
+                            <User className="h-3 w-3 text-cyan-400" />
+                            <span>{res.salespersonName || 'Non spécifié'}</span>
+                          </span>
                         </div>
                         <div>
                           <span className="text-zinc-500 block text-[10px] uppercase">Règlement</span>

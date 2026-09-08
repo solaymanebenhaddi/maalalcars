@@ -73,10 +73,18 @@ export default async function ReservationDetailPage({ params }: Props) {
         actions={<StatusBadge status={reservation.status} />}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-[#222228] bg-[#121216] p-4">
           <span className="text-xs font-semibold text-zinc-400 block uppercase">Acompte Versé</span>
           <Currency amount={reservation.depositAmount} className="text-xl text-emerald-400 font-bold" />
+        </div>
+
+        <div className="rounded-xl border border-[#222228] bg-[#121216] p-4">
+          <span className="text-xs font-semibold text-zinc-400 block uppercase">Acompte Encaissé Par</span>
+          <span className="text-base font-bold text-cyan-400 block mt-1 flex items-center gap-1.5">
+            <User className="h-4 w-4 text-cyan-400" />
+            <span>{reservation.salespersonName || 'Non spécifié'}</span>
+          </span>
         </div>
 
         <div className="rounded-xl border border-[#222228] bg-[#121216] p-4">

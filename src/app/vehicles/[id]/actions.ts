@@ -64,6 +64,7 @@ export async function createReservationAction(vehicleId: string, formData: FormD
   const depositAmount = parseFloat(formData.get('depositAmount') as string) || 0
   const paymentMethod = (formData.get('paymentMethod') as string) || 'ESPECES'
   const expiryDays = parseInt(formData.get('expiryDays') as string, 10) || 7
+  const salespersonName = (formData.get('salespersonName') as string) || null
 
   const expiryDate = new Date()
   expiryDate.setDate(expiryDate.getDate() + expiryDays)
@@ -77,6 +78,7 @@ export async function createReservationAction(vehicleId: string, formData: FormD
     paymentMethod,
     startDate: new Date(),
     expiryDate,
+    salespersonName,
     status: 'ACTIVE',
   })
 

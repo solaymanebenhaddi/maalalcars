@@ -54,5 +54,19 @@ describe('Reservation Snapshot & Validation Logic', () => {
       expect(reservationStatuses).toContain('ANNULEE')
       expect(reservationStatuses).toContain('CONVERTIE_EN_VENTE')
     })
+
+    it('records the personnel member who received the reservation deposit amount', () => {
+      const input = {
+        vehicleId: 'veh-001',
+        clientName: 'Yassine Alami',
+        depositAmount: 15000,
+        salespersonName: 'Hamza El Fassi (Commercial)',
+        expiryDate: new Date('2026-09-15'),
+      }
+
+      const parsed = reservationCreateSchema.parse(input)
+      expect(parsed.salespersonName).toBe('Hamza El Fassi (Commercial)')
+      expect(parsed.depositAmount).toBe(15000)
+    })
   })
 })
