@@ -26,6 +26,13 @@ describe('Vehicle State Machine Domain Constraints', () => {
     it('allows EN_REPARATION -> EN_STOCK (WORKSHOP -> IN_STOCK on completion)', () => {
       expect(canTransitionVehicleStatus('WORKSHOP', 'IN_STOCK')).toBe(true)
     })
+
+    it('allows transitions to ARCHIVED when sold or retired', () => {
+      expect(canTransitionVehicleStatus('IN_STOCK', 'ARCHIVED')).toBe(true)
+      expect(canTransitionVehicleStatus('RESERVED', 'ARCHIVED')).toBe(true)
+      expect(canTransitionVehicleStatus('SOLD', 'ARCHIVED')).toBe(true)
+      expect(canTransitionVehicleStatus('WORKSHOP', 'ARCHIVED')).toBe(true)
+    })
   })
 
   describe('MVP Blocked Transitions (Business Invariants)', () => {

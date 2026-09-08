@@ -32,6 +32,7 @@ export const parkRepository = {
             status: true,
             purchasePrice: true,
             targetSalePrice: true,
+            archivedAt: true,
           },
         },
       },
@@ -39,12 +40,12 @@ export const parkRepository = {
     })
 
     return parks.map((park) => {
-      const inStockCount = park.vehicles.filter((v) => v.status === 'IN_STOCK').length
-      const reservedCount = park.vehicles.filter((v) => v.status === 'RESERVED').length
-      const totalVehicles = park.vehicles.length
+      const activeVehicles = park.vehicles.filter((v) => v.status !== 'ARCHIVED' && !v.archivedAt && v.status !== 'SOLD')
+      const inStockCount = activeVehicles.filter((v) => v.status === 'IN_STOCK').length
+      const reservedCount = activeVehicles.filter((v) => v.status === 'RESERVED').length
+      const totalVehicles = activeVehicles.length
       const occupancyRate = park.capacity > 0 ? Math.round((totalVehicles / park.capacity) * 100) : 0
-      const totalStockValue = park.vehicles
-        .filter((v) => v.status !== 'SOLD')
+      const totalStockValue = activeVehicles
         .reduce((sum, v) => sum + (v.targetSalePrice || v.purchasePrice || 0), 0)
 
       return {

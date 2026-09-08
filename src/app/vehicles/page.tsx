@@ -77,7 +77,7 @@ export default async function VehiclesPage({ searchParams }: Props) {
 
   const counts = await vehicleRepository.countByStatus()
   const distinctBrands = await prisma.vehicle.findMany({
-    where: { archivedAt: null },
+    where: { archivedAt: null, status: { not: 'ARCHIVED' } },
     select: { brand: true },
     distinct: ['brand'],
     orderBy: { brand: 'asc' },
@@ -85,12 +85,11 @@ export default async function VehiclesPage({ searchParams }: Props) {
   const brands = ['Toutes', ...distinctBrands.map((v) => v.brand)]
 
   const statusTabs = [
-    { label: 'Tous', value: 'Tous', count: counts.total, color: 'text-zinc-300' },
+    { label: 'Tous (En stock)', value: 'Tous', count: counts.total, color: 'text-zinc-300' },
     { label: 'En stock', value: 'IN_STOCK', count: counts.inStock, color: 'text-emerald-400' },
     { label: 'Réservés', value: 'RESERVED', count: counts.reserved, color: 'text-amber-400' },
     { label: 'En réparation', value: 'WORKSHOP', count: counts.workshop, color: 'text-purple-400' },
-    { label: 'Vendus', value: 'SOLD', count: counts.sold, color: 'text-cyan-400' },
-    { label: 'Archivés (Hors stock)', value: 'ARCHIVED', count: counts.archived, color: 'text-zinc-400' },
+    { label: 'Archivés (Vendus & Retirés)', value: 'ARCHIVED', count: counts.archived, color: 'text-zinc-400' },
   ]
 
   const buildQueryUrl = (newParams: Record<string, string | undefined>) => {
@@ -470,33 +469,30 @@ export default async function VehiclesPage({ searchParams }: Props) {
                         </>
                       )}
 
-                      {v.status === 'SOLD' && (
-                        <div className="w-full flex items-center justify-between text-xs text-zinc-400">
-                          <span>Vente clôturée</span>
-                          {lastSale ? (
-                            <Link
-                              href={`/sales/${lastSale.id}`}
-                              className="text-xs font-bold text-cyan-400 hover:underline flex items-center gap-1"
-                            >
-                              <span>Facture & Reçu</span>
-                              <FileText className="h-3.5 w-3.5" />
-                            </Link>
-                          ) : (
-                            <span className="text-zinc-500">Archive</span>
-                          )}
-                        </div>
-                      )}
-
-                      {v.status === 'ARCHIVED' && (
+                      {(v.status === 'ARCHIVED' || v.status === 'SOLD') && (
                         <div className="w-full space-y-2">
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400 border border-zinc-700">
-                              ARCHIVÉ — HORS STOCK
+                              {lastSale ? 'VENDU & ARCHIVÉ' : 'ARCHIVÉ — HORS STOCK'}
                             </span>
                             <span className="text-[10px] text-zinc-500 font-mono">
                               {v.archivedAt ? new Date(v.archivedAt).toLocaleDateString('fr-FR') : 'Archive'}
                             </span>
                           </div>
+                          {lastSale && (
+                            <div className="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
+                              <span className="text-[11px] text-zinc-400 truncate max-w-[150px]">
+                                {lastSale.buyerName ? `Client : ${lastSale.buyerName}` : 'Vente clôturée'}
+                              </span>
+                              <Link
+                                href={`/sales/${lastSale.id}`}
+                                className="text-xs font-bold text-cyan-400 hover:underline flex items-center gap-1 shrink-0"
+                              >
+                                <span>Facture & Reçu</span>
+                                <FileText className="h-3.5 w-3.5" />
+                              </Link>
+                            </div>
+                          )}
                           <RestoreVehicleButton
                             vehicleId={v.id}
                             vehicleTitle={`${v.brand} ${v.model}`}

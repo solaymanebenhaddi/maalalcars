@@ -16,49 +16,68 @@ export interface VehicleFilterParams {
 export const vehicleRepository = {
   async getAll(params: VehicleFilterParams = {}) {
     const isArchivedQuery = params.status === 'ARCHIVED'
-    const where: Prisma.VehicleWhereInput = isArchivedQuery
-      ? { status: 'ARCHIVED' }
-      : { archivedAt: null }
+    const andConditions: Prisma.VehicleWhereInput[] = []
 
-    if (params.brand && params.brand !== 'Toutes') {
-      where.brand = params.brand
+    if (isArchivedQuery) {
+      andConditions.push({
+        OR: [
+          { status: 'ARCHIVED' },
+          { archivedAt: { not: null } },
+          { status: 'SOLD' },
+        ],
+      })
+    } else {
+      // Strictly hide archived & sold vehicles from general inventory and "Tous"
+      andConditions.push({
+        status: { notIn: ['ARCHIVED', 'SOLD'] },
+        archivedAt: null,
+      })
+
+      if (params.status && params.status !== 'Tous') {
+        andConditions.push({ status: params.status })
+      }
     }
 
-    if (params.status && params.status !== 'Tous' && !isArchivedQuery) {
-      where.status = params.status
+    if (params.brand && params.brand !== 'Toutes') {
+      andConditions.push({ brand: params.brand })
     }
 
     if (params.fuelType && params.fuelType !== 'Tous') {
-      where.fuelType = params.fuelType
+      andConditions.push({ fuelType: params.fuelType })
     }
 
     if (params.transmission && params.transmission !== 'Toutes') {
-      where.transmission = params.transmission
+      andConditions.push({ transmission: params.transmission })
     }
 
     if (params.location && params.location !== 'Toutes') {
-      where.location = params.location
+      andConditions.push({ location: params.location })
     }
 
     if (params.parkId && params.parkId !== 'Tous') {
-      where.parkId = params.parkId
+      andConditions.push({ parkId: params.parkId })
     }
 
     if (params.search) {
-      where.OR = [
-        { brand: { contains: params.search } },
-        { model: { contains: params.search } },
-        { vin: { contains: params.search } },
-        { matricule: { contains: params.search } },
-        { code: { contains: params.search } },
-      ]
+      andConditions.push({
+        OR: [
+          { brand: { contains: params.search } },
+          { model: { contains: params.search } },
+          { vin: { contains: params.search } },
+          { matricule: { contains: params.search } },
+          { code: { contains: params.search } },
+        ],
+      })
     }
 
     if (params.minPrice || params.maxPrice) {
-      where.targetSalePrice = {}
-      if (params.minPrice) where.targetSalePrice.gte = params.minPrice
-      if (params.maxPrice) where.targetSalePrice.lte = params.maxPrice
+      const priceFilter: Prisma.FloatFilter = {}
+      if (params.minPrice) priceFilter.gte = params.minPrice
+      if (params.maxPrice) priceFilter.lte = params.maxPrice
+      andConditions.push({ targetSalePrice: priceFilter })
     }
+
+    const where: Prisma.VehicleWhereInput = andConditions.length > 0 ? { AND: andConditions } : {}
 
     return prisma.vehicle.findMany({
       where,
@@ -147,12 +166,20 @@ export const vehicleRepository = {
   async countByStatus() {
     const inStock = await prisma.vehicle.count({ where: { status: 'IN_STOCK', archivedAt: null } })
     const reserved = await prisma.vehicle.count({ where: { status: 'RESERVED', archivedAt: null } })
-    const sold = await prisma.vehicle.count({ where: { status: 'SOLD', archivedAt: null } })
     const workshop = await prisma.vehicle.count({ where: { status: 'WORKSHOP', archivedAt: null } })
-    const archived = await prisma.vehicle.count({ where: { status: 'ARCHIVED' } })
-    const total = inStock + reserved + sold + workshop
+    const archived = await prisma.vehicle.count({
+      where: {
+        OR: [
+          { status: 'ARCHIVED' },
+          { archivedAt: { not: null } },
+          { status: 'SOLD' },
+        ],
+      },
+    })
+    // Total reflects all active stock vehicles currently in showroom or workshop
+    const total = inStock + reserved + workshop
 
-    return { total, inStock, reserved, sold, workshop, archived }
+    return { total, inStock, reserved, sold: 0, workshop, archived }
   },
 
   async getStockAging() {

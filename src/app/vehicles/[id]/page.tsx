@@ -193,9 +193,9 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
         <div className="rounded-xl border border-[#222228] bg-[#121216] p-3.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-zinc-400 uppercase">
-              {vehicle.status === 'SOLD' ? 'Prix Vendu' : 'Prix Vente Souhaité'}
+              {vehicle.status === 'SOLD' || vehicle.status === 'ARCHIVED' || sale ? 'Prix Vendu' : 'Prix Vente Souhaité'}
             </span>
-            {vehicle.status !== 'SOLD' && (
+            {vehicle.status !== 'SOLD' && vehicle.status !== 'ARCHIVED' && !sale && (
               <Link
                 href={`/vehicles/${vehicle.id}?tab=${tab}&action=edit-target-price`}
                 className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-0.5"
@@ -216,7 +216,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
       </div>
 
       {/* Quick Edit Modal/Banner for Target Sale Price */}
-      {action === 'edit-target-price' && vehicle.status !== 'SOLD' && (
+      {action === 'edit-target-price' && vehicle.status !== 'SOLD' && vehicle.status !== 'ARCHIVED' && !sale && (
         <form
           action={handleUpdateTargetPrice}
           className="rounded-2xl border border-cyan-500/40 bg-gradient-to-r from-cyan-950/30 to-[#121216] p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg"
@@ -362,7 +362,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                       <span className="text-[10px] uppercase font-semibold text-zinc-400 block">Prix Affiché</span>
                       <Currency amount={vehicle.targetSalePrice} className="text-lg font-bold text-cyan-400 font-mono" />
                     </div>
-                    {vehicle.status !== 'SOLD' && (
+                    {vehicle.status !== 'SOLD' && vehicle.status !== 'ARCHIVED' && !sale && (
                       <Link
                         href={`/vehicles/${vehicle.id}?tab=overview&action=edit-target-price`}
                         className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-1.5 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
@@ -1664,7 +1664,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
             activeClientName={activeReservation?.clientName}
             activeDepositAmount={activeReservation?.depositAmount}
             isReserved={vehicle.status === 'RESERVED'}
-            isSold={vehicle.status === 'SOLD'}
+            isSold={vehicle.status === 'SOLD' || vehicle.status === 'ARCHIVED' || Boolean(sale)}
             saleId={sale?.id}
             saleCode={sale?.code}
             saleStatus={sale?.status}

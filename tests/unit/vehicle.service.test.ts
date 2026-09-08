@@ -43,4 +43,16 @@ describe('Vehicle Domain & Service Logic', () => {
       expect(cost).toBe(220000)
     })
   })
+
+  describe('Archived Vehicles & Stock Visibility Invariants', () => {
+    it('ensures ARCHIVED vehicles cannot transition to WORKSHOP or RESERVED', () => {
+      expect(canTransitionVehicleStatus('ARCHIVED', 'WORKSHOP')).toBe(false)
+      expect(canTransitionVehicleStatus('ARCHIVED', 'RESERVED')).toBe(false)
+      expect(canTransitionVehicleStatus('ARCHIVED', 'SOLD')).toBe(false)
+    })
+
+    it('allows restoring ARCHIVED vehicle only back to IN_STOCK', () => {
+      expect(canTransitionVehicleStatus('ARCHIVED', 'IN_STOCK')).toBe(true)
+    })
+  })
 })

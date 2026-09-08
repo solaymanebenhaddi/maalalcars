@@ -137,7 +137,11 @@ export const vehicleStateMachine = {
     await prisma.$transaction(async (tx) => {
       await tx.vehicle.update({
         where: { id: vehicleId },
-        data: { status: toStatus },
+        data: {
+          status: toStatus,
+          ...(toStatus === 'ARCHIVED' ? { archivedAt: new Date() } : {}),
+          ...(toStatus === 'IN_STOCK' ? { archivedAt: null } : {}),
+        },
       })
 
       await tx.vehicleStatusHistory.create({

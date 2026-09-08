@@ -65,7 +65,7 @@ export default async function DashboardPage() {
     vehicleRepository.countByStatus(),
     saleRepository.countSales({ startDate: startOfMonth }),
     prisma.vehicle.findMany({
-      where: { archivedAt: null },
+      where: { archivedAt: null, status: { notIn: ['ARCHIVED', 'SOLD'] } },
       include: { photos: { orderBy: { order: 'asc' }, take: 1 } },
       orderBy: { createdAt: 'desc' },
       take: 4,

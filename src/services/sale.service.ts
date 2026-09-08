@@ -149,13 +149,21 @@ export const saleService = {
       )
     }
 
-    // Update vehicle status to SOLD through State Machine
-    await vehicleStateMachine.transitionVehicleStatus(
+    // Vehicle is sold: automatically archive vehicle and set status to ARCHIVED
+    await vehicleRepository.archive(
       vehicle.id,
-      'SOLD',
-      `Vente confirmée: ${sale.code}`,
-      userId
+      `Vente confirmée: ${sale.code} (Client: ${sale.buyerName || 'Acheteur'})`
     )
+
+    await prisma.vehicleStatusHistory.create({
+      data: {
+        vehicleId: vehicle.id,
+        oldStatus: vehicle.status,
+        newStatus: 'ARCHIVED',
+        reason: `Vente effectuée et archivage automatique: ${sale.code}`,
+        changedBy: userId || 'SYSTEM',
+      },
+    })
 
     // Store actual sale price on vehicle
     await prisma.vehicle.update({
