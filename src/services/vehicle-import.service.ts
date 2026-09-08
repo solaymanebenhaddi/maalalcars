@@ -35,6 +35,11 @@ export interface ValidatedVehicleRow {
   parkId?: string | null
   description?: string | null
   options?: string | null
+  missingFields?: string[]
+  supplierName?: string | null
+  handledByName?: string | null
+  commissionerName?: string | null
+  commissionAmount?: number | null
 }
 
 export interface ImportError {
@@ -193,20 +198,32 @@ export const vehicleImportService = {
         normMap[normalizeHeader(key)] = value
       }
 
-      // 1. VIN
+      const missingFields: string[] = []
+
+      // 1. VIN (17 chars mandatory in database - auto-generate def-VIN- if missing)
       const rawVin =
         normMap['vin'] ||
+        normMap['vinchassis'] ||
         normMap['chassis'] ||
         normMap['numerodechassis'] ||
         normMap['numchassis'] ||
         normMap['codevin'] ||
         ''
-      const vin = String(rawVin).trim().toUpperCase()
+      let vin = String(rawVin).trim().toUpperCase()
 
-      if (!vin) {
-        errors.push('Le code VIN (numéro de châssis) est obligatoire.')
-      } else if (vin.length !== 17) {
-        errors.push(`Le VIN "${vin}" doit comporter exactement 17 caractères (actuel : ${vin.length}).`)
+      if (!vin || vin.length !== 17) {
+        // Auto-generate unique 17-char provisional VIN: def-VIN- (8 chars) + 9 digits = 17 chars
+        const seq = String(i + 1).padStart(9, '0')
+        vin = `def-VIN-${seq}`
+        let counter = 1
+        while (existingVins.has(vin) || seenFileVins.has(vin)) {
+          const rand = Math.floor(100000000 + Math.random() * 900000000).toString()
+          vin = `def-VIN-${rand}`
+          counter++
+          if (counter > 50) break
+        }
+        seenFileVins.add(vin)
+        missingFields.push('vin')
       } else if (existingVins.has(vin)) {
         errors.push(`Ce code VIN "${vin}" existe déjà dans le système.`)
       } else if (seenFileVins.has(vin)) {
@@ -222,76 +239,103 @@ export const vehicleImportService = {
         normMap['plaque'] ||
         normMap['plate'] ||
         ''
-      const matricule = rawMatricule ? String(rawMatricule).trim().toUpperCase() : null
+      let matricule = rawMatricule ? String(rawMatricule).trim().toUpperCase() : null
 
       if (matricule) {
         if (existingMatricules.has(matricule)) {
-          errors.push(`L'immatriculation "${matricule}" est déjà attribuée à un véhicule existant.`)
+          // If already in DB, set to null to avoid unique collision and mark as missing
+          matricule = null
+          missingFields.push('matricule')
         } else if (seenFileMatricules.has(matricule)) {
-          errors.push(`L'immatriculation "${matricule}" apparaît en double dans ce fichier.`)
+          matricule = `${matricule}-BIS`
+          seenFileMatricules.add(matricule)
         } else {
           seenFileMatricules.add(matricule)
         }
       }
 
-      // 3. Marque
+      // 3. Marque (Auto-fallback: def-Marque)
       const rawBrand = normMap['marque'] || normMap['brand'] || normMap['constructeur'] || ''
-      const brand = String(rawBrand).trim()
-      if (!brand) errors.push('La marque du véhicule est obligatoire.')
+      let brand = String(rawBrand).trim()
+      if (!brand) {
+        brand = 'def-Marque'
+        missingFields.push('brand')
+      }
 
-      // 4. Modèle
+      // 4. Modèle (Auto-fallback: check type first, then def-Modèle)
       const rawModel = normMap['modele'] || normMap['model'] || ''
-      const model = String(rawModel).trim()
-      if (!model) errors.push('Le modèle du véhicule est obligatoire.')
+      let model = String(rawModel).trim()
+      if (!model && normMap['type']) {
+        model = String(normMap['type']).trim()
+      }
+      if (!model) {
+        model = 'def-Modèle'
+        missingFields.push('model')
+      }
 
       // 5. Version
       const rawVersion = normMap['version'] || normMap['finition'] || ''
       const version = rawVersion ? String(rawVersion).trim() : null
 
-      // 6. Année
+      // 6. Année (Auto-fallback: currentYear)
       const rawYear = normMap['annee'] || normMap['year'] || normMap['millesime']
-      const year = parseNumber(rawYear, currentYear)
+      let year = parseNumber(rawYear, 0)
       if (!year || year < 1990 || year > currentYear + 1) {
-        errors.push(`Année invalide "${rawYear}". Doit être comprise entre 1990 et ${currentYear + 1}.`)
+        // Try extracting year from model or notes
+        const match = String(normMap['modele'] || normMap['notes'] || normMap['remarques'] || '').match(/20\d{2}/)
+        if (match) {
+          year = parseInt(match[0], 10)
+        } else {
+          year = currentYear
+          missingFields.push('year')
+        }
       }
 
-      // 7. Kilométrage
+      // 7. Kilométrage (Auto-fallback: 0)
       const rawMileage = normMap['kilometrage'] || normMap['km'] || normMap['mileage']
-      const mileage = parseNumber(rawMileage, 0)
-      if (mileage < 0) errors.push('Le kilométrage ne peut pas être négatif.')
+      let mileage = parseNumber(rawMileage, -1)
+      if (mileage < 0) {
+        mileage = 0
+        missingFields.push('mileage')
+      }
 
-      // 8. Carburant
+      // 8. Carburant (Auto-fallback: DIESEL)
       const rawFuel =
         normMap['carburant'] ||
         normMap['fuel'] ||
         normMap['fueltype'] ||
         normMap['energie'] ||
         normMap['motorisation']
-      const fuelType = normalizeFuelType(rawFuel)
+      let fuelType = normalizeFuelType(rawFuel)
       if (!fuelType) {
-        errors.push(
-          `Carburant "${rawFuel || 'vide'}" non reconnu. Valeurs acceptées : DIESEL, ESSENCE, HYBRIDE, HYBRIDE_RECHARGEABLE, ELECTRIQUE.`
-        )
+        if (model.toUpperCase().includes('HYBRID') || model.toUpperCase().includes('HYBRIDE')) {
+          fuelType = 'HYBRIDE'
+        } else if (model.toUpperCase().includes('GS') || brand.toUpperCase() === 'MOTO') {
+          fuelType = 'ESSENCE'
+        } else {
+          fuelType = 'DIESEL'
+        }
+        missingFields.push('fuelType')
       }
 
-      // 9. Transmission
+      // 9. Transmission (Auto-fallback: AUTOMATIQUE)
       const rawTrans =
         normMap['transmission'] ||
         normMap['boite'] ||
         normMap['boitedevitesse'] ||
+        normMap['automatiquemanuel'] ||
         normMap['gearbox']
-      const transmission = normalizeTransmission(rawTrans)
+      let transmission = normalizeTransmission(rawTrans)
       if (!transmission) {
-        errors.push(
-          `Boîte de vitesse "${rawTrans || 'vide'}" non reconnue. Valeurs acceptées : AUTOMATIQUE, MANUELLE, SEMI_AUTO, ROBOTISEE.`
-        )
+        transmission = 'AUTOMATIQUE'
+        missingFields.push('transmission')
       }
 
       // 10. Carrosserie
       const rawBody = normMap['carrosserie'] || normMap['bodytype'] || normMap['type']
       const bodyType = normalizeBodyType(rawBody)
 
-      // 11. Couleur Extérieure
+      // 11. Couleur Extérieure (Auto-fallback: def-Couleur)
       const rawColorExt =
         normMap['couleur'] ||
         normMap['couleurexterieure'] ||
@@ -299,21 +343,29 @@ export const vehicleImportService = {
         normMap['couleurext'] ||
         normMap['color'] ||
         ''
-      const colorExterior = String(rawColorExt).trim() || 'Non spécifiée'
+      let colorExterior = String(rawColorExt).trim()
+      if (!colorExterior || colorExterior === 'Non spécifiée') {
+        colorExterior = 'def-Couleur'
+        missingFields.push('colorExterior')
+      }
 
       // 12. Couleur Intérieure
       const rawColorInt =
         normMap['couleurinterieure'] || normMap['colorinterior'] || normMap['interieur'] || ''
       const colorInterior = rawColorInt ? String(rawColorInt).trim() : null
 
-      // 13. Prix d'Achat & Vente
+      // 13. Prix d'Achat & Vente (Auto-fallback)
       const rawPurchasePrice =
         normMap['prixachat'] ||
         normMap['prixdachat'] ||
         normMap['purchaseprice'] ||
         normMap['coutachat'] ||
         normMap['achat']
-      const purchasePrice = parseNumber(rawPurchasePrice, 0)
+      let purchasePrice = parseNumber(rawPurchasePrice, 0)
+      if (purchasePrice <= 0) {
+        purchasePrice = 0
+        missingFields.push('purchasePrice')
+      }
 
       const rawTargetPrice =
         normMap['prixvente'] ||
@@ -322,7 +374,13 @@ export const vehicleImportService = {
         normMap['prixsouhaite'] ||
         normMap['prix'] ||
         normMap['vente']
-      const targetSalePrice = parseNumber(rawTargetPrice, purchasePrice > 0 ? purchasePrice * 1.1 : 0)
+      let targetSalePrice = parseNumber(rawTargetPrice, 0)
+      if (targetSalePrice <= 0) {
+        targetSalePrice = purchasePrice > 0 ? Math.round((purchasePrice * 1.15) / 1000) * 1000 : 0
+        if (targetSalePrice <= 0) {
+          missingFields.push('targetSalePrice')
+        }
+      }
 
       const rawMinPrice = normMap['prixminimum'] || normMap['minsaleprice'] || normMap['prixmin']
       const minSalePrice = rawMinPrice ? parseNumber(rawMinPrice, 0) : null
@@ -358,6 +416,22 @@ export const vehicleImportService = {
       const rawDesc = normMap['description'] || normMap['remarques'] || normMap['notes'] || ''
       const description = rawDesc ? String(rawDesc).trim() : null
 
+      // 17. Extraction Fournisseur & Courtier si présents dans le fichier
+      const rawSupplier = normMap['vendeur'] || normMap['fournisseur'] || normMap['seller'] || ''
+      const supplierName = rawSupplier ? String(rawSupplier).trim() : null
+
+      const rawPaidBy = normMap['quilapaye'] || normMap['payeur'] || normMap['payepar'] || ''
+      const handledByName = rawPaidBy ? String(rawPaidBy).trim() : null
+
+      const rawComm = normMap['commissionnaire'] || normMap['semsar'] || normMap['courtier'] || ''
+      const commissionerName = rawComm ? String(rawComm).trim() : null
+
+      const rawCommFee = parseNumber(
+        normMap['fraiscommissionnaire'] || normMap['commission'] || normMap['commissionamount'],
+        0
+      )
+      const commissionAmount = rawCommFee > 0 ? rawCommFee : 0
+
       if (errors.length > 0) {
         invalidRows.push({
           rowNumber,
@@ -389,6 +463,11 @@ export const vehicleImportService = {
           parkId,
           description,
           options: optionsStr,
+          missingFields,
+          supplierName,
+          handledByName,
+          commissionerName,
+          commissionAmount,
         })
       }
     }
@@ -421,7 +500,10 @@ export const vehicleImportService = {
 
     // Determine starting sequence number for codes
     const currentYear = new Date().getFullYear()
-    const currentCount = await prisma.vehicle.count()
+    const [currentCount, purchaseCount] = await Promise.all([
+      prisma.vehicle.count(),
+      prisma.purchase.count(),
+    ])
 
     const createdVehicles: ImportResult['createdVehicles'] = []
     const errors: ImportError[] = []
@@ -431,6 +513,7 @@ export const vehicleImportService = {
       const row = validRows[i]
       const codeIndex = currentCount + i + 1
       const code = `V-${currentYear}-${String(codeIndex).padStart(4, '0')}`
+      const purchaseCode = `ACH-${currentYear}-${String(purchaseCount + i + 1).padStart(4, '0')}`
 
       try {
         const vehicle = await prisma.vehicle.create({
@@ -457,7 +540,12 @@ export const vehicleImportService = {
             location: row.location,
             parkId: row.parkId || options.defaultParkId || null,
             description: row.description || null,
-            options: row.options || null,
+            options: JSON.stringify({
+              isBulkImport: true,
+              missingFields: row.missingFields || [],
+              originalOptions: row.options || null,
+            }),
+            isBulkImport: true,
             status: 'IN_STOCK',
             statusHistory: {
               create: {
@@ -467,6 +555,36 @@ export const vehicleImportService = {
                 changedBy: options.userId || 'Super Admin',
               },
             },
+          },
+        })
+
+        // Create linked initial purchase record so user can complete supplier, payment & commissioner details
+        const hasCommDeclared = Boolean(
+          row.commissionerName &&
+            row.commissionerName !== 'SANS' &&
+            !row.commissionerName.toLowerCase().includes('sans')
+        )
+        const isNoCommDeclared = Boolean(
+          row.commissionerName &&
+            (row.commissionerName === 'SANS' ||
+              row.commissionerName.toLowerCase().includes('sans') ||
+              row.commissionerName.toLowerCase().includes('direct'))
+        )
+
+        await prisma.purchase.create({
+          data: {
+            code: purchaseCode,
+            vehicleId: vehicle.id,
+            purchasePrice: row.purchasePrice,
+            status: 'CONFIRMED',
+            paymentMethod: 'VIREMENT',
+            supplierName: row.supplierName || null,
+            commissionerName: row.commissionerName || null,
+            commissionAmount: row.commissionAmount || 0,
+            hasCommissioner: hasCommDeclared ? true : isNoCommDeclared ? false : null,
+            notes: `Dossier d'achat initié automatiquement lors de l'import groupé Excel${
+              row.handledByName ? ` [Payé par: ${row.handledByName}]` : ''
+            }`,
           },
         })
 

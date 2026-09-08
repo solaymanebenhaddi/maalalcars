@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { getServerSession } from '@/lib/session'
 import { saveFile } from '@/lib/storage'
 import prisma from '@/lib/db'
@@ -82,6 +83,11 @@ export async function POST(request: Request) {
         repairId,
       },
     })
+
+    revalidatePath('/vehicles')
+    if (vehicleId) {
+      revalidatePath(`/vehicles/${vehicleId}`)
+    }
 
     return NextResponse.json(document, { status: 201 })
   } catch (error: unknown) {

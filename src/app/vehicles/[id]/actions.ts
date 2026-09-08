@@ -241,6 +241,7 @@ export async function addVehiclePhotosAction(
     })
   }
 
+  revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${vehicleId}`)
 }
 
@@ -285,6 +286,7 @@ export async function deleteVehiclePhotoAction(photoId: string, url?: string) {
     } catch (_) {}
   }
 
+  revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${vehicleId}`)
 }
 
@@ -302,6 +304,7 @@ export async function setPrimaryVehiclePhotoAction(photoId: string) {
     data: { isPrimary: true },
   })
 
+  revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${target.vehicleId}`)
 }
 
@@ -381,3 +384,190 @@ export async function updateSaleCommissionerAction(vehicleId: string, formData: 
     redirect(`/vehicles/${vehicleId}?tab=sale&error=${encodeURIComponent(message)}`)
   }
 }
+
+export async function completeAcquisitionDossierAction(vehicleId: string, formData: FormData) {
+  try {
+    const supplierName = (formData.get('supplierName') as string) || ''
+    const supplierPhone = (formData.get('supplierPhone') as string) || null
+    const supplierCin = (formData.get('supplierCin') as string) || null
+    const supplierAddress = (formData.get('supplierAddress') as string) || null
+    const handledById = (formData.get('handledById') as string) || null
+    const paymentMethod = (formData.get('paymentMethod') as string) || 'VIREMENT'
+
+    const commissionerOption = (formData.get('commissionerOption') as string) || 'NONE'
+    const isWithComm = commissionerOption === 'WITH_COMMISSIONER'
+    const commissionerName = isWithComm ? ((formData.get('commissionerName') as string) || null) : 'SANS'
+    const commissionerPhone = isWithComm ? ((formData.get('commissionerPhone') as string) || null) : null
+    const commissionerCin = isWithComm ? ((formData.get('commissionerCin') as string) || null) : null
+    const commissionerAddress = isWithComm ? ((formData.get('commissionerAddress') as string) || null) : null
+    const commissionAmount = isWithComm ? (parseFloat(formData.get('commissionAmount') as string) || 0) : 0
+    const commissionPaidById = isWithComm ? ((formData.get('commissionPaidById') as string) || null) : null
+
+    // Find existing purchase or create one
+    let purchase = await prisma.purchase.findFirst({
+      where: { vehicleId },
+    })
+
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+    })
+
+    if (!vehicle) {
+      throw new Error('Véhicule introuvable.')
+    }
+
+    // Check if vehicle def- fields are being updated with real data
+    const newVin = formData.get('vin') ? (formData.get('vin') as string).trim().toUpperCase() : null
+    const newBrand = formData.get('brand') ? (formData.get('brand') as string).trim() : null
+    const newModel = formData.get('model') ? (formData.get('model') as string).trim() : null
+    const newColor = formData.get('colorExterior') ? (formData.get('colorExterior') as string).trim() : null
+    const newMileageRaw = formData.get('mileage') as string | null
+    const newMileage = newMileageRaw !== null && newMileageRaw !== '' ? parseInt(newMileageRaw, 10) : null
+    const newPurchasePriceRaw = formData.get('purchasePrice') as string | null
+    const newPurchasePrice =
+      newPurchasePriceRaw !== null && newPurchasePriceRaw !== '' ? parseFloat(newPurchasePriceRaw) : null
+
+    // Parse options to update missingFields
+    let parsedOptions: { isBulkImport?: boolean; missingFields?: string[]; [key: string]: unknown } = {}
+    if (typeof vehicle.options === 'string') {
+      try {
+        parsedOptions = JSON.parse(vehicle.options)
+      } catch {
+        parsedOptions = {}
+      }
+    }
+    const currentMissing = Array.isArray(parsedOptions.missingFields) ? [...parsedOptions.missingFields] : []
+
+    const vehicleUpdateData: Record<string, unknown> = {}
+
+    if (newVin && newVin !== vehicle.vin && !newVin.startsWith('def-')) {
+      if (newVin.length !== 17) {
+        throw new Error('Le code VIN doit comporter exactement 17 caractères.')
+      }
+      const existingVin = await prisma.vehicle.findFirst({
+        where: { vin: newVin, id: { not: vehicleId } },
+      })
+      if (existingVin) {
+        throw new Error(`Le code VIN "${newVin}" est déjà attribué à un autre véhicule.`)
+      }
+      vehicleUpdateData.vin = newVin
+      const idx = currentMissing.indexOf('vin')
+      if (idx !== -1) currentMissing.splice(idx, 1)
+    }
+
+    if (newBrand && newBrand !== 'def-Marque' && !newBrand.startsWith('def-')) {
+      vehicleUpdateData.brand = newBrand
+      const idx = currentMissing.indexOf('brand')
+      if (idx !== -1) currentMissing.splice(idx, 1)
+    }
+
+    if (newModel && newModel !== 'def-Modèle' && !newModel.startsWith('def-')) {
+      vehicleUpdateData.model = newModel
+      const idx = currentMissing.indexOf('model')
+      if (idx !== -1) currentMissing.splice(idx, 1)
+    }
+
+    if (newColor && newColor !== 'def-Couleur' && !newColor.startsWith('def-')) {
+      vehicleUpdateData.colorExterior = newColor
+      const idx = currentMissing.indexOf('colorExterior')
+      if (idx !== -1) currentMissing.splice(idx, 1)
+    }
+
+    if (newMileage !== null && !isNaN(newMileage) && newMileage >= 0) {
+      vehicleUpdateData.mileage = newMileage
+      const idx = currentMissing.indexOf('mileage')
+      if (idx !== -1) currentMissing.splice(idx, 1)
+    }
+
+    if (newPurchasePrice !== null && !isNaN(newPurchasePrice) && newPurchasePrice > 0) {
+      vehicleUpdateData.purchasePrice = newPurchasePrice
+      const idx = currentMissing.indexOf('purchasePrice')
+      if (idx !== -1) currentMissing.splice(idx, 1)
+    }
+
+    parsedOptions.missingFields = currentMissing
+    vehicleUpdateData.options = JSON.stringify(parsedOptions)
+
+    await prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: vehicleUpdateData,
+    })
+
+    const currentYear = new Date().getFullYear()
+
+    if (!purchase) {
+      const purchaseCount = await prisma.purchase.count()
+      const purchaseCode = `ACH-${currentYear}-${String(purchaseCount + 1).padStart(4, '0')}`
+      purchase = await prisma.purchase.create({
+        data: {
+          code: purchaseCode,
+          vehicleId,
+          purchasePrice: (newPurchasePrice && newPurchasePrice > 0) ? newPurchasePrice : vehicle.purchasePrice,
+          supplierName: supplierName.trim() || null,
+          supplierPhone,
+          supplierCin,
+          supplierAddress,
+          handledById: handledById || null,
+          paymentMethod,
+          hasCommissioner: isWithComm,
+          commissionerName,
+          commissionerPhone,
+          commissionerCin,
+          commissionerAddress,
+          commissionAmount,
+          commissionPaidById: commissionPaidById || null,
+          status: 'CONFIRMED',
+          notes: isWithComm ? undefined : 'Achat direct sans intermédiaire [SANS_COMMISSIONNAIRE]',
+        },
+      })
+
+      if (commissionAmount > 0) {
+        await prisma.vehicle.update({
+          where: { id: vehicleId },
+          data: { targetSalePrice: { increment: commissionAmount } },
+        })
+      }
+    } else {
+      const oldCommission = purchase.commissionAmount || 0
+      const delta = commissionAmount - oldCommission
+
+      await prisma.purchase.update({
+        where: { id: purchase.id },
+        data: {
+          ...(newPurchasePrice && newPurchasePrice > 0 ? { purchasePrice: newPurchasePrice } : {}),
+          supplierName: supplierName.trim() || null,
+          supplierPhone,
+          supplierCin,
+          supplierAddress,
+          handledById: handledById || null,
+          paymentMethod,
+          hasCommissioner: isWithComm,
+          commissionerName,
+          commissionerPhone,
+          commissionerCin,
+          commissionerAddress,
+          commissionAmount,
+          commissionPaidById: commissionPaidById || null,
+          notes: isWithComm ? purchase.notes : 'Achat direct sans intermédiaire [SANS_COMMISSIONNAIRE]',
+        },
+      })
+
+      if (delta !== 0) {
+        await prisma.vehicle.update({
+          where: { id: vehicleId },
+          data: { targetSalePrice: { increment: delta } },
+        })
+      }
+    }
+
+    revalidatePath(`/vehicles`)
+    revalidatePath(`/vehicles/${vehicleId}`)
+
+    redirect(`/vehicles/${vehicleId}?tab=acquisition&success=${encodeURIComponent('Dossier d\'achat, informations du véhicule et acteurs mis à jour avec succès.')}`)
+  } catch (error: unknown) {
+    if (isRedirectError(error)) throw error
+    const message = error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement des informations.'
+    redirect(`/vehicles/${vehicleId}?tab=acquisition&error=${encodeURIComponent(message)}`)
+  }
+}
+

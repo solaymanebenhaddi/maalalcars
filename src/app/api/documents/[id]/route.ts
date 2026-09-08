@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { getServerSession } from '@/lib/session'
 import { deleteFile } from '@/lib/storage'
 import prisma from '@/lib/db'
@@ -23,6 +24,8 @@ export async function DELETE(request: Request, { params }: Props) {
       return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
     }
 
+    const vehicleId = document.vehicleId
+
     // Delete database record
     await prisma.document.delete({ where: { id } })
 
@@ -34,6 +37,11 @@ export async function DELETE(request: Request, { params }: Props) {
       } catch (err) {
         console.warn('Could not delete physical file:', err)
       }
+    }
+
+    revalidatePath('/vehicles')
+    if (vehicleId) {
+      revalidatePath(`/vehicles/${vehicleId}`)
     }
 
     return NextResponse.json({ success: true, id })

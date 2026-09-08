@@ -32,6 +32,8 @@ import { getActiveUserRole } from '@/lib/auth-roles'
 import prisma from '@/lib/db'
 import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
 import { DocumentManager } from '@/components/documents/document-manager'
+import { BulkImportUrgentBanner } from '@/components/vehicles/bulk-import-urgent-banner'
+import { checkVehicleCompleteness } from '@/services/vehicle-completeness.service'
 import {
   createRepairAction,
   completeRepairAction,
@@ -111,6 +113,9 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
   )
   const activeRepair = vehicle.repairs?.find((r) => r.status === 'EN_COURS')
 
+  // Completeness check for bulk imported vehicles requiring urgent updates
+  const completeness = checkVehicleCompleteness(vehicle)
+
   // Derived Commissioner fields for Purchase
   const purchaseCommName =
     purchase?.commissionerName ||
@@ -165,6 +170,24 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
         success={success}
         info={info}
         dismissHref={`/vehicles/${vehicle.id}?tab=${tab}`}
+      />
+
+      {/* Urgent Updates Banner for Bulk Imported Vehicles with Incomplete Dossier */}
+      <BulkImportUrgentBanner
+        vehicleId={vehicle.id}
+        vehicleCode={vehicle.code}
+        completeness={completeness}
+        personnelList={personnelList}
+        vehicleData={{
+          vin: vehicle.vin,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          colorExterior: vehicle.colorExterior,
+          mileage: vehicle.mileage,
+          purchasePrice: vehicle.purchasePrice,
+        }}
+        currentPurchase={purchase}
+        initialOpen={action === 'complete-dossier'}
       />
 
       {/* Financial Summary KPI Ribbon - Explicitly showing Fees & Repairs accumulated to initial price */}

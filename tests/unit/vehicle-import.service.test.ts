@@ -93,7 +93,7 @@ describe('Vehicle Import Service (.xsl / .xlsx / .csv)', () => {
       expect(validItem.targetSalePrice).toBe(160000)
     })
 
-    it('rejects rows with invalid VIN length (< 17 or > 17)', async () => {
+    it('auto-initializes provisional def-VIN- when VIN is missing or invalid length', async () => {
       const rawRows = [
         {
           VIN: 'SHORTVIN',
@@ -106,8 +106,33 @@ describe('Vehicle Import Service (.xsl / .xlsx / .csv)', () => {
       ]
 
       const validation = await vehicleImportService.validateRows(rawRows)
-      expect(validation.invalidCount).toBe(1)
-      expect(validation.invalidRows[0].errors.some((e) => e.includes('17 caractères'))).toBe(true)
+      expect(validation.validCount).toBe(1)
+      expect(validation.invalidCount).toBe(0)
+      expect(validation.validRows[0].vin.startsWith('def-VIN-')).toBe(true)
+      expect(validation.validRows[0].vin.length).toBe(17)
+      expect(validation.validRows[0].missingFields).toContain('vin')
+    })
+
+    it('auto-initializes missing fields with def- prefix (def-Marque, def-Modèle, def-Couleur)', async () => {
+      const rawRows = [
+        {
+          VIN: '',
+          Marque: '',
+          Modèle: '',
+          Couleur: '',
+        },
+      ]
+
+      const validation = await vehicleImportService.validateRows(rawRows)
+      expect(validation.validCount).toBe(1)
+      expect(validation.validRows[0].vin.startsWith('def-VIN-')).toBe(true)
+      expect(validation.validRows[0].brand).toBe('def-Marque')
+      expect(validation.validRows[0].model).toBe('def-Modèle')
+      expect(validation.validRows[0].colorExterior).toBe('def-Couleur')
+      expect(validation.validRows[0].missingFields).toContain('vin')
+      expect(validation.validRows[0].missingFields).toContain('brand')
+      expect(validation.validRows[0].missingFields).toContain('model')
+      expect(validation.validRows[0].missingFields).toContain('colorExterior')
     })
 
     it('rejects duplicate VINs within the same file', async () => {

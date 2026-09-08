@@ -255,6 +255,7 @@ model Vehicle {
   
   status          String    @default("IN_STOCK") // IN_STOCK, RESERVED, SOLD, WORKSHOP, TRANSIT, ARCHIVED
   description     String?
+  isBulkImport    Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   archivedAt      DateTime?
@@ -382,6 +383,7 @@ model Purchase {
   commissionerAddress         String?
   commissionPaidById          String?
   commissionPaidBy            User?     @relation("PurchaseCommissionPaidBy", fields: [commissionPaidById], references: [id], onDelete: SetNull)
+  hasCommissioner             Boolean?  // null = pending confirmation, false = direct purchase, true = with commissioner
 
   purchasePrice      Float     // MAD
   commissionAmount   Float     @default(0)

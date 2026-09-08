@@ -88,7 +88,7 @@ export const vehicleRepository = {
           include: { category: true },
         },
         purchases: {
-          include: { seller: true, commissioner: true },
+          include: { seller: true, commissioner: true, handledBy: true, commissionPaidBy: true, documents: true },
         },
         sales: {
           include: { buyer: true },

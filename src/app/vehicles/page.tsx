@@ -15,6 +15,9 @@ import {
   MapPin,
   Building2,
   FileSpreadsheet,
+  AlertTriangle,
+  Check,
+  X,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -26,6 +29,7 @@ import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
 import { VehicleCardWrapper } from '@/components/vehicles/vehicle-card-wrapper'
 import { RestoreVehicleButton } from '@/components/vehicles/restore-vehicle-button'
 import { getActiveUserRole } from '@/lib/auth-roles'
+import { checkVehicleCompleteness } from '@/services/vehicle-completeness.service'
 import clsx from 'clsx'
 
 import { VehiclesPageActions } from '@/components/vehicles/vehicles-page-actions'
@@ -42,6 +46,7 @@ interface Props {
     parkId?: string
     park?: string
     search?: string
+    urgent?: string
   }>
 }
 
@@ -100,6 +105,7 @@ export default async function VehiclesPage({ searchParams }: Props) {
     if (params.fuelType && params.fuelType !== 'Tous') q.set('fuelType', params.fuelType)
     if (activeParkId) q.set('parkId', activeParkId)
     if (params.search) q.set('search', params.search)
+    if (params.urgent) q.set('urgent', params.urgent)
 
     for (const [k, v] of Object.entries(newParams)) {
       if (!v || v === 'Tous' || v === 'Toutes') {
@@ -112,6 +118,16 @@ export default async function VehiclesPage({ searchParams }: Props) {
     const str = q.toString()
     return `/vehicles${str ? `?${str}` : ''}`
   }
+
+  // Pre-calculate completeness for all vehicles
+  const vehicleCompletenessMap = new Map(
+    vehicles.map((v) => [v.id, checkVehicleCompleteness(v)])
+  )
+  const urgentCount = vehicles.filter((v) => vehicleCompletenessMap.get(v.id)?.needsUrgentUpdates).length
+  const isUrgentFilterActive = params.urgent === 'true'
+  const displayedVehicles = isUrgentFilterActive
+    ? vehicles.filter((v) => vehicleCompletenessMap.get(v.id)?.needsUrgentUpdates)
+    : vehicles
 
   return (
     <div className="space-y-6">
@@ -288,10 +304,47 @@ export default async function VehiclesPage({ searchParams }: Props) {
         </form>
       </div>
 
+      {/* Urgent Updates Filter Notification Banner */}
+      {urgentCount > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border-2 border-red-500/80 bg-gradient-to-r from-red-950/40 via-[#180e12] to-red-950/20 p-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/40 shrink-0">
+              <AlertTriangle className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
+                  Mises à jour urgentes requises
+                </h4>
+                <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-mono font-bold text-white">
+                  {urgentCount} véhicule{urgentCount > 1 ? 's' : ''}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-300">
+                Véhicule{urgentCount > 1 ? 's issus' : ' issu'} d&apos;un import groupé en attente de photos, fournisseur, payeur, courtier ou documents.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href={isUrgentFilterActive ? buildQueryUrl({ urgent: undefined }) : buildQueryUrl({ urgent: 'true' })}
+            className={clsx(
+              'px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-1.5 shadow',
+              isUrgentFilterActive
+                ? 'bg-zinc-200 text-black hover:bg-white'
+                : 'bg-red-600 text-white hover:bg-red-500'
+            )}
+          >
+            <span>{isUrgentFilterActive ? 'Afficher tout le stock' : 'Filtrer uniquement les urgences'}</span>
+          </Link>
+        </div>
+      )}
+
       {/* Vehicles Cards Grid */}
-      {vehicles.length > 0 ? (
+      {displayedVehicles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {vehicles.map((v) => {
+          {displayedVehicles.map((v) => {
+            const completeness = vehicleCompletenessMap.get(v.id) || checkVehicleCompleteness(v)
             const activeReservation = v.reservations.find(
               (r) => r.status === 'ACTIVE' || r.status === 'EXPIRING'
             )
@@ -302,85 +355,163 @@ export default async function VehiclesPage({ searchParams }: Props) {
               <VehicleCardWrapper
                 key={v.id}
                 vehicleId={v.id}
-                className="group flex flex-col justify-between rounded-2xl border border-[#222228] bg-[#121216] overflow-hidden shadow-sm hover:border-zinc-700 hover:bg-[#15151a] transition-all cursor-pointer select-none"
+                className={clsx(
+                  "group flex flex-col justify-between rounded-2xl overflow-hidden shadow-sm transition-all cursor-pointer select-none relative",
+                  completeness.needsUrgentUpdates
+                    ? "border-2 border-red-500/90 bg-gradient-to-b from-[#220d12] via-[#151014] to-[#121216] shadow-[0_0_22px_rgba(239,68,68,0.22)] hover:border-red-400 hover:shadow-[0_0_32px_rgba(239,68,68,0.4)]"
+                    : "border border-[#222228] bg-[#121216] hover:border-zinc-700 hover:bg-[#15151a]"
+                )}
               >
-                {/* Photo & Top Badges */}
-                <div className="relative h-48 w-full bg-gradient-to-t from-black via-zinc-900 to-zinc-950 flex items-center justify-center border-b border-[#222228] overflow-hidden">
-                  {v.photos[0]?.url ? (
-                    <Image
-                      src={v.photos[0].url}
-                      alt={`${v.brand} ${v.model}`}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-zinc-600 group-hover:text-red-400 transition-colors">
-                      <Car className="h-16 w-16 mb-1" />
-                      <span className="text-[11px] font-semibold text-zinc-400">{v.bodyType || 'Véhicule'}</span>
-                    </div>
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 pointer-events-none" />
-
-                  <div className="absolute top-3 left-3 z-10">
-                    <StatusBadge status={v.status} />
-                  </div>
-
-                  <div className="absolute top-3 right-3 z-10">
-                    <span className="rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-200 border border-zinc-700 backdrop-blur-sm">
-                      {v.code}
-                    </span>
-                  </div>
-
-                  {v.matricule && (
-                    <div className="absolute bottom-2.5 left-3 z-10 rounded-md bg-black/80 px-2.5 py-1 font-mono text-[11px] font-semibold text-white border border-zinc-700 backdrop-blur-sm">
-                      {v.matricule}
-                    </div>
-                  )}
-
-                  <div className="absolute bottom-2.5 right-3 z-10 rounded-md bg-black/80 px-2.5 py-1 text-[10px] font-bold text-cyan-400 border border-cyan-500/30 backdrop-blur-sm flex items-center gap-1 shadow">
-                    <MapPin className="h-3 w-3" />
-                    <span>{v.park?.city || v.location}</span>
-                  </div>
-                </div>
-
-                {/* Card Content */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <Link
-                        href={`/vehicles/${v.id}`}
-                        className="text-base font-bold text-white group-hover:text-red-400 transition-colors"
-                      >
-                        {v.brand} {v.model}
-                      </Link>
-                      <span className="rounded-lg bg-[#1a1a22] px-2 py-0.5 text-xs font-bold text-zinc-300">
-                        {v.year}
-                      </span>
-                    </div>
-
-                    {v.version && (
-                      <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5">{v.version}</p>
-                    )}
-
-                    {/* Specs Bar */}
-                    <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[#17171e] p-2.5 text-center text-[11px] border border-[#22222a]">
-                      <div>
-                        <span className="text-zinc-500 block text-[10px] uppercase">Boîte</span>
-                        <span className="font-semibold text-zinc-200">{v.transmission}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500 block text-[10px] uppercase">Carburant</span>
-                        <span className="font-semibold text-zinc-200">{v.fuelType}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500 block text-[10px] uppercase">Kilométrage</span>
-                        <span className="font-semibold text-zinc-200 font-mono">
-                          {v.mileage?.toLocaleString('fr-FR')} km
+                    {/* Urgent Updates Top Banner */}
+                    {completeness.needsUrgentUpdates && (
+                      <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-3 py-1.5 flex items-center justify-between text-[11px] font-black tracking-wide shadow-md z-20">
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 animate-pulse text-white" />
+                          <span>MISE À JOUR URGENTE</span>
+                        </div>
+                        <span className="rounded bg-black/40 px-2 py-0.5 text-[10px] font-mono font-bold">
+                          {completeness.completedCount}/{completeness.totalRequired} complété
+                          {completeness.hasDefaultedFields && (
+                            <span className="text-amber-300 ml-1 font-extrabold">• {completeness.defaultedCount} def-</span>
+                          )}
                         </span>
                       </div>
+                    )}
+
+                    {/* Photo & Top Badges */}
+                    <div className="relative h-48 w-full bg-gradient-to-t from-black via-zinc-900 to-zinc-950 flex items-center justify-center border-b border-[#222228] overflow-hidden">
+                      {v.photos[0]?.url ? (
+                        <Image
+                          src={v.photos[0].url}
+                          alt={`${v.brand} ${v.model}`}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-zinc-600 group-hover:text-red-400 transition-colors">
+                          <Car className={clsx("h-16 w-16 mb-1", completeness.needsUrgentUpdates ? "text-red-400/80" : "text-zinc-600")} />
+                          <span className={clsx("text-[11px] font-semibold", completeness.needsUrgentUpdates ? "text-red-400 font-bold" : "text-zinc-400")}>
+                            {completeness.needsUrgentUpdates ? '⚠️ Photos requises' : (v.bodyType || 'Véhicule')}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 pointer-events-none" />
+
+                      <div className="absolute top-3 left-3 z-10">
+                        <StatusBadge status={v.status} />
+                      </div>
+
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className="rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-200 border border-zinc-700 backdrop-blur-sm">
+                          {v.code}
+                        </span>
+                      </div>
+
+                      {v.matricule && (
+                        <div className="absolute bottom-2.5 left-3 z-10 rounded-md bg-black/80 px-2.5 py-1 font-mono text-[11px] font-semibold text-white border border-zinc-700 backdrop-blur-sm">
+                          {v.matricule}
+                        </div>
+                      )}
+
+                      <div className="absolute bottom-2.5 right-3 z-10 rounded-md bg-black/80 px-2.5 py-1 text-[10px] font-bold text-cyan-400 border border-cyan-500/30 backdrop-blur-sm flex items-center gap-1 shadow">
+                        <MapPin className="h-3 w-3" />
+                        <span>{v.park?.city || v.location}</span>
+                      </div>
                     </div>
+
+                    {/* Card Content */}
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <Link
+                            href={`/vehicles/${v.id}`}
+                            className="text-base font-bold text-white group-hover:text-red-400 transition-colors"
+                          >
+                            {v.brand} {v.model}
+                          </Link>
+                          <span className="rounded-lg bg-[#1a1a22] px-2 py-0.5 text-xs font-bold text-zinc-300">
+                            {v.year}
+                          </span>
+                        </div>
+
+                        {v.version && (
+                          <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5">{v.version}</p>
+                        )}
+
+                        {/* Specs Bar */}
+                        <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[#17171e] p-2.5 text-center text-[11px] border border-[#22222a]">
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase">Boîte</span>
+                            <span className="font-semibold text-zinc-200">{v.transmission}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase">Carburant</span>
+                            <span className="font-semibold text-zinc-200">{v.fuelType}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase">Kilométrage</span>
+                            <span className="font-semibold text-zinc-200 font-mono">
+                              {v.mileage?.toLocaleString('fr-FR')} km
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Urgent Updates Checklist Pill */}
+                        {completeness.needsUrgentUpdates && (
+                          <div className="mt-2.5 rounded-xl border border-red-500/40 bg-red-950/40 p-2.5 space-y-2 text-[11px]">
+                            <div className="flex items-center justify-between font-bold text-red-300 text-[10px] uppercase tracking-wider">
+                              <span>Informations obligatoires :</span>
+                              <span className="font-mono text-red-400 font-extrabold">({completeness.missingCount} manquante{completeness.missingCount > 1 ? 's' : ''})</span>
+                            </div>
+
+                            {/* Prominent def- fields list if present */}
+                            {completeness.hasDefaultedFields && (
+                              <div className="rounded-lg bg-red-950/80 border border-red-500/60 p-2 space-y-1">
+                                <span className="text-[10px] font-black uppercase text-amber-300 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
+                                  Valeurs par défaut (def-) à compléter :
+                                </span>
+                                <div className="flex flex-wrap gap-1">
+                                  {completeness.defFields
+                                    .filter((f) => f.isDefaulted)
+                                    .map((f) => (
+                                      <span
+                                        key={f.key}
+                                        className="rounded bg-red-900/60 px-1.5 py-0.5 text-[9px] font-mono font-bold text-red-200 border border-red-500/50"
+                                      >
+                                        ⚠️ {f.label} ({f.currentValue})
+                                      </span>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-1 text-[10px]">
+                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.images.satisfied ? "text-emerald-400" : "text-red-300")}>
+                                {completeness.items.images.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
+                                <span>Images ({v.photos.length})</span>
+                              </div>
+                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.supplier.satisfied ? "text-emerald-400" : "text-red-300")}>
+                                {completeness.items.supplier.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
+                                <span>Fournisseur</span>
+                              </div>
+                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.whoPaid.satisfied ? "text-emerald-400" : "text-red-300")}>
+                                {completeness.items.whoPaid.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
+                                <span>Payé par</span>
+                              </div>
+                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.commissioner.satisfied ? "text-emerald-400" : "text-red-300")}>
+                                {completeness.items.commissioner.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
+                                <span>Courtier</span>
+                              </div>
+                              <div className={clsx("col-span-2 flex items-center gap-1 font-semibold", completeness.items.documents.satisfied ? "text-emerald-400" : "text-red-300")}>
+                                {completeness.items.documents.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
+                                <span>Documents du véhicule</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                     {/* Operational Alert Tags */}
                     {activeReservation && (
@@ -420,6 +551,17 @@ export default async function VehiclesPage({ searchParams }: Props) {
                         <span>Fiche</span>
                       </Link>
                     </div>
+
+                    {/* Prominent Quick Action for Urgent Updates */}
+                    {completeness.needsUrgentUpdates && (
+                      <Link
+                        href={`/vehicles/${v.id}?tab=acquisition&action=complete-dossier`}
+                        className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 px-3 text-xs font-bold text-white shadow-md transition-all"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5 animate-pulse" />
+                        <span>Compléter les informations urgentes</span>
+                      </Link>
+                    )}
 
                     {/* Status Actions */}
                     <div className="flex items-center gap-2 pt-1">
