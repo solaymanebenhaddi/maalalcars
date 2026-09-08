@@ -7,7 +7,6 @@ import {
   CalendarDays,
   BadgePercent,
   DollarSign,
-  FolderArchive,
   Wrench,
   Plus,
   User,
@@ -29,13 +28,16 @@ import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
 import { VehicleLifecycleTimeline } from '@/components/vehicles/vehicle-lifecycle-timeline'
 import { getActiveUserRole } from '@/lib/auth-roles'
 import prisma from '@/lib/db'
+import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
 import {
   createRepairAction,
   completeRepairAction,
   cancelRepairAction,
   createReservationAction,
   cancelReservationAction,
-  addPhotoAction,
+  syncVehiclePhotosAction,
+  deleteVehiclePhotoAction,
+  setPrimaryVehiclePhotoAction,
   updatePurchaseCommissionerAction,
   updateSaleCommissionerAction,
   updateTargetPriceAction,
@@ -125,7 +127,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
   const handleCancelRepair = cancelRepairAction.bind(null, id)
   const handleCreateReservation = createReservationAction.bind(null, id)
   const handleCancelReservation = cancelReservationAction.bind(null, id)
-  const handleAddPhoto = addPhotoAction.bind(null, id)
+  const handleSyncPhotos = syncVehiclePhotosAction.bind(null, id)
   const handleUpdatePurchaseCommissioner = updatePurchaseCommissionerAction.bind(null, id)
   const handleUpdateSaleCommissioner = updateSaleCommissionerAction.bind(null, id)
   const handleUpdateTargetPrice = updateTargetPriceAction.bind(null, id)
@@ -1456,52 +1458,20 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
           {/* STAGE 6 / TAB 6: PHOTOS & DOCUMENTS */}
           {tab === 'documents' && (
             <div className="space-y-6">
-              {/* Photos Gallery */}
-              <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-[#222228] pb-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <FolderArchive className="h-4 w-4 text-cyan-400" />
-                    <span>Galerie Photos Véhicule ({vehicle.photos.length})</span>
-                  </h3>
-                </div>
-
-                <form action={handleAddPhoto} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    name="url"
-                    required
-                    placeholder="Ajouter une photo (URL de l'image)"
-                    className="h-9 flex-1 rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-cyan-500 focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="h-9 rounded-lg bg-cyan-600 px-4 text-xs font-bold text-white hover:bg-cyan-500 transition-colors"
-                  >
-                    Ajouter
-                  </button>
-                </form>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                  {vehicle.photos.map((ph) => (
-                    <div
-                      key={ph.id}
-                      className="relative h-36 rounded-xl border border-[#282834] overflow-hidden bg-black group"
-                    >
-                      <Image
-                        src={ph.url}
-                        alt={`${vehicle.brand} ${vehicle.model}`}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                        unoptimized
-                      />
-                      {ph.isPrimary && (
-                        <span className="absolute top-2 left-2 rounded bg-black/80 px-2 py-0.5 text-[10px] font-bold text-white border border-zinc-700">
-                          Principale
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm">
+                <VehiclePhotoUploader
+                  initialPhotos={vehicle.photos.map((ph) => ({
+                    id: ph.id,
+                    url: ph.url,
+                    isPrimary: ph.isPrimary,
+                    name: `Photo #${ph.order + 1}`,
+                  }))}
+                  vehicleId={vehicle.id}
+                  maxPhotos={10}
+                  onDeletePhoto={deleteVehiclePhotoAction}
+                  onSetPrimaryPhoto={setPrimaryVehiclePhotoAction}
+                  onPhotosChange={handleSyncPhotos}
+                />
               </div>
             </div>
           )}

@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { repairService } from '@/services/repair.service'
 import { reservationService } from '@/services/reservation.service'
 import prisma from '@/lib/db'
@@ -91,17 +92,112 @@ export async function cancelReservationAction(vehicleId: string, formData: FormD
 export async function addPhotoAction(vehicleId: string, formData: FormData) {
   const url = formData.get('url') as string
   if (url) {
+    const count = await prisma.vehiclePhoto.count({ where: { vehicleId } })
+    if (count < 10) {
+      const hasPrimary = await prisma.vehiclePhoto.findFirst({ where: { vehicleId, isPrimary: true } })
+      await prisma.vehiclePhoto.create({
+        data: {
+          url,
+          vehicleId,
+          isPrimary: !hasPrimary,
+          category: 'EXTERIEUR',
+          order: count,
+        },
+      })
+    }
+  }
+
+  redirect(`/vehicles/${vehicleId}?tab=documents`)
+}
+
+export async function addVehiclePhotosAction(
+  vehicleId: string,
+  photos: Array<{ url: string; isPrimary?: boolean }>
+) {
+  const currentCount = await prisma.vehiclePhoto.count({ where: { vehicleId } })
+  const availableSlots = Math.max(0, 10 - currentCount)
+  if (availableSlots <= 0) {
+    throw new Error('Limite maximale de 10 photos déjà atteinte pour ce véhicule.')
+  }
+
+  const photosToAdd = photos.slice(0, availableSlots)
+  const hasPrimary = await prisma.vehiclePhoto.findFirst({ where: { vehicleId, isPrimary: true } })
+
+  for (let i = 0; i < photosToAdd.length; i++) {
+    const p = photosToAdd[i]
     await prisma.vehiclePhoto.create({
       data: {
-        url,
         vehicleId,
-        isPrimary: false,
+        url: p.url,
+        isPrimary: !hasPrimary && i === 0,
+        order: currentCount + i,
         category: 'EXTERIEUR',
       },
     })
   }
 
-  redirect(`/vehicles/${vehicleId}?tab=documents`)
+  revalidatePath(`/vehicles/${vehicleId}`)
+}
+
+export async function syncVehiclePhotosAction(
+  vehicleId: string,
+  photos: Array<{ id?: string; url: string; isPrimary?: boolean }>
+) {
+  const newPhotos = photos.filter((p) => !p.id)
+  if (newPhotos.length > 0) {
+    await addVehiclePhotosAction(vehicleId, newPhotos)
+  }
+}
+
+export async function deleteVehiclePhotoAction(photoId: string, url?: string) {
+  const photo = await prisma.vehiclePhoto.findUnique({ where: { id: photoId } })
+  if (!photo) return
+
+  const vehicleId = photo.vehicleId
+
+  await prisma.vehiclePhoto.delete({ where: { id: photoId } })
+
+  // If deleted photo was primary, promote next photo
+  if (photo.isPrimary) {
+    const nextPhoto = await prisma.vehiclePhoto.findFirst({
+      where: { vehicleId },
+      orderBy: { order: 'asc' },
+    })
+    if (nextPhoto) {
+      await prisma.vehiclePhoto.update({
+        where: { id: nextPhoto.id },
+        data: { isPrimary: true },
+      })
+    }
+  }
+
+  // Attempt to delete file from storage
+  if (url && url.startsWith('/api/storage/')) {
+    try {
+      const relativePath = url.replace('/api/storage/', '')
+      const { deleteFile } = await import('@/lib/storage')
+      await deleteFile(relativePath)
+    } catch (_) {}
+  }
+
+  revalidatePath(`/vehicles/${vehicleId}`)
+}
+
+export async function setPrimaryVehiclePhotoAction(photoId: string) {
+  const target = await prisma.vehiclePhoto.findUnique({ where: { id: photoId } })
+  if (!target) return
+
+  await prisma.vehiclePhoto.updateMany({
+    where: { vehicleId: target.vehicleId, isPrimary: true },
+    data: { isPrimary: false },
+  })
+
+  await prisma.vehiclePhoto.update({
+    where: { id: photoId },
+    data: { isPrimary: true },
+  })
+
+  revalidatePath(`/vehicles/${target.vehicleId}`)
 }
 
 export async function updatePurchaseCommissionerAction(vehicleId: string, formData: FormData) {

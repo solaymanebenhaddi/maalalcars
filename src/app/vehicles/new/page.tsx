@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 
 import { parkRepository } from '@/repositories/park.repository'
+import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,8 +59,24 @@ async function createVehicleAction(formData: FormData) {
   const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
 
   // Section 4: Photos & Documents
-  const photoUrl = (formData.get('photoUrl') as string) || ''
+  const photosDataRaw = (formData.get('vehiclePhotosData') as string) || ''
+  const legacyPhotoUrl = (formData.get('photoUrl') as string) || ''
   const documentNotes = (formData.get('documentNotes') as string) || ''
+
+  let parsedPhotos: Array<{ url: string; isPrimary: boolean; order: number }> = []
+  if (photosDataRaw) {
+    try {
+      parsedPhotos = JSON.parse(photosDataRaw)
+    } catch (_) {}
+  }
+
+  // Fallback to single legacy photoUrl if provided
+  if (parsedPhotos.length === 0 && legacyPhotoUrl) {
+    parsedPhotos = [{ url: legacyPhotoUrl, isPrimary: true, order: 0 }]
+  }
+
+  // Strict enforcement: Maximum 10 photos
+  parsedPhotos = parsedPhotos.slice(0, 10)
 
   // Generate unique vehicle code
   const count = await prisma.vehicle.count()
@@ -87,15 +104,15 @@ async function createVehicleAction(formData: FormData) {
       targetSalePrice,
       description: description || null,
       status: 'IN_STOCK',
-      ...(photoUrl
+      ...(parsedPhotos.length > 0
         ? {
             photos: {
-              create: {
-                url: photoUrl,
-                isPrimary: true,
+              create: parsedPhotos.map((p, idx) => ({
+                url: p.url,
+                isPrimary: Boolean(p.isPrimary),
                 category: 'EXTERIEUR',
-                order: 0,
-              },
+                order: typeof p.order === 'number' ? p.order : idx,
+              })),
             },
           }
         : {}),
@@ -470,19 +487,8 @@ export default async function NewVehiclePage() {
             <span>Photos & Documents d’Entrée en Stock</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">URL Photo Principale</label>
-              <input
-                type="text"
-                name="photoUrl"
-                placeholder="https://... ou /vehicles/photo.jpg"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
-              />
-              <p className="mt-1 text-[11px] text-zinc-500">
-                Vous pourrez ajouter des photos supplémentaires sur la fiche véhicule.
-              </p>
-            </div>
+          <div className="space-y-6">
+            <VehiclePhotoUploader maxPhotos={10} />
 
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1">Notes & Pièces Justificatives</label>

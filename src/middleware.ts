@@ -7,10 +7,11 @@ export function middleware(request: NextRequest) {
 
   const isStaticAsset = /\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|eot)$/i.test(pathname)
 
-  // 1. Allow Next.js internal files, login endpoint, and static assets (excluding /api/)
+  // 1. Allow Next.js internal files, login endpoint, storage assets, and static assets (excluding other /api/)
   if (
     pathname.startsWith('/_next') ||
     pathname === '/api/auth/login' ||
+    pathname.startsWith('/api/storage/') ||
     (isStaticAsset && !pathname.startsWith('/api/'))
   ) {
     return NextResponse.next()
