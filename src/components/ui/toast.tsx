@@ -30,9 +30,14 @@ interface ToastContextValue {
 
 const ToastContext = React.createContext<ToastContextValue | null>(null)
 
+const emptySubscribe = () => () => {}
+function useMounted() {
+  return React.useSyncExternalStore(emptySubscribe, () => true, () => false)
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([])
-  const [mounted] = React.useState(() => typeof window !== 'undefined')
+  const mounted = useMounted()
 
   const addToast = React.useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).slice(2)
@@ -69,6 +74,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toasts, addToast, removeToast, toast }}>
       {children}
       {mounted &&
+        typeof document !== 'undefined' &&
         createPortal(
           <ToastContainer toasts={toasts} onRemove={removeToast} />,
           document.body

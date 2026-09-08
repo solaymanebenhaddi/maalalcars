@@ -12,30 +12,39 @@ export interface DialogProps {
   className?: string
 }
 
+const emptySubscribe = () => () => {}
+function useMounted() {
+  return React.useSyncExternalStore(emptySubscribe, () => true, () => false)
+}
+
 export function Dialog({ open, onClose, children, className }: DialogProps) {
+  const mounted = useMounted()
+
   // Close on Escape key
   React.useEffect(() => {
-    if (!open) return
+    if (!open || !mounted) return
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [open, onClose])
+  }, [open, mounted, onClose])
 
   // Prevent body scroll when open
   React.useEffect(() => {
-    if (open) {
+    if (open && mounted && typeof document !== 'undefined') {
       document.body.style.overflow = 'hidden'
-    } else {
+    } else if (typeof document !== 'undefined') {
       document.body.style.overflow = ''
     }
     return () => {
-      document.body.style.overflow = ''
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = ''
+      }
     }
-  }, [open])
+  }, [open, mounted])
 
-  if (!open) return null
+  if (!mounted || !open || typeof document === 'undefined') return null
 
   return createPortal(
     <div
