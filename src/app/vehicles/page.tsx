@@ -14,6 +14,7 @@ import {
   Search,
   MapPin,
   Building2,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -118,6 +119,15 @@ export default async function VehiclesPage({ searchParams }: Props) {
         title="Parc Automobile — Gestion des Véhicules"
         subtitle="Catalogue complet du parc : disponibilité, réservations, réparations et ventes"
         breadcrumbs={[{ label: 'Accueil', href: '/' }, { label: 'Véhicules' }]}
+        actions={
+          <Link
+            href="/vehicles/import"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-xs font-semibold text-emerald-300 hover:text-white hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-colors shadow-sm"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+            <span>Import Groupé (.xsl)</span>
+          </Link>
+        }
         primaryAction={{
           label: 'Ajouter un véhicule',
           href: '/vehicles/new',
@@ -219,6 +229,12 @@ export default async function VehiclesPage({ searchParams }: Props) {
           currentStatus={params.status}
           currentFuelType={params.fuelType}
           currentSearch={params.search}
+          parks={allParks.map((p) => ({
+            id: p.id,
+            name: p.name,
+            city: p.city,
+            code: p.code,
+          }))}
         />
       </div>
 

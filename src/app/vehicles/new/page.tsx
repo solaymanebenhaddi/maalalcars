@@ -10,6 +10,7 @@ import {
   User,
   Briefcase,
   Image as ImageIcon,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 import { parkRepository } from '@/repositories/park.repository'
@@ -203,7 +204,38 @@ export default async function NewVehiclePage() {
           { label: 'Véhicules', href: '/vehicles' },
           { label: 'Nouveau Véhicule' },
         ]}
+        actions={
+          <Link
+            href="/vehicles/import"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-xs font-semibold text-emerald-300 hover:text-white hover:bg-emerald-500/20 transition-colors shadow-sm"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+            <span>Import Groupé (.xsl)</span>
+          </Link>
+        }
       />
+
+      {/* Bulk Import Notification Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/15">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+            <FileSpreadsheet className="h-4 w-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-white">Vous avez plusieurs véhicules à intégrer en une seule fois ?</h4>
+            <p className="text-[11px] text-zinc-400">
+              Gagnez du temps en téléversant directement un fichier Excel (.xsl, .xlsx, .csv) pré-rempli.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/vehicles/import"
+          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition-colors shrink-0 shadow-sm"
+        >
+          Accéder à l&apos;Import Excel
+        </Link>
+      </div>
 
       <form action={createVehicleAction} className="rounded-2xl border border-[#222228] bg-[#121216] p-6 shadow-sm space-y-8">
         {/* Section 1: Vehicle Information */}
