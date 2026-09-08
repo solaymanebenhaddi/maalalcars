@@ -16,6 +16,11 @@ concurrency:
   group: production_deployment
   cancel-in-progress: false
 
+env:
+  DATABASE_URL: "file:./dev.db"
+  SESSION_SECRET: "ci-secret-must-be-at-least-32-characters-long"
+  NEXT_TELEMETRY_DISABLED: "1"
+
 jobs:
   quality-gates:
     name: 🛡️ Quality Gates & Tests
@@ -36,6 +41,9 @@ jobs:
 
       - name: 🔍 Génération Client Prisma
         run: npx prisma generate
+
+      - name: 🗄️ Initialisation Base SQLite Locale pour Tests
+        run: npx prisma db push --skip-generate
 
       - name: 🧪 Vérification Statique TypeScript
         run: npm run typecheck

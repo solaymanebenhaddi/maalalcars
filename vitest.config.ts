@@ -8,6 +8,10 @@ export default defineConfig({
     testTimeout: 15000,
     include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', '.next'],
+    env: {
+      DATABASE_URL: 'file:./dev.db',
+      SESSION_SECRET: 'ci-secret-must-be-at-least-32-characters-long',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
