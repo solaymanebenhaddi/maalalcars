@@ -29,21 +29,35 @@ async function convertToSaleAction(formData: FormData) {
 
 async function cancelReservationAction(formData: FormData) {
   'use server'
-  const reservationId = formData.get('reservationId') as string
-  const res = await prisma.reservation.findUnique({ where: { id: reservationId } })
-  if (!res) return
+  try {
+    const reservationId = formData.get('reservationId') as string
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } })
+    if (!res) {
+      redirect('/reservations?error=' + encodeURIComponent('Réservation introuvable ou déjà supprimée.'))
+    }
 
-  await prisma.reservation.update({
-    where: { id: reservationId },
-    data: { status: 'CANCELLED' },
-  })
+    await prisma.reservation.update({
+      where: { id: reservationId },
+      data: { status: 'CANCELLED' },
+    })
 
-  await prisma.vehicle.update({
-    where: { id: res.vehicleId },
-    data: { status: 'IN_STOCK' },
-  })
+    await prisma.vehicle.update({
+      where: { id: res.vehicleId },
+      data: { status: 'IN_STOCK' },
+    })
 
-  redirect('/reservations')
+    redirect('/reservations?success=' + encodeURIComponent('Réservation annulée avec succès. Le véhicule a été remis en stock.'))
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'digest' in error &&
+      String((error as { digest?: unknown }).digest).startsWith('NEXT_REDIRECT')
+    ) {
+      throw error
+    }
+    redirect('/reservations?error=' + encodeURIComponent('Erreur lors de l\'annulation de la réservation.'))
+  }
 }
 
 export default async function ReservationDetailPage({ params }: Props) {

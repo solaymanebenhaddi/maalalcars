@@ -20,6 +20,7 @@ import {
 import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Currency } from '@/components/shared/currency'
+import { ActionAlert } from '@/components/shared/action-alert'
 import { vehicleRepository } from '@/repositories/vehicle.repository'
 import { parkRepository } from '@/repositories/park.repository'
 import { transferVehicleAction } from '@/app/parks/actions'
@@ -48,12 +49,18 @@ export const revalidate = 0
 
 interface Props {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string; action?: string }>
+  searchParams: Promise<{
+    tab?: string
+    action?: string
+    error?: string
+    success?: string
+    info?: string
+  }>
 }
 
 export default async function VehicleDetailPage({ params, searchParams }: Props) {
   const { id } = await params
-  const { tab = 'overview', action } = await searchParams
+  const { tab = 'overview', action, error, success, info } = await searchParams
 
   await vehicleStateMachine.expireDueReservations()
 
@@ -148,6 +155,14 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
             <StatusBadge status={vehicle.status} />
           </div>
         }
+      />
+
+      {/* Action Notification Alert Banner */}
+      <ActionAlert
+        error={error}
+        success={success}
+        info={info}
+        dismissHref={`/vehicles/${vehicle.id}?tab=${tab}`}
       />
 
       {/* Financial Summary KPI Ribbon - Explicitly showing Fees & Repairs accumulated to initial price */}
@@ -1209,7 +1224,12 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                             <input type="hidden" name="reservationId" value={res.id} />
                             <button
                               type="submit"
-                              className="text-xs text-red-400 hover:text-red-300 hover:underline"
+                              onClick={(e) => {
+                                if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ? Le véhicule sera immédiatement remis en stock.')) {
+                                  e.preventDefault()
+                                }
+                              }}
+                              className="text-xs text-red-400 hover:text-red-300 hover:underline cursor-pointer"
                             >
                               Annuler la réservation
                             </button>

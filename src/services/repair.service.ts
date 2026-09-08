@@ -59,7 +59,8 @@ export const repairService = {
         input.vehicleId,
         'WORKSHOP',
         `Envoi en réparation: ${repair.code}`,
-        userId
+        userId,
+        { excludeRepairId: repair.id }
       )
     }
 

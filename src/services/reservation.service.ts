@@ -63,7 +63,8 @@ export const reservationService = {
       input.vehicleId,
       'RESERVED',
       `Réservation client: ${reservation.code}`,
-      userId
+      userId,
+      { excludeReservationId: reservation.id }
     )
 
     await auditService.log({
@@ -92,13 +93,18 @@ export const reservationService = {
   },
 
   async cancelReservation(id: string, userId?: string) {
+    if (!id) {
+      throw new Error('Identifiant de réservation manquant')
+    }
+
     const reservation = await reservationRepository.getById(id)
     if (!reservation) {
       throw new Error('Réservation introuvable')
     }
 
     if (reservation.status === 'CANCELLED' || reservation.status === 'ANNULEE') {
-      throw new Error('Cette réservation est déjà annulée')
+      // Idempotent safe return if already cancelled
+      return reservation
     }
 
     if (reservation.status === 'CONVERTED' || reservation.status === 'CONVERTIE_EN_VENTE') {

@@ -71,7 +71,11 @@ export const vehicleStateMachine = {
     vehicleId: string,
     toStatus: VehicleStatus,
     reason?: string,
-    userId?: string
+    userId?: string,
+    options?: {
+      excludeReservationId?: string
+      excludeRepairId?: string
+    }
   ): Promise<void> {
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
@@ -102,6 +106,7 @@ export const vehicleStateMachine = {
         where: {
           vehicleId,
           status: 'ACTIVE',
+          ...(options?.excludeReservationId ? { id: { not: options.excludeReservationId } } : {}),
         },
       })
 
@@ -117,6 +122,7 @@ export const vehicleStateMachine = {
         where: {
           vehicleId,
           status: 'EN_COURS',
+          ...(options?.excludeRepairId ? { id: { not: options.excludeRepairId } } : {}),
         },
       })
 

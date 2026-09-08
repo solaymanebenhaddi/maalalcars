@@ -12,14 +12,24 @@ import { StatCard } from '@/components/shared/stat-card'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Currency } from '@/components/shared/currency'
 import { EmptyState } from '@/components/shared/empty-state'
+import { ActionAlert } from '@/components/shared/action-alert'
 import { operationsRepository } from '@/repositories/operations.repository'
 import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
 import { requireAuth } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ReservationsPage() {
+interface ReservationsPageProps {
+  searchParams?: Promise<{
+    error?: string
+    success?: string
+    info?: string
+  }>
+}
+
+export default async function ReservationsPage({ searchParams }: ReservationsPageProps) {
   await requireAuth()
+  const { error, success, info } = (await searchParams) || {}
   await vehicleStateMachine.expireDueReservations()
   const reservations = await operationsRepository.getReservations()
 
@@ -39,6 +49,13 @@ export default async function ReservationsPage() {
           href: '/reservations/new',
           icon: Plus,
         }}
+      />
+
+      <ActionAlert
+        error={error}
+        success={success}
+        info={info}
+        dismissHref="/reservations"
       />
 
       {/* KPI Ribbon */}
