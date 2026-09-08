@@ -21,7 +21,6 @@ import {
 } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
-import { WheelSpinner } from '@/components/ui/wheel-spinner'
 import { useWheelLoader } from '@/contexts/wheel-loader.context'
 
 interface VehicleSearchResult {
@@ -382,20 +381,6 @@ export function Topbar({
               {unreadNotificationsCount}
             </span>
           )}
-        </button>
-
-        {/* Replay Initial Wheel Loader */}
-        <button
-          type="button"
-          onClick={() => {
-            sessionStorage.removeItem('maalal_app_initial_loaded')
-            window.dispatchEvent(new CustomEvent('replay-maalal-intro'))
-          }}
-          title="Rejouer l'animation de démarrage (Roue Michelin & MAALAL CAR)"
-          className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[#222228] bg-[#141418] text-zinc-300 transition-all hover:border-red-500/50 hover:bg-red-500/10 group"
-          aria-label="Rejouer l'animation de démarrage"
-        >
-          <WheelSpinner size="xs" speed="normal" glow={false} className="group-hover:scale-125 transition-transform" />
         </button>
 
         {/* User Profile Menu */}
