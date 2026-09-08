@@ -15,6 +15,7 @@ import {
   Briefcase,
   BadgeDollarSign,
 } from 'lucide-react'
+import { DocumentManager } from '@/components/documents/document-manager'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,9 @@ export default async function SaleDetailPage({ params }: Props) {
       commissioner: true,
       payments: {
         orderBy: { paymentDate: 'desc' },
+      },
+      documents: {
+        orderBy: { issueDate: 'desc' },
       },
     },
   })
@@ -397,6 +401,18 @@ export default async function SaleDetailPage({ params }: Props) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Documents du Dossier de Vente */}
+        <div className="rounded-xl border border-[#24242e] bg-[#16161c] p-5 shadow-sm">
+          <DocumentManager
+            category="Ventes"
+            title="Documents & Justificatifs de la Vente"
+            subtitle="Contrat de vente signé, certificat de cession, copie CIN acquéreur, reçu de règlement, décharge..."
+            vehicleId={sale?.vehicleId || null}
+            saleId={sale?.id || null}
+            initialDocuments={sale?.documents || []}
+          />
         </div>
       </div>
     </div>

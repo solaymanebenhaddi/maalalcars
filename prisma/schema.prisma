@@ -344,6 +344,8 @@ model Repair {
 
   status          String    @default("EN_COURS") // EN_COURS, TERMINEE, ANNULEE
   notes           String?
+  documents       Document[]
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -694,6 +696,8 @@ model Document {
   purchase    Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
   saleId      String?
   sale        Sale?     @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  repairId    String?
+  repair      Repair?   @relation(fields: [repairId], references: [id], onDelete: SetNull)
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

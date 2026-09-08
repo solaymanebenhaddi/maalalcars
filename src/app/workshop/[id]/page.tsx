@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Currency } from '@/components/shared/currency'
 import prisma from '@/lib/db'
+import { DocumentManager } from '@/components/documents/document-manager'
 
 export const dynamic = 'force-dynamic'
 
@@ -272,6 +273,17 @@ export default async function WorkshopOrderDetailPage({ params }: Props) {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Workshop Order Documents & Invoices */}
+      <div className="rounded-xl border border-[#24242e] bg-[#16161c] p-5 shadow-sm">
+        <DocumentManager
+          category="Réparations"
+          title="Documents & Factures d'Intervention"
+          subtitle="Ordres de réparation, devis signés, bons de livraison pièces, factures atelier..."
+          vehicleId={order.vehicleId || null}
+          initialDocuments={[]}
+        />
       </div>
     </div>
   )

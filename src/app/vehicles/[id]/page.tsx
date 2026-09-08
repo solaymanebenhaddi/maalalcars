@@ -31,6 +31,7 @@ import { VehicleLifecycleTimeline } from '@/components/vehicles/vehicle-lifecycl
 import { getActiveUserRole } from '@/lib/auth-roles'
 import prisma from '@/lib/db'
 import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
+import { DocumentManager } from '@/components/documents/document-manager'
 import {
   createRepairAction,
   completeRepairAction,
@@ -795,6 +796,18 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   </div>
                 )}
               </div>
+
+              {/* Documents du Dossier d'Achat */}
+              <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm">
+                <DocumentManager
+                  category="Achats"
+                  title="Documents & Justificatifs d'Acquisition"
+                  subtitle="Carte grise initiale ou barrée, acte de vente, décharge fournisseur, CIN..."
+                  vehicleId={vehicle.id}
+                  purchaseId={purchase?.id}
+                  initialDocuments={vehicle.documents.filter((d) => d.category === 'Achats' || d.purchaseId === purchase?.id)}
+                />
+              </div>
             </div>
           )}
 
@@ -972,6 +985,19 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                           <span>Frais de {((rep.finalAmount || rep.estimatedAmount || 0)).toLocaleString('fr-MA')} DH inclus dans le coût total du véhicule.</span>
                         </div>
                       )}
+
+                      {/* Documents / Factures de cette intervention */}
+                      <div className="pt-3 border-t border-[#1e1e24]">
+                        <DocumentManager
+                          category="Réparations"
+                          title={`Factures & Justificatifs (${rep.repairType})`}
+                          subtitle="Factures acquittées, devis garage, bons de pièces de cette intervention"
+                          compact={true}
+                          vehicleId={vehicle.id}
+                          repairId={rep.id}
+                          initialDocuments={rep.documents || []}
+                        />
+                      </div>
 
                       {/* Complete / Cancel actions if EN_COURS */}
                       {rep.status === 'EN_COURS' && (
@@ -1502,6 +1528,18 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                       ))}
                     </div>
                   </div>
+
+                  {/* Documents du Dossier de Vente */}
+                  <div className="pt-4 border-t border-[#1e1e24]">
+                    <DocumentManager
+                      category="Ventes"
+                      title="Documents & Justificatifs de Vente"
+                      subtitle="Contrat de vente signé, certificat de cession, CIN acquéreur, reçu d'acompte..."
+                      vehicleId={vehicle.id}
+                      saleId={sale.id}
+                      initialDocuments={vehicle.documents.filter((d) => d.category === 'Ventes' || d.saleId === sale.id)}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-[#222228] bg-[#121216] p-8 text-center space-y-4">
@@ -1553,6 +1591,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   onDeletePhoto={deleteVehiclePhotoAction}
                   onSetPrimaryPhoto={setPrimaryVehiclePhotoAction}
                   onPhotosChange={handleSyncPhotos}
+                />
+              </div>
+
+              {/* Portfolio Documentaire Complet */}
+              <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm">
+                <DocumentManager
+                  category="TOUS"
+                  title="Dossier Documentaire Complet du Véhicule"
+                  subtitle="Toutes les pièces justificatives numérisées du véhicule (Achats, Ventes, Réparations, Administratif)"
+                  vehicleId={vehicle.id}
+                  initialDocuments={vehicle.documents}
                 />
               </div>
             </div>

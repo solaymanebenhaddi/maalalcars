@@ -101,10 +101,10 @@ export const vehicleRepository = {
           orderBy: { expenseDate: 'desc' },
         },
         purchases: {
-          include: { seller: true, commissioner: true, handledBy: true, commissionPaidBy: true },
+          include: { seller: true, commissioner: true, handledBy: true, commissionPaidBy: true, documents: true },
         },
         sales: {
-          include: { buyer: true, commissioner: true, salesperson: true, payments: true, invoices: true, commissionPaidBy: true, receivedBy: true },
+          include: { buyer: true, commissioner: true, salesperson: true, payments: true, invoices: true, commissionPaidBy: true, receivedBy: true, documents: true },
         },
         reservations: {
           include: { contact: true },
@@ -117,7 +117,7 @@ export const vehicleRepository = {
           orderBy: { scheduledDate: 'desc' },
         },
         repairs: {
-          include: { paidBy: true },
+          include: { paidBy: true, documents: true },
           orderBy: { startedAt: 'desc' },
         },
         warranties: true,
