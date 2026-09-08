@@ -51,12 +51,16 @@ async function createVehicleAction(formData: FormData) {
   const supplierPhone = (formData.get('supplierPhone') as string) || null
   const supplierCin = (formData.get('supplierCin') as string) || null
   const supplierAddress = (formData.get('supplierAddress') as string) || null
+  const handledById = (formData.get('handledById') as string) || null
+  const paymentMethod = (formData.get('paymentMethod') as string) || 'VIREMENT'
 
   // Section 3: Purchase Commissioner Snapshot
   const commissionerName = (formData.get('commissionerName') as string) || null
   const commissionerPhone = (formData.get('commissionerPhone') as string) || null
   const commissionerCin = (formData.get('commissionerCin') as string) || null
+  const commissionerAddress = (formData.get('commissionerAddress') as string) || null
   const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
+  const commissionPaidById = (formData.get('commissionPaidById') as string) || null
 
   // Section 4: Photos & Documents
   const photosDataRaw = (formData.get('vehiclePhotosData') as string) || ''
@@ -132,11 +136,14 @@ async function createVehicleAction(formData: FormData) {
       supplierPhone,
       supplierCin,
       supplierAddress,
+      handledById: handledById || null,
       commissionerName,
       commissionerPhone,
       commissionerCin,
+      commissionerAddress,
       commissionAmount,
-      paymentMethod: 'VIREMENT',
+      commissionPaidById: commissionPaidById || null,
+      paymentMethod,
       status: 'CONFIRMED',
       notes: documentNotes || 'Acquisition initiale du véhicule',
     },
@@ -156,7 +163,14 @@ async function createVehicleAction(formData: FormData) {
 }
 
 export default async function NewVehiclePage() {
-  const parks = await parkRepository.getAll()
+  const [parks, personnelList] = await Promise.all([
+    parkRepository.getAll(),
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, role: { select: { name: true } } },
+      orderBy: { name: 'asc' },
+    }),
+  ])
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -380,45 +394,78 @@ export default async function NewVehiclePage() {
             <span>Fournisseur / Vendeur d’Origine (Acquisition)</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Nom Complet / Raison Sociale</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Nom Complet / Raison Sociale *</label>
               <input
                 type="text"
                 name="supplierName"
                 placeholder="Ex: Tariq Naciri ou Auto Import SARL"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Téléphone</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Téléphone Fournisseur</label>
               <input
                 type="text"
                 name="supplierPhone"
                 placeholder="06XXXXXXXX"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">CIN / ICE</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">CIN / ICE Fournisseur</label>
               <input
                 type="text"
                 name="supplierCin"
                 placeholder="Ex: BK123456"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white uppercase placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white uppercase placeholder-zinc-500 focus:border-cyan-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville Fournisseur</label>
               <input
                 type="text"
                 name="supplierAddress"
                 placeholder="Ex: Maarif, Casablanca"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Fournisseur Payé Par (Membre du Personnel) *
+              </label>
+              <select
+                name="handledById"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-cyan-500 focus:outline-none"
+              >
+                <option value="">-- Sélectionner le membre du personnel payeur --</option>
+                {personnelList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.role?.name ? `(${p.role.name})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Mode de Règlement Fournisseur
+              </label>
+              <select
+                name="paymentMethod"
+                defaultValue="VIREMENT"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-cyan-500 focus:outline-none"
+              >
+                <option value="VIREMENT">Virement bancaire</option>
+                <option value="CHEQUE">Chèque bancaire</option>
+                <option value="ESPECES">Espèces (Cash)</option>
+                <option value="EFFET">Effet de commerce</option>
+              </select>
             </div>
           </div>
         </div>
@@ -433,46 +480,73 @@ export default async function NewVehiclePage() {
             <span>Intermédiaire / Semsar d’Achat (Optionnel)</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Nom Intermédiaire</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Nom Intermédiaire / Courtier</label>
               <input
                 type="text"
                 name="commissionerName"
-                placeholder="Nom du courtier"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                placeholder="Nom complet (laisser vide si sans courtier)"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Téléphone</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Téléphone Courtier</label>
               <input
                 type="text"
                 name="commissionerPhone"
                 placeholder="06XXXXXXXX"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">CIN</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">CIN Courtier</label>
               <input
                 type="text"
                 name="commissionerCin"
-                placeholder="CIN du courtier"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white uppercase placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+                placeholder="Ex: BE987654"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white uppercase placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Montant Commission (MAD)</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville Courtier</label>
+              <input
+                type="text"
+                name="commissionerAddress"
+                placeholder="Ex: Maârif, Casablanca"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Montant Commission (DH)</label>
               <input
                 type="number"
                 name="commissionAmount"
                 defaultValue={0}
                 placeholder="0"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-amber-400 font-mono font-bold focus:border-red-500 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-amber-500/30 bg-[#16161c] px-3 text-xs text-amber-400 font-mono font-bold focus:border-amber-500 focus:outline-none"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Commission Payée Par (Personnel Agence)
+              </label>
+              <select
+                name="commissionPaidById"
+                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
+              >
+                <option value="">-- Sélectionner le payeur si commission existante --</option>
+                {personnelList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.role?.name ? `(${p.role.name})` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

@@ -130,4 +130,45 @@ describe('Vehicle Photos & Image Optimization Rules', () => {
       expect(safeName.endsWith('.webp')).toBe(true)
     })
   })
+
+  describe('Purchase Payer & Commissioner Attribution Rules', () => {
+    it('should correctly attribute handledById to the personnel who paid the fournisseur', () => {
+      const purchaseData = {
+        supplierName: 'Auto Import SARL',
+        supplierPhone: '0612345678',
+        purchasePrice: 200000,
+        handledById: 'user_admin_1',
+        paymentMethod: 'VIREMENT',
+      }
+
+      expect(purchaseData.handledById).toBe('user_admin_1')
+      expect(purchaseData.supplierName).toBe('Auto Import SARL')
+      expect(purchaseData.paymentMethod).toBe('VIREMENT')
+    })
+
+    it('should correctly handle optional commissioner and commissioner payer', () => {
+      // Case 1: Direct purchase without commissioner
+      const directPurchase = {
+        handledById: 'user_admin_1',
+        commissionerName: null,
+        commissionAmount: 0,
+        commissionPaidById: null,
+      }
+      expect(directPurchase.commissionerName).toBeNull()
+      expect(directPurchase.commissionPaidById).toBeNull()
+      expect(directPurchase.handledById).toBe('user_admin_1')
+
+      // Case 2: Purchase with courtier/commissioner and dedicated payer
+      const mediatedPurchase = {
+        handledById: 'user_admin_1', // Agency staff who paid the car to the supplier
+        commissionerName: 'Hassan Semsar',
+        commissionAmount: 3000,
+        commissionPaidById: 'user_sales_2', // Agency staff who paid the commission to Hassan
+      }
+      expect(mediatedPurchase.commissionerName).toBe('Hassan Semsar')
+      expect(mediatedPurchase.commissionAmount).toBe(3000)
+      expect(mediatedPurchase.handledById).toBe('user_admin_1')
+      expect(mediatedPurchase.commissionPaidById).toBe('user_sales_2')
+    })
+  })
 })

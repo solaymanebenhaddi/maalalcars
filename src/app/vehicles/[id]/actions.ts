@@ -208,6 +208,7 @@ export async function updatePurchaseCommissionerAction(vehicleId: string, formDa
   const commissionerAddress = (formData.get('commissionerAddress') as string) || null
   const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
   const commissionPaidById = (formData.get('commissionPaidById') as string) || null
+  const handledById = (formData.get('handledById') as string) || null
 
   if (purchaseId) {
     await prisma.purchase.update({
@@ -219,6 +220,7 @@ export async function updatePurchaseCommissionerAction(vehicleId: string, formDa
         commissionerAddress,
         commissionAmount,
         commissionPaidById: commissionPaidById || null,
+        ...(handledById !== null ? { handledById: handledById || null } : {}),
       },
     })
   }

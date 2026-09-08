@@ -482,7 +482,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                     <span>Fournisseur / Vendeur d&apos;Origine</span>
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                     <div>
                       <span className="text-zinc-400 block text-[11px]">Nom / Raison Sociale</span>
                       <span className="font-bold text-white">
@@ -505,6 +505,19 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                       <span className="text-zinc-400 block text-[11px]">Adresse / Ville</span>
                       <span className="text-zinc-300">
                         {purchase?.supplierAddress || purchase?.seller?.address || 'Maroc'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-400 block text-[11px]">Fournisseur Payé Par</span>
+                      <span className="font-bold text-cyan-400 flex items-center gap-1">
+                        <User className="h-3 w-3 text-cyan-400" />
+                        <span>{purchase?.handledBy?.name || 'Non spécifié'}</span>
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-400 block text-[11px]">Mode de Règlement</span>
+                      <span className="font-semibold text-zinc-200">
+                        {purchase?.paymentMethod || 'VIREMENT'}
                       </span>
                     </div>
                   </div>
@@ -615,16 +628,34 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                         />
                       </div>
 
-                      <div className="sm:col-span-2">
+                      <div>
                         <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                          Payé par qui du Personnel ? (Collaborateur Agence)
+                          Commission Payée Par ? (Personnel Agence)
                         </label>
                         <select
                           name="commissionPaidById"
-                          defaultValue={purchase.commissionPaidById || purchase.handledById || ''}
+                          defaultValue={purchase.commissionPaidById || ''}
                           className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
                         >
                           <option value="">-- Sélectionner le membre du personnel --</option>
+                          {personnelList.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Fournisseur Payé Par ? (Personnel Agence)
+                        </label>
+                        <select
+                          name="handledById"
+                          defaultValue={purchase.handledById || ''}
+                          className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                        >
+                          <option value="">-- Sélectionner le membre ayant payé le fournisseur --</option>
                           {personnelList.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name}
