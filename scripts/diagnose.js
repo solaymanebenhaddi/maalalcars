@@ -162,6 +162,90 @@ try {
   console.log('chmod note (not fatal):', e.message);
 }
 
+// 4.b Schema Synchronization
+async function syncDatabaseSchema(targetDbPath, templateDbPath, logger = console.log) {
+  if (!templateDbPath || !fs.existsSync(templateDbPath) || !targetDbPath || !fs.existsSync(targetDbPath)) {
+    return;
+  }
+  logger('🔄 Vérification et synchronisation du schéma SQLite...');
+  const { PrismaClient } = require('@prisma/client');
+  const syncPrisma = new PrismaClient({
+    datasources: { db: { url: 'file:' + targetDbPath } },
+  });
+
+  try {
+    const escapedTpl = templateDbPath.replace(/'/g, "''");
+    try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
+    await syncPrisma.$executeRawUnsafe(`ATTACH DATABASE '${escapedTpl}' AS tpl`);
+
+    const tplTables = await syncPrisma.$queryRawUnsafe(
+      "SELECT name, sql FROM tpl.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'"
+    );
+    const mainTables = await syncPrisma.$queryRawUnsafe(
+      "SELECT name FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'"
+    );
+    const mainTableNames = new Set(mainTables.map((t) => t.name));
+
+    for (const tplTable of tplTables) {
+      const tableName = tplTable.name;
+
+      if (!mainTableNames.has(tableName)) {
+        if (tplTable.sql) {
+          await syncPrisma.$executeRawUnsafe(tplTable.sql);
+          logger('➕ [SYNC] Table créée : ' + tableName);
+        }
+        continue;
+      }
+
+      const tplCols = await syncPrisma.$queryRawUnsafe(`PRAGMA tpl.table_info("${tableName}")`);
+      const mainCols = await syncPrisma.$queryRawUnsafe(`PRAGMA main.table_info("${tableName}")`);
+      const mainColNames = new Set(mainCols.map((c) => c.name));
+
+      for (const col of tplCols) {
+        if (!mainColNames.has(col.name)) {
+          logger(`➕ [SYNC] Colonne manquante : ${tableName}.${col.name} (${col.type})`);
+          let defClause = '';
+          if (col.dflt_value !== null && col.dflt_value !== undefined) {
+            if (col.dflt_value.toUpperCase().includes('CURRENT_TIMESTAMP')) {
+              defClause = '';
+            } else {
+              defClause = ` DEFAULT ${col.dflt_value}`;
+            }
+          } else if (col.notnull) {
+            if (col.type && (col.type.toUpperCase().includes('INT') || col.type.toUpperCase().includes('BOOL'))) {
+              defClause = ' DEFAULT 0';
+            } else if (col.type && (col.type.toUpperCase().includes('CHAR') || col.type.toUpperCase().includes('TEXT'))) {
+              defClause = " DEFAULT ''";
+            } else {
+              defClause = ' DEFAULT 0';
+            }
+          }
+
+          const alterSql = `ALTER TABLE "${tableName}" ADD COLUMN "${col.name}" ${col.type || 'TEXT'}${defClause}`;
+          try {
+            await syncPrisma.$executeRawUnsafe(alterSql);
+            logger(`✅ [SYNC] Colonne ${tableName}.${col.name} ajoutée`);
+          } catch (errAlter) {
+            try {
+              await syncPrisma.$executeRawUnsafe(`ALTER TABLE "${tableName}" ADD COLUMN "${col.name}" ${col.type || 'TEXT'}`);
+              logger(`✅ [SYNC] Colonne ${tableName}.${col.name} ajoutée (sans DEFAULT)`);
+            } catch (errFallback) {
+              logger(`❌ [SYNC] Erreur ajout ${tableName}.${col.name} : ` + errFallback.message);
+            }
+          }
+        }
+      }
+    }
+
+    try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
+    logger('✅ [SYNC] Synchronisation SQLite terminée avec succès.');
+  } catch (err) {
+    logger('⚠️ [SYNC] Note synchronisation : ' + (err && err.message ? err.message : err));
+  } finally {
+    try { await syncPrisma.$disconnect(); } catch (_) {}
+  }
+}
+
 // 5. Test Prisma Client Query
 console.log('\n--- 5. PRISMA CLIENT ENGINE & QUERY TEST ---');
 process.env.DATABASE_URL = 'file:' + targetDb;
@@ -169,6 +253,11 @@ console.log('DATABASE_URL set to:', process.env.DATABASE_URL);
 
 async function testPrisma() {
   try {
+    if (validTemplate) {
+      logStep('Synchronizing schema with template: ' + validTemplate);
+      await syncDatabaseSchema(targetDb, validTemplate, logStep);
+    }
+
     logStep('Loading @prisma/client module...');
     const { PrismaClient } = require('@prisma/client');
     logStep('Instantiating PrismaClient...');

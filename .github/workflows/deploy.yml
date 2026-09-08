@@ -79,6 +79,11 @@ jobs:
       - name: 🔨 Génération Client Prisma Linux
         run: npx prisma generate
 
+      - name: 🗄️ Synchronisation du Template SQLite de Production
+        run: npx prisma db push --schema=./prisma/schema.prisma --skip-generate --accept-data-loss
+        env:
+          DATABASE_URL: "file:./prisma/production.template"
+
       # Si une URL de base de données distante est configurée dans les secrets GitHub (ex: MySQL cPanel ou Neon/Supabase),
       # GitHub Actions applique directement les migrations de schéma avant l'envoi des fichiers
       - name: 🗄️ Application du Schéma Prisma (Optionnel si PROD_DATABASE_URL est défini)
@@ -228,16 +233,16 @@ jobs:
           }
 
           // 2. Définir et exporter explicitement DATABASE_URL vers maalalcars/prisma/production.db
-          let targetDb = '';
-          if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('file:')) {
-            targetDb = process.env.DATABASE_URL.replace(/^file:/, '');
+          let targetDb = path.join(__dirname, 'prisma', 'production.db');
+          if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('file:') && !process.env.DATABASE_URL.startsWith('sqlite:')) {
+            log('🗄️ DATABASE_URL distante = ' + process.env.DATABASE_URL);
           } else {
-            targetDb = path.join(__dirname, 'prisma', 'production.db');
             process.env.DATABASE_URL = 'file:' + targetDb;
+            log('🗄️ DATABASE_URL SQLite = ' + process.env.DATABASE_URL);
           }
-          log('🗄️ DATABASE_URL = ' + process.env.DATABASE_URL);
 
           // 3. Auto-initialisation SQLite instantanée par copie du template
+          let templateDb = null;
           try {
             const candidates = [
               path.join(__dirname, 'prisma', 'production.init.template'),
@@ -246,7 +251,7 @@ jobs:
               path.join(__dirname, 'production.template'),
               path.join(__dirname, 'maalalcars', 'prisma', 'production.template'),
             ];
-            const templateDb = candidates.find((f) => fs.existsSync(f));
+            templateDb = candidates.find((f) => fs.existsSync(f));
             log('🔍 Recherche template : ' + (templateDb ? templateDb : 'AUCUN'));
 
             const stat = fs.existsSync(targetDb) ? fs.statSync(targetDb) : null;
@@ -271,6 +276,88 @@ jobs:
             log('⚠️ Erreur init SQLite : ' + e.message);
           }
 
+          // 3.b Synchronisation automatique du schéma (tables et colonnes manquantes)
+          async function syncDatabaseSchema() {
+            if (!templateDb || !fs.existsSync(templateDb) || !fs.existsSync(targetDb)) return;
+            log('🔄 Vérification et synchronisation du schéma SQLite...');
+            const { PrismaClient } = require('@prisma/client');
+            const syncPrisma = new PrismaClient({
+              datasources: { db: { url: 'file:' + targetDb } },
+            });
+
+            try {
+              const escapedTpl = templateDb.replace(/'/g, "''");
+              try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
+              await syncPrisma.$executeRawUnsafe(`ATTACH DATABASE '${escapedTpl}' AS tpl`);
+
+              const tplTables = await syncPrisma.$queryRawUnsafe(
+                "SELECT name, sql FROM tpl.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'"
+              );
+              const mainTables = await syncPrisma.$queryRawUnsafe(
+                "SELECT name FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'"
+              );
+              const mainTableNames = new Set(mainTables.map((t) => t.name));
+
+              for (const tplTable of tplTables) {
+                const tableName = tplTable.name;
+
+                if (!mainTableNames.has(tableName)) {
+                  if (tplTable.sql) {
+                    await syncPrisma.$executeRawUnsafe(tplTable.sql);
+                    log('➕ [SYNC] Table créée : ' + tableName);
+                  }
+                  continue;
+                }
+
+                const tplCols = await syncPrisma.$queryRawUnsafe(`PRAGMA tpl.table_info("${tableName}")`);
+                const mainCols = await syncPrisma.$queryRawUnsafe(`PRAGMA main.table_info("${tableName}")`);
+                const mainColNames = new Set(mainCols.map((c) => c.name));
+
+                for (const col of tplCols) {
+                  if (!mainColNames.has(col.name)) {
+                    log(`➕ [SYNC] Colonne manquante : ${tableName}.${col.name} (${col.type})`);
+                    let defClause = '';
+                    if (col.dflt_value !== null && col.dflt_value !== undefined) {
+                      if (col.dflt_value.toUpperCase().includes('CURRENT_TIMESTAMP')) {
+                        defClause = '';
+                      } else {
+                        defClause = ` DEFAULT ${col.dflt_value}`;
+                      }
+                    } else if (col.notnull) {
+                      if (col.type && (col.type.toUpperCase().includes('INT') || col.type.toUpperCase().includes('BOOL'))) {
+                        defClause = ' DEFAULT 0';
+                      } else if (col.type && (col.type.toUpperCase().includes('CHAR') || col.type.toUpperCase().includes('TEXT'))) {
+                        defClause = " DEFAULT ''";
+                      } else {
+                        defClause = ' DEFAULT 0';
+                      }
+                    }
+
+                    const alterSql = `ALTER TABLE "${tableName}" ADD COLUMN "${col.name}" ${col.type || 'TEXT'}${defClause}`;
+                    try {
+                      await syncPrisma.$executeRawUnsafe(alterSql);
+                      log(`✅ [SYNC] Colonne ${tableName}.${col.name} ajoutée`);
+                    } catch (errAlter) {
+                      try {
+                        await syncPrisma.$executeRawUnsafe(`ALTER TABLE "${tableName}" ADD COLUMN "${col.name}" ${col.type || 'TEXT'}`);
+                        log(`✅ [SYNC] Colonne ${tableName}.${col.name} ajoutée (sans DEFAULT)`);
+                      } catch (errFallback) {
+                        log(`❌ [SYNC] Erreur ajout ${tableName}.${col.name} : ` + errFallback.message);
+                      }
+                    }
+                  }
+                }
+              }
+
+              try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
+              log('✅ [SYNC] Synchronisation SQLite terminée avec succès.');
+            } catch (err) {
+              log('⚠️ [SYNC] Note synchronisation : ' + (err && err.message ? err.message : err));
+            } finally {
+              try { await syncPrisma.$disconnect(); } catch (_) {}
+            }
+          }
+
           // 4. Nettoyage préventif des processus orphelins (anti-503 CloudLinux CageFS NPROC)
           try {
             const { execSync } = require('child_process');
@@ -286,10 +373,17 @@ jobs:
             });
           } catch (_) {}
 
-          // 5. Démarrage du serveur Next.js
-          log('⏳ Chargement de ./server.js...');
-          require('./server.js');
-          log('✅ ./server.js requis sans erreur synchrone');
+          // 5. Synchronisation de la base puis démarrage du serveur Next.js
+          (async () => {
+            try {
+              await syncDatabaseSchema();
+            } catch (errSyncBoot) {
+              log('⚠️ Erreur pré-démarrage sync DB : ' + errSyncBoot.message);
+            }
+            log('⏳ Chargement de ./server.js...');
+            require('./server.js');
+            log('✅ ./server.js requis sans erreur synchrone');
+          })();
           EOF
 
           # Dupliquer app.js en App.js au cas où cPanel a été configuré avec une majuscule
