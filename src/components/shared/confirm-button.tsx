@@ -1,31 +1,55 @@
 'use client'
 
-import React from 'react'
+import React, { useRef } from 'react'
+import { useConfirm } from '@/components/modals/confirm-dialog'
 
 interface ConfirmButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  dialogTitle?: string
   confirmMessage?: string
+  confirmText?: string
+  cancelText?: string
+  variant?: 'danger' | 'warning' | 'info'
   children: React.ReactNode
 }
 
 export function ConfirmButton({
+  dialogTitle = 'Confirmation requise',
   confirmMessage = 'Êtes-vous sûr de vouloir effectuer cette action ?',
+  confirmText = 'Confirmer',
+  cancelText = 'Annuler',
+  variant = 'danger',
   children,
   onClick,
   ...props
 }: ConfirmButtonProps) {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!window.confirm(confirmMessage)) {
-      e.preventDefault()
-      e.stopPropagation()
-      return
-    }
-    if (onClick) {
+  const { confirm } = useConfirm()
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const ok = await confirm({
+      title: dialogTitle,
+      description: confirmMessage,
+      confirmText,
+      cancelText,
+      variant,
+    })
+
+    if (!ok) return
+
+    // Safely submit the parent form or trigger custom onClick handler
+    const form = buttonRef.current?.closest('form')
+    if (form) {
+      form.requestSubmit()
+    } else if (onClick) {
       onClick(e)
     }
   }
 
   return (
-    <button {...props} onClick={handleClick}>
+    <button ref={buttonRef} {...props} onClick={handleClick}>
       {children}
     </button>
   )

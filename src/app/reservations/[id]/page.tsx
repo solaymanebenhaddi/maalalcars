@@ -5,6 +5,7 @@ import prisma from '@/lib/db'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Currency } from '@/components/shared/currency'
+import { ConfirmButton } from '@/components/shared/confirm-button'
 import { Car, CheckCircle2, User, XCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -199,13 +200,18 @@ export default async function ReservationDetailPage({ params }: Props) {
           <div className="flex items-center gap-3">
             <form action={cancelReservationAction}>
               <input type="hidden" name="reservationId" value={reservation.id} />
-              <button
+              <ConfirmButton
                 type="submit"
-                className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                dialogTitle="Annuler la réservation"
+                confirmMessage="Êtes-vous certain de vouloir annuler cette réservation ? L'acompte sera libéré et le véhicule sera immédiatement remis en stock."
+                confirmText="Oui, annuler la réservation"
+                cancelText="Conserver la réservation"
+                variant="danger"
+                className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 cursor-pointer"
               >
                 <XCircle className="h-4 w-4" />
                 <span>Annuler la réservation</span>
-              </button>
+              </ConfirmButton>
             </form>
 
             <form action={convertToSaleAction}>

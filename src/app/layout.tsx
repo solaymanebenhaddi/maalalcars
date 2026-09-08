@@ -3,6 +3,8 @@ import { AppShell } from '@/components/layout/app-shell'
 import { FeaturesProvider } from '@/contexts/features.context'
 import { WheelLoaderProvider } from '@/contexts/wheel-loader.context'
 import { AppInitialLoader } from '@/components/ui/app-initial-loader'
+import { ToastProvider } from '@/components/ui/toast'
+import { ConfirmProvider } from '@/components/modals/confirm-dialog'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -20,8 +22,12 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#0a0a0b] text-[#f0f0f2] antialiased selection:bg-red-900 selection:text-white">
         <FeaturesProvider>
           <WheelLoaderProvider>
-            <AppInitialLoader />
-            <AppShell>{children}</AppShell>
+            <ToastProvider>
+              <ConfirmProvider>
+                <AppInitialLoader />
+                <AppShell>{children}</AppShell>
+              </ConfirmProvider>
+            </ToastProvider>
           </WheelLoaderProvider>
         </FeaturesProvider>
       </body>

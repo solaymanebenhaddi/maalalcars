@@ -1013,12 +1013,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
 
                           <form action={handleCancelRepair}>
                             <input type="hidden" name="repairId" value={rep.id} />
-                            <button
+                            <ConfirmButton
                               type="submit"
-                              className="text-xs text-red-400 hover:text-red-300 hover:underline"
+                              dialogTitle="Annuler l'intervention atelier"
+                              confirmMessage="Êtes-vous certain de vouloir annuler cette intervention atelier ? Cette action supprimera les frais en cours."
+                              confirmText="Oui, annuler l'intervention"
+                              cancelText="Conserver l'intervention"
+                              variant="danger"
+                              className="text-xs text-red-400 hover:text-red-300 hover:underline cursor-pointer"
                             >
                               Annuler intervention
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </div>
                       )}
@@ -1225,7 +1230,11 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                             <input type="hidden" name="reservationId" value={res.id} />
                             <ConfirmButton
                               type="submit"
-                              confirmMessage="Êtes-vous sûr de vouloir annuler cette réservation ? Le véhicule sera immédiatement remis en stock."
+                              dialogTitle="Annuler la réservation"
+                              confirmMessage="Êtes-vous certain de vouloir annuler cette réservation ? L'acompte sera libéré et le véhicule sera immédiatement remis en stock."
+                              confirmText="Oui, annuler la réservation"
+                              cancelText="Conserver la réservation"
+                              variant="danger"
                               className="text-xs text-red-400 hover:text-red-300 hover:underline cursor-pointer"
                             >
                               Annuler la réservation
