@@ -1,7 +1,58 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { vehicleRepository } from '@/repositories/vehicle.repository'
+import prisma from '@/lib/db'
 
 describe('Archived Vehicle Strict Stock Isolation', () => {
+  beforeAll(async () => {
+    try {
+      const archivedCount = await prisma.vehicle.count({
+        where: { OR: [{ status: 'ARCHIVED' }, { archivedAt: { not: null } }] },
+      })
+      if (archivedCount === 0) {
+        await prisma.vehicle.create({
+          data: {
+            code: 'V-TEST-ARCHIVED-01',
+            vin: 'TESTARCHIVEDVIN01',
+            brand: 'Renault',
+            model: 'Clio',
+            year: 2020,
+            colorExterior: 'Blanc',
+            fuelType: 'DIESEL',
+            transmission: 'MANUELLE',
+            status: 'ARCHIVED',
+            archivedAt: new Date(),
+            purchasePrice: 90000,
+            targetSalePrice: 110000,
+            location: 'Casablanca',
+          },
+        })
+      }
+
+      const inStockCount = await prisma.vehicle.count({
+        where: { status: 'IN_STOCK' },
+      })
+      if (inStockCount === 0) {
+        await prisma.vehicle.create({
+          data: {
+            code: 'V-TEST-STOCK-01',
+            vin: 'TESTINSTOCKVIN001',
+            brand: 'Peugeot',
+            model: '208',
+            year: 2022,
+            colorExterior: 'Gris',
+            fuelType: 'DIESEL',
+            transmission: 'AUTOMATIQUE',
+            status: 'IN_STOCK',
+            purchasePrice: 120000,
+            targetSalePrice: 145000,
+            location: 'Casablanca',
+          },
+        })
+      }
+    } catch {
+      // ignore
+    }
+  })
   it('excludes ARCHIVED and SOLD vehicles from getAll() and status="Tous"', async () => {
     // Check all vehicles returned by default
     const allQuery = await vehicleRepository.getAll()

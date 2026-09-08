@@ -43,7 +43,11 @@ jobs:
         run: npx prisma generate
 
       - name: 🗄️ Initialisation Base SQLite Locale pour Tests
-        run: npx prisma db push --skip-generate
+        run: |
+          if [ -f prisma/production.template ]; then
+            cp prisma/production.template prisma/dev.db
+          fi
+          npx prisma db push --skip-generate
 
       - name: 🧪 Vérification Statique TypeScript
         run: npm run typecheck
