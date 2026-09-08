@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Currency } from '@/components/shared/currency'
 import { ActionAlert } from '@/components/shared/action-alert'
+import { ConfirmButton } from '@/components/shared/confirm-button'
 import { vehicleRepository } from '@/repositories/vehicle.repository'
 import { parkRepository } from '@/repositories/park.repository'
 import { transferVehicleAction } from '@/app/parks/actions'
@@ -1222,17 +1223,13 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
 
                           <form action={handleCancelReservation}>
                             <input type="hidden" name="reservationId" value={res.id} />
-                            <button
+                            <ConfirmButton
                               type="submit"
-                              onClick={(e) => {
-                                if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ? Le véhicule sera immédiatement remis en stock.')) {
-                                  e.preventDefault()
-                                }
-                              }}
+                              confirmMessage="Êtes-vous sûr de vouloir annuler cette réservation ? Le véhicule sera immédiatement remis en stock."
                               className="text-xs text-red-400 hover:text-red-300 hover:underline cursor-pointer"
                             >
                               Annuler la réservation
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </div>
                       )}
