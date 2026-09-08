@@ -285,7 +285,22 @@ jobs:
             log('⚠️ Erreur init SQLite : ' + e.message);
           }
 
-          // 4. Démarrage du serveur Next.js
+          // 4. Nettoyage préventif des processus orphelins (anti-503 CloudLinux CageFS NPROC)
+          try {
+            const { execSync } = require('child_process');
+            const myPid = process.pid;
+            const myPpid = process.ppid;
+            const ps = execSync('ps -u $(whoami) -o pid,comm', { encoding: 'utf8' });
+            ps.split('\n').forEach((l) => {
+              const [pStr, comm] = l.trim().split(/\s+/);
+              const p = parseInt(pStr, 10);
+              if (p && p !== myPid && p !== myPpid && (comm.includes('next') || (comm.includes('node') && !l.includes('bash')))) {
+                try { process.kill(p, 'SIGKILL'); log('🧹 Processus orphelin tué: ' + p + ' (' + comm + ')'); } catch (_) {}
+              }
+            });
+          } catch (_) {}
+
+          // 5. Démarrage du serveur Next.js
           log('⏳ Chargement de ./server.js...');
           require('./server.js');
           log('✅ ./server.js requis sans erreur synchrone');
@@ -294,11 +309,12 @@ jobs:
           # Dupliquer app.js en App.js au cas où cPanel a été configuré avec une majuscule
           cp .next/standalone/app.js .next/standalone/App.js
 
-          # Injecter un log trace au début de server.js au cas où Passenger appelle server.js directement
+          # Injecter un log trace et allowRetry: true au début de server.js
           node -e '
             const fs = require("fs");
             const p = ".next/standalone/server.js";
-            const c = fs.readFileSync(p, "utf8");
+            let c = fs.readFileSync(p, "utf8");
+            c = c.replace("allowRetry: false", "allowRetry: true");
             const trace = "try{require(\"fs\").appendFileSync(require(\"path\").join(__dirname,\"debug.log\"),\"[\"+new Date().toISOString()+\"] ⚡ SERVER.JS EXECUTION\\n\");}catch(_){}\n";
             fs.writeFileSync(p, trace + c);
           '
