@@ -147,7 +147,6 @@ jobs:
 
           const fs = require('fs');
           const path = require('path');
-          const http = require('http');
 
           // Assurer les droits d'exécution et l'alias de runtime sur les moteurs binaires Prisma
           try {
@@ -187,31 +186,6 @@ jobs:
             log('💥 [REJECTION NON GÉRÉE] ' + (reason && reason.stack ? reason.stack : reason));
           });
 
-          // Interception HTTP pour route de secours /__debug
-          try {
-            const origCreateServer = http.createServer;
-            http.createServer = function(...args) {
-              log('🌐 [HTTP] http.createServer intercepté avec succès');
-              const origHandler = args[args.length - 1];
-              if (typeof origHandler === 'function') {
-                args[args.length - 1] = function(req, res) {
-                  if (req.url === '/__debug' || req.url === '/api/diagnostic') {
-                    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-                    try {
-                      const content = fs.readFileSync(debugLog, 'utf8');
-                      return res.end(content);
-                    } catch (e) {
-                      return res.end('Fichier debug.log introuvable : ' + e.message);
-                    }
-                  }
-                  return origHandler.call(this, req, res);
-                };
-              }
-              return origCreateServer.apply(this, args);
-            };
-          } catch (e) {
-            log('⚠️ Note interception HTTP : ' + e.message);
-          }
 
           // 1. Charge les variables d'environnement depuis .env.production ou .env si présent
           try {
