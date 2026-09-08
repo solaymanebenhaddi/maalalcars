@@ -456,6 +456,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   </div>
                 )}
               </div>
+
+              {/* Dossier Documentaire Rapide du Véhicule */}
+              <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm">
+                <DocumentManager
+                  category="TOUS"
+                  title="Pièces Justificatives & Dossier Documentaire"
+                  subtitle="Téléversez ou consultez tous les documents d'achat, de vente, de réparation et administratifs"
+                  vehicleId={vehicle.id}
+                  initialDocuments={vehicle.documents}
+                />
+              </div>
             </div>
           )}
 
@@ -1057,6 +1068,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   ))
                 )}
               </div>
+
+              {/* Dossier Global des Documents & Factures Réparations */}
+              <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm">
+                <DocumentManager
+                  category="Réparations"
+                  title="Dossier Documentaire Réparations & Atelier"
+                  subtitle="Factures d'intervention, devis d'atelier, bons de pièces et diagnostics de ce véhicule"
+                  vehicleId={vehicle.id}
+                  initialDocuments={vehicle.documents.filter((d) => d.category === 'Réparations')}
+                />
+              </div>
             </div>
           )}
 
@@ -1542,35 +1564,48 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-[#222228] bg-[#121216] p-8 text-center space-y-4">
-                  <BadgePercent className="h-12 w-12 text-zinc-600 mx-auto" />
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Ce véhicule n&apos;est pas encore vendu</h3>
-                    <p className="text-xs text-zinc-400 mt-1">
-                      Enregistrez une vente directe ou convertissez une réservation active.
-                    </p>
+                <>
+                  <div className="rounded-2xl border border-[#222228] bg-[#121216] p-8 text-center space-y-4">
+                    <BadgePercent className="h-12 w-12 text-zinc-600 mx-auto" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Ce véhicule n&apos;est pas encore vendu</h3>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Enregistrez une vente directe ou convertissez une réservation active.
+                      </p>
+                    </div>
+
+                    {vehicle.status === 'IN_STOCK' && (
+                      <Link
+                        href={`/sales/new?vehicleId=${vehicle.id}`}
+                        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Enregistrer une vente</span>
+                      </Link>
+                    )}
+
+                    {vehicle.status === 'RESERVED' && activeReservation && (
+                      <Link
+                        href={`/sales/new?vehicleId=${vehicle.id}&reservationId=${activeReservation.id}`}
+                        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
+                      >
+                        <BadgePercent className="h-4 w-4" />
+                        <span>Convertir la réservation en vente</span>
+                      </Link>
+                    )}
                   </div>
 
-                  {vehicle.status === 'IN_STOCK' && (
-                    <Link
-                      href={`/sales/new?vehicleId=${vehicle.id}`}
-                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Enregistrer une vente</span>
-                    </Link>
-                  )}
-
-                  {vehicle.status === 'RESERVED' && activeReservation && (
-                    <Link
-                      href={`/sales/new?vehicleId=${vehicle.id}&reservationId=${activeReservation.id}`}
-                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
-                    >
-                      <BadgePercent className="h-4 w-4" />
-                      <span>Convertir la réservation en vente</span>
-                    </Link>
-                  )}
-                </div>
+                  {/* Documents Pré-vente / Dossier de Vente */}
+                  <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm text-left">
+                    <DocumentManager
+                      category="Ventes"
+                      title="Documents & Préparatifs de Vente"
+                      subtitle="Contrat préliminaire, promesse de vente, documents administratifs d'acquéreur potentiel"
+                      vehicleId={vehicle.id}
+                      initialDocuments={vehicle.documents.filter((d) => d.category === 'Ventes')}
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}

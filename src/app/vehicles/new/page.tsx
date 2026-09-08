@@ -14,6 +14,7 @@ import {
 
 import { parkRepository } from '@/repositories/park.repository'
 import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
+import { DocumentFormUploader } from '@/components/documents/document-form-uploader'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,7 +131,7 @@ async function createVehicleAction(formData: FormData) {
   const purchaseCount = await prisma.purchase.count()
   const purchaseCode = `ACH-${new Date().getFullYear()}-${String(purchaseCount + 1).padStart(4, '0')}`
 
-  await prisma.purchase.create({
+  const purchase = await prisma.purchase.create({
     data: {
       code: purchaseCode,
       vehicleId: vehicle.id,
@@ -151,6 +152,23 @@ async function createVehicleAction(formData: FormData) {
       notes: documentNotes || 'Acquisition initiale du véhicule',
     },
   })
+
+  // Associate documents uploaded during vehicle creation
+  const documentsDataRaw = (formData.get('vehicleDocumentsData') as string) || ''
+  if (documentsDataRaw) {
+    try {
+      const parsedDocIds = JSON.parse(documentsDataRaw) as string[]
+      if (Array.isArray(parsedDocIds) && parsedDocIds.length > 0) {
+        await prisma.document.updateMany({
+          where: { id: { in: parsedDocIds } },
+          data: {
+            vehicleId: vehicle.id,
+            purchaseId: purchase.id,
+          },
+        })
+      }
+    } catch (_) {}
+  }
 
   // Create initial status history entry
   await prisma.vehicleStatusHistory.create({
@@ -569,6 +587,14 @@ export default async function NewVehiclePage() {
 
           <div className="space-y-6">
             <VehiclePhotoUploader maxPhotos={10} />
+
+            {/* Documents & Pièces d'Acquisition */}
+            <DocumentFormUploader
+              category="Achats"
+              title="Pièces Justificatives d'Acquisition"
+              subtitle="Carte grise barrée, acte de cession, facture d'achat, CIN vendeur ou semsar"
+              fieldName="vehicleDocumentsData"
+            />
 
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1">Notes & Pièces Justificatives</label>

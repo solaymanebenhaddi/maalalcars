@@ -86,6 +86,40 @@ export async function uploadDocumentAction(formData: FormData) {
   return document
 }
 
+export async function attachDocumentsAction(
+  documentIds: string[],
+  relations: {
+    vehicleId?: string | null
+    purchaseId?: string | null
+    saleId?: string | null
+    repairId?: string | null
+  }
+) {
+  if (!documentIds || documentIds.length === 0) return { count: 0 }
+
+  const dataToUpdate: Record<string, string> = {}
+  if (relations.vehicleId) dataToUpdate.vehicleId = relations.vehicleId
+  if (relations.purchaseId) dataToUpdate.purchaseId = relations.purchaseId
+  if (relations.saleId) dataToUpdate.saleId = relations.saleId
+  if (relations.repairId) dataToUpdate.repairId = relations.repairId
+
+  if (Object.keys(dataToUpdate).length === 0) return { count: 0 }
+
+  const result = await prisma.document.updateMany({
+    where: { id: { in: documentIds } },
+    data: dataToUpdate,
+  })
+
+  if (relations.vehicleId) {
+    revalidatePath(`/vehicles/${relations.vehicleId}`)
+  }
+  if (relations.saleId) {
+    revalidatePath(`/sales/${relations.saleId}`)
+  }
+
+  return { count: result.count }
+}
+
 export async function deleteDocumentAction(documentId: string, revalidateTarget?: string) {
   const sessionUser = await getServerSession()
   if (!sessionUser) {

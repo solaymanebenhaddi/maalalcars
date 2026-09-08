@@ -14,6 +14,8 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { RepairPromptModal, RepairFormValues } from './repair-prompt-modal'
+import { DocumentFormUploader } from '@/components/documents/document-form-uploader'
+import { attachDocumentsAction } from '@/app/documents/actions'
 
 interface VehicleOption {
   id: string
@@ -63,6 +65,7 @@ export function SaleForm({
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saleDocIds, setSaleDocIds] = useState<string[]>([])
 
   // Selected vehicle state
   const defaultVehicleId =
@@ -234,6 +237,18 @@ export function SaleForm({
 
         if (!repairRes.ok) {
           console.warn('Vente créée mais échec de création réparation')
+        }
+      }
+
+      // If documents were uploaded during sale registration, associate them with the sale
+      if (saleDocIds.length > 0 && (data.id || data.code)) {
+        try {
+          await attachDocumentsAction(saleDocIds, {
+            saleId: data.id,
+            vehicleId: selectedVehicleId,
+          })
+        } catch (docErr) {
+          console.warn('Vente créée mais échec de liaison des documents:', docErr)
         }
       }
 
@@ -660,7 +675,19 @@ export function SaleForm({
           )}
         </div>
 
-        {/* 5. Notes */}
+        {/* 5. Documents & Justificatifs de Vente */}
+        <div>
+          <DocumentFormUploader
+            category="Ventes"
+            title="5. Pièces Justificatives de Vente"
+            subtitle="Contrat de vente, certificat de cession, copie CIN client acheteur, reçu d'acompte"
+            fieldName="saleDocumentsData"
+            vehicleId={selectedVehicleId}
+            onDocumentsChange={(docs) => setSaleDocIds(docs.map((d) => d.id))}
+          />
+        </div>
+
+        {/* 6. Notes */}
         <div>
           <label className="block text-xs font-semibold text-zinc-300 mb-1">Notes & Conditions Spéciales</label>
           <textarea
