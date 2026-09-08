@@ -22,8 +22,17 @@ interface VehicleOption {
   model: string
   year: number
   matricule: string | null
+  purchasePrice?: number
   targetSalePrice: number
   status: string
+  purchases?: { commissionAmount: number }[]
+  repairs?: {
+    id: string
+    repairType: string
+    estimatedAmount: number | null
+    finalAmount: number | null
+    status: string
+  }[]
 }
 
 interface ReservationData {
@@ -67,6 +76,7 @@ export function SaleForm({
 
   // Financial fields
   const defaultPrice = currentVehicle?.targetSalePrice || 250000
+  const [basePrice, setBasePrice] = useState<number>(defaultPrice)
   const [salePrice, setSalePrice] = useState<number>(defaultPrice)
   const advanceAmount = initialReservation?.depositAmount || 0
   const [amountReceived, setAmountReceived] = useState<number>(
@@ -94,6 +104,14 @@ export function SaleForm({
   const [notes, setNotes] = useState('')
   const [isRepairModalOpen, setIsRepairModalOpen] = useState(false)
 
+  // Vehicle cost components breakdown
+  const buyCommission = currentVehicle?.purchases?.[0]?.commissionAmount || 0
+  const repairsTotal =
+    currentVehicle?.repairs?.reduce(
+      (sum, r) => sum + (r.finalAmount ?? r.estimatedAmount ?? 0),
+      0
+    ) || 0
+
   // Live financial calculations
   const remainingDue = Math.max(0, salePrice - advanceAmount - amountReceived - discountAmount + additionalFees)
 
@@ -101,8 +119,35 @@ export function SaleForm({
     setSelectedVehicleId(vId)
     const veh = availableVehicles.find((v) => v.id === vId)
     if (veh) {
-      setSalePrice(veh.targetSalePrice)
-      setAmountReceived(Math.max(0, veh.targetSalePrice - advanceAmount))
+      const newBase = veh.targetSalePrice
+      setBasePrice(newBase)
+      const newSalePrice = newBase + (hasCommissioner ? commissionAmount : 0)
+      setSalePrice(newSalePrice)
+      setAmountReceived(Math.max(0, newSalePrice - advanceAmount))
+    }
+  }
+
+  const handleManualSalePriceChange = (val: number) => {
+    setSalePrice(val)
+    const newBase = Math.max(0, val - (hasCommissioner ? commissionAmount : 0))
+    setBasePrice(newBase)
+    setAmountReceived(Math.max(0, val - advanceAmount))
+  }
+
+  const handleHasCommissionerChange = (checked: boolean) => {
+    setHasCommissioner(checked)
+    const commToAdd = checked ? commissionAmount : 0
+    const newSalePrice = basePrice + commToAdd
+    setSalePrice(newSalePrice)
+    setAmountReceived(Math.max(0, newSalePrice - advanceAmount))
+  }
+
+  const handleCommissionAmountChange = (newComm: number) => {
+    setCommissionAmount(newComm)
+    if (hasCommissioner) {
+      const newSalePrice = basePrice + newComm
+      setSalePrice(newSalePrice)
+      setAmountReceived(Math.max(0, newSalePrice - advanceAmount))
     }
   }
 
@@ -360,7 +405,7 @@ export function SaleForm({
                 <input
                   type="number"
                   value={salePrice}
-                  onChange={(e) => setSalePrice(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => handleManualSalePriceChange(parseFloat(e.target.value) || 0)}
                   required
                   className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] pl-3 pr-10 text-xs text-white font-mono font-bold focus:border-amber-500 focus:outline-none transition-colors"
                 />
@@ -368,6 +413,11 @@ export function SaleForm({
                   DH
                 </span>
               </div>
+              {hasCommissioner && commissionAmount > 0 && (
+                <p className="text-[10px] text-purple-400 font-medium mt-1">
+                  + {commissionAmount.toLocaleString('fr-FR')} DH commission intermédiaire incluse
+                </p>
+              )}
             </div>
 
             <div>
@@ -437,10 +487,55 @@ export function SaleForm({
           </div>
 
           {/* Live Financial Breakdown Card */}
-          <div className="mt-4 rounded-xl border border-[#2a2a34] bg-[#181820] p-4 space-y-2 text-xs">
-            <div className="flex justify-between text-zinc-400">
-              <span>Prix de vente convenu :</span>
-              <span className="font-mono text-white font-bold">{salePrice.toLocaleString('fr-FR')} DH</span>
+          <div className="mt-4 rounded-xl border border-[#2a2a34] bg-[#181820] p-4 space-y-2.5 text-xs">
+            <div className="space-y-1.5 pb-2.5 border-b border-[#242430]">
+              <div className="flex justify-between text-zinc-300">
+                <span className="font-medium">Prix de base véhicule (Stock) :</span>
+                <span className="font-mono text-zinc-200 font-semibold">
+                  {basePrice.toLocaleString('fr-FR')} DH
+                </span>
+              </div>
+
+              {buyCommission > 0 && (
+                <div className="flex justify-between text-zinc-400 text-[11px] pl-3 border-l-2 border-amber-500/40">
+                  <span className="text-zinc-400">↳ dont Courtier d&apos;achat inclus :</span>
+                  <span className="font-mono text-amber-400 font-semibold">
+                    +{buyCommission.toLocaleString('fr-FR')} DH
+                  </span>
+                </div>
+              )}
+
+              {repairsTotal > 0 && (
+                <div className="flex justify-between text-zinc-400 text-[11px] pl-3 border-l-2 border-cyan-500/40">
+                  <span className="text-zinc-400">↳ dont Réparations atelier incluses :</span>
+                  <span className="font-mono text-cyan-400 font-semibold">
+                    +{repairsTotal.toLocaleString('fr-FR')} DH
+                  </span>
+                </div>
+              )}
+
+              {hasCommissioner && commissionAmount > 0 && (
+                <div className="flex justify-between text-purple-400 text-[11px] pl-3 border-l-2 border-purple-500 font-medium">
+                  <span>+ Commission intermédiaire de vente :</span>
+                  <span className="font-mono font-bold">
+                    +{commissionAmount.toLocaleString('fr-FR')} DH
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center text-white font-bold">
+              <span className="flex items-center gap-2">
+                <span>Prix de vente convenu :</span>
+                {hasCommissioner && commissionAmount > 0 && (
+                  <span className="text-[10px] font-medium text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                    Courtier inclus
+                  </span>
+                )}
+              </span>
+              <span className="font-mono text-emerald-400 font-black text-sm">
+                {salePrice.toLocaleString('fr-FR')} DH
+              </span>
             </div>
 
             {advanceAmount > 0 && (
@@ -475,8 +570,8 @@ export function SaleForm({
               <input
                 type="checkbox"
                 checked={hasCommissioner}
-                onChange={(e) => setHasCommissioner(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-700 bg-[#16161c] text-red-600 focus:ring-red-500"
+                onChange={(e) => handleHasCommissionerChange(e.target.checked)}
+                className="h-4 w-4 rounded border-zinc-700 bg-[#16161c] text-purple-600 focus:ring-purple-500"
               />
               <span>Ajouter un courtier / semsar</span>
             </label>
@@ -522,9 +617,12 @@ export function SaleForm({
                 <input
                   type="number"
                   value={commissionAmount}
-                  onChange={(e) => setCommissionAmount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => handleCommissionAmountChange(parseFloat(e.target.value) || 0)}
                   className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-purple-400 font-mono font-bold focus:border-purple-500 focus:outline-none"
                 />
+                <p className="text-[10px] text-purple-400/80 mt-1">
+                  💡 Ajoutée automatiquement au prix de vente convenu.
+                </p>
               </div>
 
               <div className="sm:col-span-2">

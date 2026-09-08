@@ -317,6 +317,10 @@ export async function updatePurchaseCommissionerAction(vehicleId: string, formDa
     const handledById = (formData.get('handledById') as string) || null
 
     if (purchaseId) {
+      const currentPurchase = await prisma.purchase.findUnique({ where: { id: purchaseId } })
+      const oldCommission = currentPurchase?.commissionAmount || 0
+      const delta = commissionAmount - oldCommission
+
       await prisma.purchase.update({
         where: { id: purchaseId },
         data: {
@@ -329,6 +333,13 @@ export async function updatePurchaseCommissionerAction(vehicleId: string, formDa
           ...(handledById !== null ? { handledById: handledById || null } : {}),
         },
       })
+
+      if (delta !== 0) {
+        await prisma.vehicle.update({
+          where: { id: vehicleId },
+          data: { targetSalePrice: { increment: delta } },
+        })
+      }
     }
 
     redirect(`/vehicles/${vehicleId}?tab=acquisition&success=${encodeURIComponent('Dossier d\'achat et commissionnaire enregistrés.')}`)

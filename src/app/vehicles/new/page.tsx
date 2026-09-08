@@ -43,7 +43,7 @@ async function createVehicleAction(formData: FormData) {
     }
   }
   const purchasePrice = parseFloat(formData.get('purchasePrice') as string) || 0
-  const targetSalePrice = parseFloat(formData.get('targetSalePrice') as string) || 0
+  const rawTargetSalePrice = parseFloat(formData.get('targetSalePrice') as string) || 0
   const description = (formData.get('description') as string) || ''
 
   // Section 2: Supplier / Seller Snapshot
@@ -61,6 +61,9 @@ async function createVehicleAction(formData: FormData) {
   const commissionerAddress = (formData.get('commissionerAddress') as string) || null
   const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
   const commissionPaidById = (formData.get('commissionPaidById') as string) || null
+
+  // Le prix de vente cible intègre automatiquement la commission de l'intermédiaire d'achat si existante
+  const targetSalePrice = rawTargetSalePrice + (commissionAmount > 0 ? commissionAmount : 0)
 
   // Section 4: Photos & Documents
   const photosDataRaw = (formData.get('vehiclePhotosData') as string) || ''
@@ -355,6 +358,9 @@ export default async function NewVehiclePage() {
                 placeholder="Ex: 255000"
                 className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-cyan-400 font-mono font-bold focus:border-red-500 focus:outline-none"
               />
+              <p className="text-[11px] text-zinc-500 mt-1">
+                💡 Si un intermédiaire d&apos;achat existe (section 3), sa commission sera automatiquement ajoutée au prix de vente convenu.
+              </p>
             </div>
 
             <div>

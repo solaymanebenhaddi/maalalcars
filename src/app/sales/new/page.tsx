@@ -33,8 +33,27 @@ export default async function NewSalePage({ searchParams }: Props) {
       model: true,
       year: true,
       matricule: true,
+      purchasePrice: true,
       targetSalePrice: true,
       status: true,
+      purchases: {
+        select: {
+          commissionAmount: true,
+        },
+        take: 1,
+      },
+      repairs: {
+        where: {
+          status: { not: 'ANNULEE' },
+        },
+        select: {
+          id: true,
+          repairType: true,
+          estimatedAmount: true,
+          finalAmount: true,
+          status: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })

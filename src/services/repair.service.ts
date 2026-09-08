@@ -64,6 +64,16 @@ export const repairService = {
       )
     }
 
+    // Répercussion immédiate du coût prévisionnel des réparations sur le prix de vente cible du véhicule
+    if (input.estimatedAmount && input.estimatedAmount > 0) {
+      await prisma.vehicle.update({
+        where: { id: input.vehicleId },
+        data: {
+          targetSalePrice: { increment: input.estimatedAmount },
+        },
+      })
+    }
+
     await auditService.log({
       action: 'REPAIR_CREATED',
       entityType: 'Repair',
@@ -94,6 +104,19 @@ export const repairService = {
       status: 'TERMINEE',
       notes: input.notes !== undefined ? input.notes : existing.notes,
     })
+
+    // Ajustement de la répercussion sur le prix de vente cible (écart entre devis provisionné et facture finale)
+    const previousProvision = existing.estimatedAmount || 0
+    const finalCost = input.finalAmount || 0
+    const delta = finalCost - previousProvision
+    if (delta !== 0) {
+      await prisma.vehicle.update({
+        where: { id: existing.vehicleId },
+        data: {
+          targetSalePrice: { increment: delta },
+        },
+      })
+    }
 
     // Transition vehicle back to IN_STOCK only if currently in WORKSHOP
     const vehicle = await prisma.vehicle.findUnique({ where: { id: existing.vehicleId } })
@@ -132,6 +155,17 @@ export const repairService = {
     const updated = await repairRepository.update(id, {
       status: 'ANNULEE',
     })
+
+    // Annuler la répercussion des frais de réparation sur le prix de vente convenu/cible
+    const amountToDeduct = existing.finalAmount ?? existing.estimatedAmount ?? 0
+    if (amountToDeduct > 0) {
+      await prisma.vehicle.update({
+        where: { id: existing.vehicleId },
+        data: {
+          targetSalePrice: { decrement: amountToDeduct },
+        },
+      })
+    }
 
     // Release vehicle back to IN_STOCK only if currently in WORKSHOP
     const vehicle = await prisma.vehicle.findUnique({ where: { id: existing.vehicleId } })
