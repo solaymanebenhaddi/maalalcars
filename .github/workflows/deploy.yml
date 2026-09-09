@@ -155,6 +155,7 @@ jobs:
           # Copie des scripts de diagnostic et maintenance
           mkdir -p .next/standalone/scripts
           cp scripts/diagnose.js .next/standalone/scripts/diagnose.js
+          cp scripts/watchdog.js .next/standalone/scripts/watchdog.js
 
           # Point d'entrée Phusion Passenger pour cPanel avec traçage temps réel et route /__debug
           cat << 'EOF' > .next/standalone/app.js
@@ -164,6 +165,27 @@ jobs:
 
           const fs = require('fs');
           const path = require('path');
+
+          // ═══════════════════════════════════════════════════════
+          // PID LOCKFILE — Kill previous instance before starting
+          // ═══════════════════════════════════════════════════════
+          const pidFile = path.join(__dirname, 'app.pid');
+          try {
+            if (fs.existsSync(pidFile)) {
+              const oldPid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
+              if (oldPid && oldPid !== process.pid) {
+                try {
+                  process.kill(oldPid, 0); // Check if alive
+                  process.kill(oldPid, 'SIGTERM');
+                  setTimeout(() => {
+                    try { process.kill(oldPid, 'SIGKILL'); } catch (_) {}
+                  }, 3000);
+                } catch (_) {} // Already dead — fine
+              }
+            }
+          } catch (_) {}
+          // Write our PID
+          try { fs.writeFileSync(pidFile, String(process.pid)); } catch (_) {}
 
           // Assurer les droits d'exécution et l'alias de runtime sur les moteurs binaires Prisma
           try {
@@ -194,7 +216,26 @@ jobs:
 
           log('====================================================');
           log('🚀 [MAALAL CARS] app.js DÉMARRAGE DU PROCESSUS');
-          log('Node.js: ' + process.version + ' | CWD: ' + process.cwd() + ' | __dirname: ' + __dirname);
+          log('PID: ' + process.pid + ' | Node.js: ' + process.version + ' | CWD: ' + process.cwd());
+
+          // ═══════════════════════════════════════════════════════
+          // GRACEFUL SHUTDOWN — Clean exit on SIGTERM/SIGINT
+          // ═══════════════════════════════════════════════════════
+          let isShuttingDown = false;
+          function gracefulShutdown(signal) {
+            if (isShuttingDown) return;
+            isShuttingDown = true;
+            log('🛑 [SHUTDOWN] Signal reçu: ' + signal + ' — arrêt gracieux...');
+            // Remove PID file
+            try { fs.unlinkSync(pidFile); } catch (_) {}
+            // Give ongoing requests 5s to finish, then force exit
+            setTimeout(() => {
+              log('🛑 [SHUTDOWN] Timeout — forçage de l\'arrêt.');
+              process.exit(0);
+            }, 5000);
+          }
+          process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+          process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
           process.on('uncaughtException', (err) => {
             log('💥 [EXCEPTION NON GÉRÉE] ' + (err && err.stack ? err.stack : err));
@@ -363,15 +404,32 @@ jobs:
             const { execSync } = require('child_process');
             const myPid = process.pid;
             const myPpid = process.ppid;
-            const ps = execSync('ps -u $(whoami) -o pid,comm', { encoding: 'utf8' });
-            ps.split('\n').forEach((l) => {
-              const [pStr, comm] = l.trim().split(/\s+/);
-              const p = parseInt(pStr, 10);
-              if (p && p !== myPid && p !== myPpid && (comm.includes('next') || (comm.includes('node') && !l.includes('bash')))) {
-                try { process.kill(p, 'SIGKILL'); log('🧹 Processus orphelin tué: ' + p + ' (' + comm + ')'); } catch (_) {}
-              }
+            // List all user processes with PID, PPID, elapsed time, and command
+            const ps = execSync('ps -u $(whoami) -o pid,ppid,etimes,comm,args --no-headers', { encoding: 'utf8', timeout: 5000 });
+            const procs = ps.split('\n').filter(l => l.trim()).map(l => {
+              const parts = l.trim().split(/\s+/);
+              return { pid: parseInt(parts[0],10), ppid: parseInt(parts[1],10), age: parseInt(parts[2],10), comm: parts[3]||'', args: parts.slice(4).join(' ') };
             });
-          } catch (_) {}
+            // Kill ALL other node processes except ourselves and our parent
+            const orphans = procs.filter(p => p.pid && p.pid !== myPid && p.pid !== myPpid && (p.comm === 'node' || p.comm === 'nodejs' || p.args.includes('server.js') || p.args.includes('app.js')));
+            if (orphans.length > 0) {
+              log('🧹 Nettoyage de ' + orphans.length + ' processus orphelin(s)...');
+              // SIGTERM first, then SIGKILL after 2s
+              orphans.forEach(p => {
+                try { process.kill(p.pid, 'SIGTERM'); log('🧹 SIGTERM → PID ' + p.pid + ' (age: ' + Math.round(p.age/60) + 'min, ' + p.comm + ')'); } catch (_) {}
+              });
+              // Wait 2s then force-kill any survivors
+              try {
+                execSync('sleep 2', { timeout: 3000 });
+              } catch (_) {}
+              orphans.forEach(p => {
+                try { process.kill(p.pid, 'SIGKILL'); } catch (_) {}
+              });
+              log('🧹 Nettoyage terminé.');
+            } else {
+              log('✅ Aucun processus orphelin détecté.');
+            }
+          } catch (e) { log('⚠️ Erreur nettoyage processus: ' + (e && e.message ? e.message : e)); }
 
           // 5. Synchronisation de la base puis démarrage du serveur Next.js
           (async () => {
