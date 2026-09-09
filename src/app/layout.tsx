@@ -10,6 +10,17 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'MAALAL CARS — Plateforme de Gestion Automobile au Maroc',
   description: 'Logiciel complet de gestion de concession, stock, achats, ventes, facturation et finances à Casablanca, Maroc.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
