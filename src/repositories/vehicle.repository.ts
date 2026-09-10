@@ -12,80 +12,98 @@ export interface VehicleFilterParams {
   parkId?: string
   search?: string
   customsStatus?: string
+  urgent?: boolean | string
+  page?: number
+  pageSize?: number
+}
+
+export function buildVehicleWhere(params: VehicleFilterParams = {}): Prisma.VehicleWhereInput {
+  const isArchivedQuery = params.status === 'ARCHIVED'
+  const andConditions: Prisma.VehicleWhereInput[] = []
+
+  if (isArchivedQuery) {
+    andConditions.push({
+      OR: [
+        { status: 'ARCHIVED' },
+        { archivedAt: { not: null } },
+        { status: 'SOLD' },
+      ],
+    })
+  } else {
+    // Strictly hide archived & sold vehicles from general inventory and "Tous"
+    andConditions.push({
+      status: { notIn: ['ARCHIVED', 'SOLD'] },
+      archivedAt: null,
+    })
+
+    if (params.status && params.status !== 'Tous') {
+      andConditions.push({ status: params.status })
+    }
+  }
+
+  if (params.brand && params.brand !== 'Toutes') {
+    andConditions.push({ brand: params.brand })
+  }
+
+  if (params.fuelType && params.fuelType !== 'Tous') {
+    andConditions.push({ fuelType: params.fuelType })
+  }
+
+  if (params.transmission && params.transmission !== 'Toutes') {
+    andConditions.push({ transmission: params.transmission })
+  }
+
+  if (params.location && params.location !== 'Toutes') {
+    andConditions.push({ location: params.location })
+  }
+
+  if (params.parkId && params.parkId !== 'Tous') {
+    andConditions.push({ parkId: params.parkId })
+  }
+
+  if (params.customsStatus && params.customsStatus !== 'Tous') {
+    andConditions.push({ customsStatus: params.customsStatus })
+  }
+
+  if (params.urgent === true || params.urgent === 'true') {
+    andConditions.push({ isBulkImport: true })
+  }
+
+  if (params.search) {
+    andConditions.push({
+      OR: [
+        { brand: { contains: params.search } },
+        { model: { contains: params.search } },
+        { vin: { contains: params.search } },
+        { matricule: { contains: params.search } },
+        { code: { contains: params.search } },
+      ],
+    })
+  }
+
+  if (params.minPrice || params.maxPrice) {
+    const priceFilter: Prisma.FloatFilter = {}
+    if (params.minPrice) priceFilter.gte = params.minPrice
+    if (params.maxPrice) priceFilter.lte = params.maxPrice
+    andConditions.push({ targetSalePrice: priceFilter })
+  }
+
+  return andConditions.length > 0 ? { AND: andConditions } : {}
 }
 
 export const vehicleRepository = {
   async getAll(params: VehicleFilterParams = {}) {
-    const isArchivedQuery = params.status === 'ARCHIVED'
-    const andConditions: Prisma.VehicleWhereInput[] = []
-
-    if (isArchivedQuery) {
-      andConditions.push({
-        OR: [
-          { status: 'ARCHIVED' },
-          { archivedAt: { not: null } },
-          { status: 'SOLD' },
-        ],
-      })
-    } else {
-      // Strictly hide archived & sold vehicles from general inventory and "Tous"
-      andConditions.push({
-        status: { notIn: ['ARCHIVED', 'SOLD'] },
-        archivedAt: null,
-      })
-
-      if (params.status && params.status !== 'Tous') {
-        andConditions.push({ status: params.status })
-      }
-    }
-
-    if (params.brand && params.brand !== 'Toutes') {
-      andConditions.push({ brand: params.brand })
-    }
-
-    if (params.fuelType && params.fuelType !== 'Tous') {
-      andConditions.push({ fuelType: params.fuelType })
-    }
-
-    if (params.transmission && params.transmission !== 'Toutes') {
-      andConditions.push({ transmission: params.transmission })
-    }
-
-    if (params.location && params.location !== 'Toutes') {
-      andConditions.push({ location: params.location })
-    }
-
-    if (params.parkId && params.parkId !== 'Tous') {
-      andConditions.push({ parkId: params.parkId })
-    }
-
-    if (params.customsStatus && params.customsStatus !== 'Tous') {
-      andConditions.push({ customsStatus: params.customsStatus })
-    }
-
-    if (params.search) {
-      andConditions.push({
-        OR: [
-          { brand: { contains: params.search } },
-          { model: { contains: params.search } },
-          { vin: { contains: params.search } },
-          { matricule: { contains: params.search } },
-          { code: { contains: params.search } },
-        ],
-      })
-    }
-
-    if (params.minPrice || params.maxPrice) {
-      const priceFilter: Prisma.FloatFilter = {}
-      if (params.minPrice) priceFilter.gte = params.minPrice
-      if (params.maxPrice) priceFilter.lte = params.maxPrice
-      andConditions.push({ targetSalePrice: priceFilter })
-    }
-
-    const where: Prisma.VehicleWhereInput = andConditions.length > 0 ? { AND: andConditions } : {}
+    const where = buildVehicleWhere(params)
+    const skip =
+      params.page && params.pageSize
+        ? (Math.max(1, params.page) - 1) * params.pageSize
+        : undefined
+    const take = params.pageSize || undefined
 
     return prisma.vehicle.findMany({
       where,
+      skip,
+      take,
       include: {
         park: true,
         photos: true,
@@ -112,6 +130,27 @@ export const vehicleRepository = {
       },
       orderBy: { entryDate: 'desc' },
     })
+  },
+
+  async count(params: VehicleFilterParams = {}) {
+    const where = buildVehicleWhere(params)
+    return prisma.vehicle.count({ where })
+  },
+
+  async getPaginated(params: VehicleFilterParams = {}) {
+    const page = Math.max(1, params.page || 1)
+    const pageSize = params.pageSize || 9
+    const [vehicles, total] = await Promise.all([
+      this.getAll({ ...params, page, pageSize }),
+      this.count(params),
+    ])
+    return {
+      vehicles,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    }
   },
 
   async getById(id: string) {

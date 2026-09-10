@@ -95,3 +95,8 @@ export type { VehicleCustomsSelectorProps, VehicleCustomsStatus } from '@/compon
 export { MoroccanPlateInput, MOROCCAN_PREFECTURE_CODES, MOROCCAN_SERIES_LETTERS } from './moroccan-plate-input'
 export type { MoroccanPlateInputProps } from './moroccan-plate-input'
 
+// Pagination
+export { Pagination } from './pagination'
+export type { PaginationProps } from './pagination'
+
+

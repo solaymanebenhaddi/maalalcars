@@ -23,6 +23,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Currency } from '@/components/shared/currency'
 import { EmptyState } from '@/components/shared/empty-state'
+import { Pagination } from '@/components/ui'
 import { vehicleRepository } from '@/repositories/vehicle.repository'
 import { parkRepository } from '@/repositories/park.repository'
 import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
@@ -47,6 +48,7 @@ interface Props {
     park?: string
     search?: string
     urgent?: string
+    page?: string
   }>
 }
 
@@ -59,6 +61,10 @@ export default async function VehiclesPage({ searchParams }: Props) {
   const activeUser = await getActiveUserRole()
   const params = await searchParams
   const activeStatus = params.status || 'Tous'
+
+  // Pagination parameters: 9 cars per page
+  const PAGE_SIZE = 9
+  const currentPage = Math.max(1, parseInt(params.page || '1', 10) || 1)
 
   // Fetch parks for multi-park filtering
   const allParks = await parkRepository.getAll()
@@ -73,12 +79,15 @@ export default async function VehiclesPage({ searchParams }: Props) {
     if (matched) activeParkId = matched.id
   }
 
-  const vehicles = await vehicleRepository.getAll({
+  const { vehicles, total, totalPages, page } = await vehicleRepository.getPaginated({
     brand: params.brand,
     status: activeStatus === 'Tous' ? undefined : activeStatus,
     fuelType: params.fuelType,
     parkId: activeParkId,
     search: params.search,
+    urgent: params.urgent === 'true',
+    page: currentPage,
+    pageSize: PAGE_SIZE,
   })
 
   const counts = await vehicleRepository.countByStatus()
@@ -106,9 +115,10 @@ export default async function VehiclesPage({ searchParams }: Props) {
     if (activeParkId) q.set('parkId', activeParkId)
     if (params.search) q.set('search', params.search)
     if (params.urgent) q.set('urgent', params.urgent)
+    if (params.page && params.page !== '1') q.set('page', params.page)
 
     for (const [k, v] of Object.entries(newParams)) {
-      if (!v || v === 'Tous' || v === 'Toutes') {
+      if (!v || v === 'Tous' || v === 'Toutes' || (k === 'page' && v === '1')) {
         q.delete(k)
       } else {
         q.set(k, v)
@@ -119,15 +129,20 @@ export default async function VehiclesPage({ searchParams }: Props) {
     return `/vehicles${str ? `?${str}` : ''}`
   }
 
-  // Pre-calculate completeness for all vehicles
+  // Pre-calculate completeness for all vehicles on the current page
   const vehicleCompletenessMap = new Map(
     vehicles.map((v) => [v.id, checkVehicleCompleteness(v)])
   )
-  const urgentCount = vehicles.filter((v) => vehicleCompletenessMap.get(v.id)?.needsUrgentUpdates).length
+
+  const urgentCount = await prisma.vehicle.count({
+    where: {
+      isBulkImport: true,
+      status: { notIn: ['ARCHIVED', 'SOLD'] },
+      archivedAt: null,
+    },
+  })
   const isUrgentFilterActive = params.urgent === 'true'
-  const displayedVehicles = isUrgentFilterActive
-    ? vehicles.filter((v) => vehicleCompletenessMap.get(v.id)?.needsUrgentUpdates)
-    : vehicles
+  const displayedVehicles = vehicles
 
   return (
     <div className="space-y-6">
@@ -340,9 +355,28 @@ export default async function VehiclesPage({ searchParams }: Props) {
         </div>
       )}
 
+      {/* Catalog & Pagination Summary */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-zinc-400">
+        <div className="flex items-center gap-2">
+          <span>Catalogue :</span>
+          <strong className="text-white font-mono font-bold">{total}</strong> véhicule{total > 1 ? 's' : ''} trouvé{total > 1 ? 's' : ''}
+          {totalPages > 1 && (
+            <span className="text-zinc-500 font-medium">
+              — Page <strong className="text-red-400 font-mono font-bold">{page}</strong> sur {totalPages}
+            </span>
+          )}
+        </div>
+
+        <div className="text-[11px] text-zinc-500 font-mono flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
+          <span>9 véhicules par page</span>
+        </div>
+      </div>
+
       {/* Vehicles Cards Grid */}
       {displayedVehicles.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {displayedVehicles.map((v) => {
             const completeness = vehicleCompletenessMap.get(v.id) || checkVehicleCompleteness(v)
             const activeReservation = v.reservations.find(
@@ -682,6 +716,17 @@ export default async function VehiclesPage({ searchParams }: Props) {
               </VehicleCardWrapper>
             )
           })}
+          </div>
+
+          {/* Pagination Bar (9 voitures par page) */}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={total}
+            pageSize={PAGE_SIZE}
+            itemName="véhicules"
+            createPageUrl={(p) => buildQueryUrl({ page: p === 1 ? undefined : String(p) })}
+          />
         </div>
       ) : (
         <EmptyState
