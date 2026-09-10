@@ -111,15 +111,19 @@ export default function SupplierDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Pays</span>
-                <span className="text-zinc-200">France</span>
+                <span className="text-zinc-200">Maroc 🇲🇦</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Ville</span>
-                <span className="text-zinc-200">Saint-Ouen</span>
+                <span className="text-zinc-200 font-semibold text-red-400">Casablanca</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-400">SIRET</span>
-                <span className="font-mono text-zinc-300">423 123 456 00012</span>
+                <span className="text-zinc-400">Adresse</span>
+                <span className="text-zinc-300">Lot 12, Z.I. Sidi Maârouf</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">ICE / SIRET</span>
+                <span className="font-mono text-zinc-300">002345678000034</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Site web</span>

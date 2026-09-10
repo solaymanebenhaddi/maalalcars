@@ -16,6 +16,7 @@ import {
 import { RepairPromptModal, RepairFormValues } from './repair-prompt-modal'
 import { DocumentFormUploader } from '@/components/documents/document-form-uploader'
 import { attachDocumentsAction } from '@/app/documents/actions'
+import { MoroccanCityCombobox } from '@/components/ui/moroccan-city-combobox'
 
 interface VehicleOption {
   id: string
@@ -94,6 +95,7 @@ export function SaleForm({
   const [buyerPhone, setBuyerPhone] = useState(initialReservation?.clientPhone || '')
   const [buyerCin, setBuyerCin] = useState(initialReservation?.clientCin || '')
   const [buyerAddress, setBuyerAddress] = useState(initialReservation?.clientAddress || '')
+  const [buyerCity, setBuyerCity] = useState('Casablanca')
 
   // Commissioner snapshot
   const [hasCommissioner, setHasCommissioner] = useState(false)
@@ -101,6 +103,7 @@ export function SaleForm({
   const [commissionerPhone, setCommissionerPhone] = useState('')
   const [commissionerCin, setCommissionerCin] = useState('')
   const [commissionerAddress, setCommissionerAddress] = useState('')
+  const [commissionerCity, setCommissionerCity] = useState('Casablanca')
   const [commissionAmount, setCommissionAmount] = useState(0)
   const [commissionPaidById, setCommissionPaidById] = useState('')
   const [receivedById, setReceivedById] = useState('')
@@ -191,6 +194,7 @@ export function SaleForm({
         buyerPhone: buyerPhone.trim() || null,
         buyerCin: buyerCin.trim() || null,
         buyerAddress: buyerAddress.trim() || null,
+        buyerCity: buyerCity.trim() || 'Casablanca',
         salePrice: finalSalePrice,
         advanceAmount: Number(advanceAmount),
         amountReceivedAtSale: Number(amountReceived),
@@ -202,6 +206,7 @@ export function SaleForm({
         commissionerPhone: hasCommissioner && commissionerPhone.trim() ? commissionerPhone.trim() : null,
         commissionerCin: hasCommissioner && commissionerCin.trim() ? commissionerCin.trim() : null,
         commissionerAddress: hasCommissioner && commissionerAddress.trim() ? commissionerAddress.trim() : null,
+        commissionerCity: hasCommissioner && commissionerCity.trim() ? commissionerCity.trim() : 'Casablanca',
         commissionAmount: hasCommissioner ? Number(commissionAmount) : 0,
         commissionPaidById: hasCommissioner && commissionPaidById ? commissionPaidById : null,
         receivedById: receivedById || null,
@@ -392,13 +397,22 @@ export function SaleForm({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse de l’acheteur</label>
               <input
                 type="text"
                 value={buyerAddress}
                 onChange={(e) => setBuyerAddress(e.target.value)}
-                placeholder="Ex: Racine, Casablanca"
+                placeholder="Ex: 45, Bd Zerktouni"
                 className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Ville de l’acheteur</label>
+              <MoroccanCityCombobox
+                value={buyerCity}
+                onChange={(c) => setBuyerCity(c)}
+                placeholder="Sélectionner la ville..."
               />
             </div>
           </div>
@@ -640,14 +654,23 @@ export function SaleForm({
                 </p>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville du Semsar</label>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse du Semsar</label>
                 <input
                   type="text"
                   value={commissionerAddress}
                   onChange={(e) => setCommissionerAddress(e.target.value)}
-                  placeholder="Ex: Maârif, Casablanca"
+                  placeholder="Ex: 24, Rue Ibn Sina"
                   className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">Ville du Semsar</label>
+                <MoroccanCityCombobox
+                  value={commissionerCity}
+                  onChange={(c) => setCommissionerCity(c)}
+                  placeholder="Sélectionner la ville..."
                 />
               </div>
 

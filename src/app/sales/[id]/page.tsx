@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Printer,
   Send,
-  ChevronDown,
   UserCheck,
   CreditCard,
   Car,
@@ -14,17 +13,25 @@ import {
   Clock,
   Briefcase,
   BadgeDollarSign,
+  Edit3,
 } from 'lucide-react'
 import { DocumentManager } from '@/components/documents/document-manager'
+import { updateSaleAction } from '@/app/sales/actions'
 
 export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams?: Promise<{
+    action?: string
+    success?: string
+    error?: string
+  }>
 }
 
-export default async function SaleDetailPage({ params }: Props) {
+export default async function SaleDetailPage({ params, searchParams }: Props) {
   const { id } = await params
+  const { action, success, error } = (await searchParams) || {}
 
   // Look up sale by id or code
   const sale = await prisma.sale.findFirst({
@@ -106,6 +113,20 @@ export default async function SaleDetailPage({ params }: Props) {
         )}
       </div>
 
+      {/* Notifications */}
+      {success && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-semibold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{decodeURIComponent(success)}</span>
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 font-semibold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-red-500" />
+          <span>{decodeURIComponent(error)}</span>
+        </div>
+      )}
+
       {/* Main Container matching Reference #22 Screen 3 */}
       <div className="rounded-xl border border-[#222228] bg-[#121216] p-5 space-y-5 shadow-xl">
         {/* Sale Header */}
@@ -126,6 +147,15 @@ export default async function SaleDetailPage({ params }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
+            {isReal && sale && (
+              <Link
+                href={action === 'edit' ? `/sales/${sale.id}` : `/sales/${sale.id}?action=edit`}
+                className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>{action === 'edit' ? 'Fermer' : 'Modifier la vente'}</span>
+              </Link>
+            )}
             <button className="flex items-center gap-1.5 rounded-lg border border-[#282834] bg-[#18181f] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white">
               <Printer className="h-3.5 w-3.5 text-zinc-400" />
               <span>Imprimer</span>
@@ -134,12 +164,142 @@ export default async function SaleDetailPage({ params }: Props) {
               <Send className="h-3.5 w-3.5 text-zinc-400" />
               <span>Envoyer</span>
             </button>
-            <button className="flex items-center gap-1 rounded-lg border border-[#282834] bg-[#18181f] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white">
-              <span>Plus</span>
-              <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
-            </button>
           </div>
         </div>
+
+        {/* Formulaire d'édition du dossier de vente */}
+        {action === 'edit' && isReal && sale && (
+          <form action={updateSaleAction.bind(null, sale.id)} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 space-y-4 animate-in fade-in">
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-4 w-4 text-amber-400" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Modifier le Dossier de Vente : {sale.code}
+                </h3>
+              </div>
+              <Link
+                href={`/sales/${sale.id}`}
+                className="text-xs text-zinc-400 hover:text-white"
+              >
+                Annuler
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">Prix de Vente Convenu (MAD) *</label>
+                <input
+                  type="number"
+                  name="salePrice"
+                  required
+                  defaultValue={sale.salePrice}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-emerald-400 font-mono font-bold focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">Acompte / Avance Perçue (MAD)</label>
+                <input
+                  type="number"
+                  name="advanceAmount"
+                  defaultValue={sale.advanceAmount || 0}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-cyan-400 font-mono font-bold focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">Mode de Paiement Principal</label>
+                <select
+                  name="paymentMethod"
+                  defaultValue={sale.paymentMethod}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="VIREMENT">Virement Bancaire</option>
+                  <option value="ESPECES">Espèces</option>
+                  <option value="CHEQUE">Chèque Certifié</option>
+                  <option value="CARTE">Carte Bancaire</option>
+                  <option value="EFFET">Effet de Commerce</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">Nom Complet de l&apos;Acheteur</label>
+                <input
+                  type="text"
+                  name="buyerName"
+                  defaultValue={buyerName}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">Téléphone de l&apos;Acheteur</label>
+                <input
+                  type="text"
+                  name="buyerPhone"
+                  defaultValue={buyerPhone}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white font-mono focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">CIN / Passeport Acheteur</label>
+                <input
+                  type="text"
+                  name="buyerCin"
+                  defaultValue={buyerCin}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white font-mono uppercase focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-zinc-300 font-semibold mb-1">Adresse de l&apos;Acheteur</label>
+                <input
+                  type="text"
+                  name="buyerAddress"
+                  defaultValue={buyerAddress}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1">Date Prévisionnelle de Livraison</label>
+                <input
+                  type="date"
+                  name="expectedDeliveryDate"
+                  defaultValue={sale.expectedDeliveryDate ? new Date(sale.expectedDeliveryDate).toISOString().split('T')[0] : ''}
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white font-mono focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-zinc-300 font-semibold mb-1">Notes &amp; Observations de la Vente</label>
+                <textarea
+                  name="notes"
+                  rows={2}
+                  defaultValue={sale.notes || ''}
+                  placeholder="Accords particuliers, formalités carte grise..."
+                  className="w-full rounded-lg border border-[#282834] bg-[#16161c] p-2.5 text-xs text-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-amber-500/20">
+              <Link
+                href={`/sales/${sale.id}`}
+                className="px-4 py-2 rounded-xl border border-[#282834] bg-[#181820] text-xs font-semibold text-zinc-400 hover:text-white"
+              >
+                Annuler
+              </Link>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-amber-600 text-xs font-bold text-white hover:bg-amber-500 transition-colors shadow-md"
+              >
+                Enregistrer les Modifications de la Vente
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Highlight Banner: Encaissement & Argent Récupéré Par */}
         <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

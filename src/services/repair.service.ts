@@ -4,7 +4,7 @@ import { vehicleRepository } from '@/repositories/vehicle.repository'
 import { vehicleStateMachine } from './vehicle-state-machine.service'
 import { auditService } from './audit.service'
 import { financialService } from './financial.service'
-import { RepairCreateInput, RepairCompleteInput } from '@/validation/repair.schema'
+import { RepairCreateInput, RepairCompleteInput, RepairUpdateInput } from '@/validation/repair.schema'
 
 export const repairService = {
   async listRepairs(params: { status?: string; vehicleId?: string; search?: string } = {}) {
@@ -183,6 +183,45 @@ export const repairService = {
       entityType: 'Repair',
       entityId: id,
       details: `Annulation de la réparation ${existing.code}`,
+      userId,
+    })
+
+    return updated
+  },
+
+  async updateRepair(id: string, input: RepairUpdateInput, userId?: string) {
+    const existing = await repairRepository.getById(id)
+    if (!existing) {
+      throw new Error('Réparation introuvable')
+    }
+
+    const data: {
+      repairType?: string
+      garageName?: string | null
+      description?: string | null
+      notes?: string | null
+      estimatedAmount?: number | null
+      finalAmount?: number | null
+      paidBy?: { connect: { id: string } } | { disconnect: true }
+    } = {}
+
+    if (input.repairType !== undefined) data.repairType = input.repairType
+    if (input.garageName !== undefined) data.garageName = input.garageName
+    if (input.description !== undefined) data.description = input.description
+    if (input.notes !== undefined) data.notes = input.notes
+    if (input.estimatedAmount !== undefined) data.estimatedAmount = input.estimatedAmount
+    if (input.finalAmount !== undefined) data.finalAmount = input.finalAmount
+    if (input.paidById !== undefined) {
+      data.paidBy = input.paidById ? { connect: { id: input.paidById } } : { disconnect: true }
+    }
+
+    const updated = await repairRepository.update(id, data)
+
+    await auditService.log({
+      action: 'REPAIR_UPDATED',
+      entityType: 'Repair',
+      entityId: updated.id,
+      details: `Mise à jour de la réparation ${updated.code}`,
       userId,
     })
 

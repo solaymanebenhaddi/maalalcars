@@ -5,6 +5,7 @@ export const vehicleFuelTypes = ['DIESEL', 'ESSENCE', 'HYBRIDE', 'HYBRIDE_RECHAR
 export const vehicleTransmissions = ['AUTOMATIQUE', 'MANUELLE', 'SEMI_AUTO', 'ROBOTISEE'] as const
 export const vehicleStatuses = ['IN_STOCK', 'RESERVED', 'SOLD', 'WORKSHOP', 'TRANSIT', 'ARCHIVED'] as const
 export const vehicleBodyTypes = ['SUV', 'Berline', '4x4 & Pick-up', 'Citadine', 'Utilitaire', 'Coupé'] as const
+export const vehicleCustomsStatuses = ['MAROC', 'DEDOUANEE'] as const
 
 export const vehicleCreateSchema = z.object({
   code: z.string().min(1, 'Code véhicule requis').optional(),
@@ -25,11 +26,14 @@ export const vehicleCreateSchema = z.object({
   fiscalPower: z.coerce.number().int().min(1).default(8),
   options: z.string().nullable().optional(),
   location: z.string().default('Casablanca Showroom'),
+  parkId: z.string().nullable().optional(),
   purchasePrice: positiveMoneySchema.default(0),
   targetSalePrice: positiveMoneySchema.default(0),
   minSalePrice: positiveMoneySchema.nullable().optional(),
   description: z.string().nullable().optional(),
   status: z.enum(vehicleStatuses).default('IN_STOCK'),
+  customsStatus: z.enum(vehicleCustomsStatuses).default('MAROC'),
+  customsYear: z.coerce.number().int().min(1970).max(new Date().getFullYear() + 1).nullable().optional(),
 })
 
 export const vehicleUpdateSchema = vehicleCreateSchema.partial()
@@ -43,6 +47,7 @@ export const vehicleFilterSchema = z.object({
   transmission: z.string().optional(),
   location: z.string().optional(),
   search: z.string().optional(),
+  customsStatus: z.string().optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 })

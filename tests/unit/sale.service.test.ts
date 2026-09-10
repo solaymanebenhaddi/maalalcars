@@ -48,4 +48,23 @@ describe('Sale Domain & Live Computation Logic', () => {
       expect(result.marginPercent).toBe(11.76)
     })
   })
+
+  describe('saleUpdateSchema', () => {
+    it('validates partial updates on sale parameters', async () => {
+      const { saleUpdateSchema } = await import('@/validation/sale.schema')
+      const updateData = {
+        salePrice: 360000,
+        advanceAmount: 50000,
+        paymentMethod: 'VIREMENT',
+        notes: 'Livraison prévue à domicile',
+        buyerName: 'Rachid Bennani',
+      }
+      const parsed = saleUpdateSchema.parse(updateData)
+      expect(parsed.salePrice).toBe(360000)
+      expect(parsed.advanceAmount).toBe(50000)
+      expect(parsed.paymentMethod).toBe('VIREMENT')
+      expect(parsed.buyerName).toBe('Rachid Bennani')
+    })
+  })
 })
+

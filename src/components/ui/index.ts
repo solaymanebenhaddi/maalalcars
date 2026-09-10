@@ -74,3 +74,24 @@ export {
   TableCell,
   TableCaption,
 } from './table'
+
+// Moroccan City Combobox
+export { MoroccanCityCombobox } from './moroccan-city-combobox'
+export type { MoroccanCityComboboxProps } from './moroccan-city-combobox'
+
+// Vehicle Color Picker
+export { VehicleColorPicker } from './vehicle-color-picker'
+export type { VehicleColorPickerProps } from './vehicle-color-picker'
+
+// Vehicle Taxonomy Selector (Marque -> Modèle -> Version)
+export { VehicleTaxonomySelector } from '@/components/vehicles/vehicle-taxonomy-selector'
+export type { VehicleTaxonomySelectorProps } from '@/components/vehicles/vehicle-taxonomy-selector'
+
+// Vehicle Customs & Origin Selector (WW Maroc vs Dédouanée)
+export { VehicleCustomsSelector } from '@/components/vehicles/vehicle-customs-selector'
+export type { VehicleCustomsSelectorProps, VehicleCustomsStatus } from '@/components/vehicles/vehicle-customs-selector'
+
+// Moroccan License Plate Input (xxxxxx | x | xx)
+export { MoroccanPlateInput, MOROCCAN_PREFECTURE_CODES, MOROCCAN_SERIES_LETTERS } from './moroccan-plate-input'
+export type { MoroccanPlateInputProps } from './moroccan-plate-input'
+

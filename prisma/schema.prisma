@@ -246,6 +246,10 @@ model Vehicle {
   options         String?   // JSON string of options tags
   location        String    @default("Casablanca Showroom")
   entryDate       DateTime  @default(now())
+
+  // Origine & Dédouanement Maroc
+  customsStatus   String    @default("MAROC") // MAROC (WW Maroc), DEDOUANEE (Importé dédouané)
+  customsYear     Int?      // Année de dédouanement si DEDOUANEE
   
   // Coûts et Valorisation (en MAD / DH)
   purchasePrice   Float     @default(0)
@@ -286,10 +290,10 @@ model Vehicle {
 
 model Park {
   id          String    @id @default(cuid())
-  code        String    @unique // ex: PRK-CAS-01, PRK-FES-01
-  name        String    // ex: "Parc Casablanca — Showroom Principal", "Parc Fès — Agence & Dépôt"
+  code        String    @unique // ex: PRK-CAS-01, PRK-FES-01, PRK-FES-02
+  name        String    // ex: "Park Casablanca Secteur Car", "Park Fes Maalal Cars Atlas"
   city        String    // Casablanca, Fès, etc.
-  address     String?
+  address     String    // Adresse physique obligatoire
   phone       String?
   managerName String?
   capacity    Int       @default(40)
@@ -375,12 +379,14 @@ model Purchase {
   supplierPhone               String?
   supplierCin                 String?
   supplierAddress             String?
+  supplierCity                String?   @default("Casablanca")
 
   // Commissioner snapshot columns
   commissionerName            String?
   commissionerPhone           String?
   commissionerCin             String?
   commissionerAddress         String?
+  commissionerCity            String?   @default("Casablanca")
   commissionPaidById          String?
   commissionPaidBy            User?     @relation("PurchaseCommissionPaidBy", fields: [commissionPaidById], references: [id], onDelete: SetNull)
   hasCommissioner             Boolean?  // null = pending confirmation, false = direct purchase, true = with commissioner
@@ -452,12 +458,14 @@ model Sale {
   buyerPhone          String?
   buyerCin            String?
   buyerAddress        String?
+  buyerCity           String?      @default("Casablanca")
 
   // Sale Commissioner snapshot
   commissionerName    String?
   commissionerPhone   String?
   commissionerCin     String?
   commissionerAddress String?
+  commissionerCity    String?      @default("Casablanca")
   commissionPaidById  String?
   commissionPaidBy    User?        @relation("SaleCommissionPaidBy", fields: [commissionPaidById], references: [id], onDelete: SetNull)
 

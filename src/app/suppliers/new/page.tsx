@@ -1,10 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Image as ImageIcon } from 'lucide-react'
+import { MoroccanCityCombobox } from '@/components/ui/moroccan-city-combobox'
 
 export default function NewSupplierPage() {
+  const [city, setCity] = useState('Casablanca')
   return (
     <div className="space-y-4 max-w-4xl mx-auto text-xs text-white">
       {/* Top Header */}
@@ -107,12 +109,13 @@ export default function NewSupplierPage() {
                 <label className="block text-[11px] font-semibold text-zinc-300 pb-1">
                   Pays <span className="text-red-500">*</span>
                 </label>
-                <select className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs text-zinc-300 focus:outline-none focus:border-red-500">
-                  <option>France</option>
-                  <option>Maroc</option>
-                  <option>Allemagne</option>
-                  <option>Italie</option>
-                  <option>Japon</option>
+                <select defaultValue="Maroc" className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs text-zinc-300 focus:outline-none focus:border-red-500">
+                  <option value="Maroc">Maroc 🇲🇦</option>
+                  <option value="France">France 🇫🇷</option>
+                  <option value="Allemagne">Allemagne 🇩🇪</option>
+                  <option value="Italie">Italie 🇮🇹</option>
+                  <option value="Japon">Japon 🇯🇵</option>
+                  <option value="Espagne">Espagne 🇪🇸</option>
                 </select>
               </div>
 
@@ -128,6 +131,33 @@ export default function NewSupplierPage() {
               </div>
             </div>
 
+            {/* Localisation Fournisseur: Adresse & Ville */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-300 pb-1">
+                  Adresse postale / Dépôt <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  defaultValue="Lot 12, Zone Industrielle Sidi Maârouf"
+                  placeholder="Ex: 45, Boulevard Zerktouni"
+                  className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-300 pb-1">
+                  Ville <span className="text-red-500">*</span>
+                </label>
+                <MoroccanCityCombobox
+                  value={city}
+                  onChange={(c) => setCity(c)}
+                  placeholder="Sélectionner la ville marocaine..."
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-300 pb-1">
@@ -135,7 +165,7 @@ export default function NewSupplierPage() {
                 </label>
                 <input
                   type="text"
-                  defaultValue="451 789 987 00029"
+                  defaultValue="002345678000034"
                   className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs font-mono text-white focus:outline-none focus:border-red-500"
                 />
               </div>
@@ -146,7 +176,7 @@ export default function NewSupplierPage() {
                 </label>
                 <input
                   type="text"
-                  defaultValue="F-2025-129"
+                  defaultValue="FOUR-2026-0042"
                   className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs font-mono text-white focus:outline-none focus:border-red-500"
                 />
               </div>

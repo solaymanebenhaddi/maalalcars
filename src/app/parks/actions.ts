@@ -2,30 +2,35 @@
 
 import { revalidatePath } from 'next/cache'
 import { parkRepository } from '@/repositories/park.repository'
+import { parkCreateSchema, parkUpdateSchema } from '@/validation/park.schema'
 
 export async function createParkAction(formData: FormData) {
-  const name = formData.get('name') as string
-  const city = formData.get('city') as string
+  const name = (formData.get('name') as string) || ''
+  const city = (formData.get('city') as string) || ''
   const code = (formData.get('code') as string) || undefined
-  const address = (formData.get('address') as string) || null
+  const address = (formData.get('address') as string) || ''
   const phone = (formData.get('phone') as string) || null
   const managerName = (formData.get('managerName') as string) || null
-  const capacity = parseInt(formData.get('capacity') as string, 10) || 30
+  const rawCapacity = formData.get('capacity') as string
+  const capacity = rawCapacity ? parseInt(rawCapacity, 10) : 30
 
-  if (!name || !city) {
-    throw new Error('Le nom du parc et la ville sont obligatoires')
-  }
-
-  await parkRepository.create({
-    name,
-    city,
+  const validation = parkCreateSchema.safeParse({
+    name: name.trim(),
+    city: city.trim(),
     code,
-    address,
+    address: address.trim(),
     phone,
     managerName,
     capacity,
     isActive: true,
   })
+
+  if (!validation.success) {
+    const errorMsg = validation.error.issues[0]?.message || 'Données du parc invalides'
+    throw new Error(errorMsg)
+  }
+
+  await parkRepository.create(validation.data)
 
   revalidatePath('/parks')
   revalidatePath('/vehicles')
@@ -35,19 +40,27 @@ export async function createParkAction(formData: FormData) {
 export async function updateParkAction(parkId: string, formData: FormData) {
   const name = (formData.get('name') as string) || undefined
   const city = (formData.get('city') as string) || undefined
-  const address = (formData.get('address') as string) || null
+  const address = (formData.get('address') as string) || undefined
   const phone = (formData.get('phone') as string) || null
   const managerName = (formData.get('managerName') as string) || null
-  const capacity = parseInt(formData.get('capacity') as string, 10) || undefined
+  const rawCapacity = formData.get('capacity') as string
+  const capacity = rawCapacity ? parseInt(rawCapacity, 10) : undefined
 
-  await parkRepository.update(parkId, {
-    name,
-    city,
-    address,
-    phone,
-    managerName,
-    capacity,
-  })
+  const payload: Record<string, unknown> = {}
+  if (name !== undefined) payload.name = name.trim()
+  if (city !== undefined) payload.city = city.trim()
+  if (address !== undefined) payload.address = address.trim()
+  if (phone !== null) payload.phone = phone
+  if (managerName !== null) payload.managerName = managerName
+  if (capacity !== undefined) payload.capacity = capacity
+
+  const validation = parkUpdateSchema.safeParse(payload)
+  if (!validation.success) {
+    const errorMsg = validation.error.issues[0]?.message || 'Données du parc invalides'
+    throw new Error(errorMsg)
+  }
+
+  await parkRepository.update(parkId, validation.data)
 
   revalidatePath('/parks')
   revalidatePath('/vehicles')

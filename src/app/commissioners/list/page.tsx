@@ -9,6 +9,7 @@ import {
   Phone,
   LayoutDashboard,
   MoreHorizontal,
+  MapPin,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,7 @@ interface CommissionerRow {
   code: string
   name: string
   phone: string
+  city: string
   status: 'Actif' | 'En attente' | 'Inactif'
   transactions: number
   salesVolume: string
@@ -26,14 +28,14 @@ interface CommissionerRow {
 }
 
 const COMMISSIONERS: CommissionerRow[] = [
-  { id: 1, code: 'COM-00048', name: 'Yassine Benali', phone: '+212 6 61 23 45 67', status: 'Actif', transactions: 26, salesVolume: '5 845 000 DH', commissionEarned: '58 450 DH', conversionRate: '28,4%' },
-  { id: 2, code: 'COM-00049', name: 'Karim Laalou', phone: '+212 6 62 34 56 78', status: 'Actif', transactions: 22, salesVolume: '4 680 000 DH', commissionEarned: '46 800 DH', conversionRate: '24,1%' },
-  { id: 3, code: 'COM-00050', name: 'Samira El Amrani', phone: '+212 6 63 45 67 89', status: 'Actif', transactions: 19, salesVolume: '3 920 000 DH', commissionEarned: '39 200 DH', conversionRate: '22,6%' },
-  { id: 4, code: 'COM-00051', name: 'Mehdi Aït Taleb', phone: '+212 6 64 56 78 90', status: 'Actif', transactions: 15, salesVolume: '3 160 000 DH', commissionEarned: '31 600 DH', conversionRate: '20,3%' },
-  { id: 5, code: 'COM-00052', name: 'Reda El Fassi', phone: '+212 6 65 67 89 01', status: 'Actif', transactions: 12, salesVolume: '2 455 000 DH', commissionEarned: '24 550 DH', conversionRate: '18,9%' },
-  { id: 6, code: 'COM-00053', name: 'Hicham Bennis', phone: '+212 6 66 78 90 12', status: 'En attente', transactions: 8, salesVolume: '1 680 000 DH', commissionEarned: '16 800 DH', conversionRate: '16,2%' },
-  { id: 7, code: 'COM-00054', name: 'Fatima Zahra', phone: '+212 6 67 89 01 23', status: 'Actif', transactions: 7, salesVolume: '1 420 000 DH', commissionEarned: '14 200 DH', conversionRate: '15,6%' },
-  { id: 8, code: 'COM-00055', name: 'Omar Touhami', phone: '+212 6 68 90 12 34', status: 'Inactif', transactions: 3, salesVolume: '620 000 DH', commissionEarned: '6 200 DH', conversionRate: '8,7%' },
+  { id: 1, code: 'COM-00048', name: 'Yassine Benali', phone: '+212 6 61 23 45 67', city: 'Casablanca', status: 'Actif', transactions: 26, salesVolume: '5 845 000 DH', commissionEarned: '58 450 DH', conversionRate: '28,4%' },
+  { id: 2, code: 'COM-00049', name: 'Karim Laalou', phone: '+212 6 62 34 56 78', city: 'Rabat', status: 'Actif', transactions: 22, salesVolume: '4 680 000 DH', commissionEarned: '46 800 DH', conversionRate: '24,1%' },
+  { id: 3, code: 'COM-00050', name: 'Samira El Amrani', phone: '+212 6 63 45 67 89', city: 'Marrakech', status: 'Actif', transactions: 19, salesVolume: '3 920 000 DH', commissionEarned: '39 200 DH', conversionRate: '22,6%' },
+  { id: 4, code: 'COM-00051', name: 'Mehdi Aït Taleb', phone: '+212 6 64 56 78 90', city: 'Tanger', status: 'Actif', transactions: 15, salesVolume: '3 160 000 DH', commissionEarned: '31 600 DH', conversionRate: '20,3%' },
+  { id: 5, code: 'COM-00052', name: 'Reda El Fassi', phone: '+212 6 65 67 89 01', city: 'Fès', status: 'Actif', transactions: 12, salesVolume: '2 455 000 DH', commissionEarned: '24 550 DH', conversionRate: '18,9%' },
+  { id: 6, code: 'COM-00053', name: 'Hicham Bennis', phone: '+212 6 66 78 90 12', city: 'Meknès', status: 'En attente', transactions: 8, salesVolume: '1 680 000 DH', commissionEarned: '16 800 DH', conversionRate: '16,2%' },
+  { id: 7, code: 'COM-00054', name: 'Fatima Zahra', phone: '+212 6 67 89 01 23', city: 'Agadir', status: 'Actif', transactions: 7, salesVolume: '1 420 000 DH', commissionEarned: '14 200 DH', conversionRate: '15,6%' },
+  { id: 8, code: 'COM-00055', name: 'Omar Touhami', phone: '+212 6 68 90 12 34', city: 'Oujda', status: 'Inactif', transactions: 3, salesVolume: '620 000 DH', commissionEarned: '6 200 DH', conversionRate: '8,7%' },
 ]
 
 export default function CommissionersListPage() {
@@ -54,16 +56,19 @@ export default function CommissionersListPage() {
               Liste des commissionnaires
             </h1>
             <p className="text-xs text-zinc-400">
-              Gérez votre réseau de commissionnaires et courtiers
+              Gérez votre réseau de commissionnaires et courtiers par ville
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-red-700 shadow-sm transition-colors">
+          <Link
+            href="/commissioners/new"
+            className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-red-700 shadow-sm transition-colors"
+          >
             <Plus className="h-3.5 w-3.5" />
             <span>Ajouter</span>
-          </button>
+          </Link>
 
           <button className="flex items-center gap-1.5 rounded-lg border border-[#282834] bg-[#18181f] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white">
             <Download className="h-3.5 w-3.5 text-zinc-400" />
@@ -79,7 +84,7 @@ export default function CommissionersListPage() {
           <Search className="absolute left-3 h-3.5 w-3.5 text-zinc-500" />
           <input
             type="text"
-            placeholder="Rechercher un commissionnaire..."
+            placeholder="Rechercher un commissionnaire, une ville..."
             className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500"
           />
         </div>
@@ -91,6 +96,7 @@ export default function CommissionersListPage() {
               <tr className="border-b border-[#202028] bg-[#16161c] text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
                 <th className="py-2.5 px-3">#</th>
                 <th className="py-2.5 px-3">Commissionnaire</th>
+                <th className="py-2.5 px-3">Ville</th>
                 <th className="py-2.5 px-3 text-center">Statut</th>
                 <th className="py-2.5 px-3 text-center">Transactions</th>
                 <th className="py-2.5 px-3 text-right">Ventes (DH)</th>
@@ -114,6 +120,12 @@ export default function CommissionersListPage() {
                       <Phone className="h-2.5 w-2.5" />
                       <span>{c.phone}</span>
                     </div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="inline-flex items-center gap-1 rounded bg-[#1c1c24] border border-[#282834] px-2 py-0.5 text-[11px] text-zinc-300 font-medium">
+                      <MapPin className="h-2.5 w-2.5 text-red-500" />
+                      <span>{c.city}</span>
+                    </span>
                   </td>
                   <td className="py-3 px-3 text-center">
                     <span

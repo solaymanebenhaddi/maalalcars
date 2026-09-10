@@ -50,4 +50,21 @@ describe('Repair Validation & Service Rules', () => {
       expect(repairTypes).toContain('ENTRETIEN')
     })
   })
+
+  describe('repairUpdateSchema', () => {
+    it('validates partial updates on repair details and amounts', async () => {
+      const { repairUpdateSchema } = await import('@/validation/repair.schema')
+      const validUpdate = {
+        garageName: 'Garage Hassan Sport',
+        estimatedAmount: 5000,
+        description: 'Changement plaquettes et disques de frein',
+        notes: 'Commande urgente reçue',
+      }
+      const parsed = repairUpdateSchema.parse(validUpdate)
+      expect(parsed.garageName).toBe('Garage Hassan Sport')
+      expect(parsed.estimatedAmount).toBe(5000)
+      expect(parsed.description).toContain('plaquettes')
+    })
+  })
 })
+

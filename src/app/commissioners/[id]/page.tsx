@@ -10,7 +10,6 @@ import {
   MapPin,
   Calendar,
   Hash,
-  Share2,
   Edit2,
   ChevronDown,
   ArrowUpRight,
@@ -114,8 +113,12 @@ export default function CommissionerDetailPage() {
               <span className="text-zinc-300">yassine.benali@gmail.com</span>
             </div>
             <div className="flex items-center gap-1.5">
+              <MapPin className="h-3 w-3 text-red-500" />
+              <span>Ville : <strong className="text-white font-semibold">Casablanca</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
               <MapPin className="h-3 w-3 text-zinc-500" />
-              <span className="text-zinc-300">Casablanca</span>
+              <span className="truncate">Adresse : <strong className="text-zinc-300 font-normal">45, Bd Zerktouni, Maârif</strong></span>
             </div>
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3 w-3 text-zinc-500" />
@@ -124,10 +127,6 @@ export default function CommissionerDetailPage() {
             <div className="flex items-center gap-1.5">
               <Hash className="h-3 w-3 text-zinc-500" />
               <span>Code : <strong className="text-zinc-300 font-mono">COM-00048</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Share2 className="h-3 w-3 text-zinc-500" />
-              <span>Réseau : <strong className="text-zinc-300">Réseau personnel</strong></span>
             </div>
           </div>
         </div>

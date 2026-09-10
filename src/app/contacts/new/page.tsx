@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { MoroccanCityCombobox } from '@/components/ui/moroccan-city-combobox'
 
 export default function NewContactPage() {
   return (
@@ -145,15 +146,25 @@ export default function NewContactPage() {
             Informations supplémentaires
           </h3>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-zinc-300 pb-1">
-              Adresse
-            </label>
-            <input
-              type="text"
-              defaultValue="125 Rue de la République, 69002 Lyon"
-              className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs text-white focus:outline-none focus:border-red-500"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold text-zinc-300 pb-1">
+                Adresse (Quartier, Rue, N°)
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: 24 Boulevard d'Anfa, Maârif"
+                className="h-9 w-full rounded-lg border border-[#282834] bg-[#18181f] px-3 text-xs text-white focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <div>
+              <MoroccanCityCombobox
+                name="city"
+                label="Ville"
+                defaultValue="Casablanca"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

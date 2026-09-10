@@ -25,6 +25,7 @@ export const saleCreateSchema = z
     buyerPhone: z.string().nullable().optional(),
     buyerCin: z.string().nullable().optional(),
     buyerAddress: z.string().nullable().optional(),
+    buyerCity: z.string().nullable().optional(),
 
     // Commissioner
     commissionerId: z.string().nullable().optional(),
@@ -32,6 +33,7 @@ export const saleCreateSchema = z
     commissionerPhone: z.string().nullable().optional(),
     commissionerCin: z.string().nullable().optional(),
     commissionerAddress: z.string().nullable().optional(),
+    commissionerCity: z.string().nullable().optional(),
     commissionPaidById: z.string().nullable().optional(),
 
     // Commercial & Staff

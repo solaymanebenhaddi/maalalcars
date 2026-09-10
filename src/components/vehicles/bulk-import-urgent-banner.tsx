@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import type { VehicleCompletenessResult } from '@/services/vehicle-completeness.service'
 import { completeAcquisitionDossierAction } from '@/app/vehicles/[id]/actions'
+import { MoroccanCityCombobox } from '@/components/ui/moroccan-city-combobox'
+import { VehicleColorPicker } from '@/components/ui/vehicle-color-picker'
 
 interface PersonnelOption {
   id: string
@@ -43,12 +45,14 @@ interface BulkImportUrgentBannerProps {
     supplierPhone?: string | null
     supplierCin?: string | null
     supplierAddress?: string | null
+    supplierCity?: string | null
     handledById?: string | null
     paymentMethod?: string | null
     commissionerName?: string | null
     commissionerPhone?: string | null
     commissionerCin?: string | null
     commissionerAddress?: string | null
+    commissionerCity?: string | null
     commissionAmount?: number | null
     commissionPaidById?: string | null
     hasCommissioner?: boolean | null
@@ -225,20 +229,11 @@ export function BulkImportUrgentBanner({
                   </div>
 
                   <div>
-                    <label className="block text-zinc-300 font-semibold mb-1">
-                      Couleur Extérieure{' '}
-                      {isColorDef && <span className="text-red-400 font-mono text-[10px]">[À renseigner]</span>}
-                    </label>
-                    <input
-                      type="text"
+                    <VehicleColorPicker
                       name="colorExterior"
+                      label={isColorDef ? 'Couleur Extérieure [À renseigner]' : 'Couleur Extérieure'}
+                      mode="exterior"
                       defaultValue={vehicleData?.colorExterior && vehicleData.colorExterior !== 'def-Couleur' ? vehicleData.colorExterior : ''}
-                      placeholder="Ex: Blanc Nacré, Noir, Gris..."
-                      className={`h-9 w-full rounded-xl border px-3 text-xs text-white focus:outline-none focus:ring-1 ${
-                        isColorDef
-                          ? 'border-red-500 bg-red-950/30 text-amber-200 focus:ring-red-500'
-                          : 'border-[#33303c] bg-[#121016] focus:ring-cyan-500'
-                      }`}
                     />
                   </div>
 
@@ -312,13 +307,21 @@ export function BulkImportUrgentBanner({
                 </div>
 
                 <div>
-                  <label className="block text-zinc-300 font-semibold mb-1">Ville / Adresse</label>
+                  <label className="block text-zinc-300 font-semibold mb-1">Adresse (Rue, Quartier)</label>
                   <input
                     type="text"
                     name="supplierAddress"
                     defaultValue={currentPurchase?.supplierAddress || ''}
-                    placeholder="Ex: Casablanca"
+                    placeholder="Ex: Bd Zerktouni, Maârif"
                     className="h-9 w-full rounded-xl border border-[#33303c] bg-[#121016] px-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <MoroccanCityCombobox
+                    name="supplierCity"
+                    label="Ville du Fournisseur"
+                    defaultValue={currentPurchase?.supplierCity || 'Casablanca'}
                   />
                 </div>
               </div>
@@ -426,6 +429,25 @@ export function BulkImportUrgentBanner({
                       defaultValue={currentPurchase?.commissionerPhone || ''}
                       placeholder="06XXXXXXXX"
                       className="h-9 w-full rounded-xl border border-[#33303c] bg-[#121016] px-3 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-semibold mb-1">Adresse courtier</label>
+                    <input
+                      type="text"
+                      name="commissionerAddress"
+                      defaultValue={currentPurchase?.commissionerAddress || ''}
+                      placeholder="Ex: Bd d'Anfa"
+                      className="h-9 w-full rounded-xl border border-[#33303c] bg-[#121016] px-3 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <MoroccanCityCombobox
+                      name="commissionerCity"
+                      label="Ville du Courtier"
+                      defaultValue={currentPurchase?.commissionerCity || 'Casablanca'}
                     />
                   </div>
 

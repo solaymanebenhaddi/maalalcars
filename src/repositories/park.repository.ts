@@ -4,7 +4,7 @@ export interface CreateParkInput {
   name: string
   city: string
   code?: string
-  address?: string | null
+  address: string
   phone?: string | null
   managerName?: string | null
   capacity?: number
@@ -14,7 +14,7 @@ export interface CreateParkInput {
 export interface UpdateParkInput {
   name?: string
   city?: string
-  address?: string | null
+  address?: string
   phone?: string | null
   managerName?: string | null
   capacity?: number
@@ -85,24 +85,31 @@ export const parkRepository = {
       code = `PRK-${cityPrefix}-${String(count + 1).padStart(2, '0')}`
     }
 
+    const capacity = Math.min(Math.max(data.capacity || 40, 1), 1000)
+
     return prisma.park.create({
       data: {
         code,
         name: data.name,
         city: data.city,
-        address: data.address || null,
+        address: data.address,
         phone: data.phone || null,
         managerName: data.managerName || null,
-        capacity: data.capacity || 40,
+        capacity,
         isActive: data.isActive ?? true,
       },
     })
   },
 
   async update(id: string, data: UpdateParkInput) {
+    const updateData = { ...data }
+    if (updateData.capacity !== undefined) {
+      updateData.capacity = Math.min(Math.max(updateData.capacity, 1), 1000)
+    }
+
     return prisma.park.update({
       where: { id },
-      data,
+      data: updateData,
     })
   },
 

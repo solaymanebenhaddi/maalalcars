@@ -30,12 +30,16 @@ import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
 import { VehicleLifecycleTimeline } from '@/components/vehicles/vehicle-lifecycle-timeline'
 import { getActiveUserRole } from '@/lib/auth-roles'
 import prisma from '@/lib/db'
+import { MoroccanCityCombobox } from '@/components/ui/moroccan-city-combobox'
+import { getVisualColorSwatch } from '@/data/automotive-colors'
 import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
 import { DocumentManager } from '@/components/documents/document-manager'
 import { BulkImportUrgentBanner } from '@/components/vehicles/bulk-import-urgent-banner'
 import { checkVehicleCompleteness } from '@/services/vehicle-completeness.service'
+import { VehicleEditForm } from '@/components/vehicles/vehicle-edit-form'
 import {
   createRepairAction,
+  updateRepairAction,
   completeRepairAction,
   cancelRepairAction,
   createReservationAction,
@@ -46,6 +50,7 @@ import {
   updatePurchaseCommissionerAction,
   updateSaleCommissionerAction,
   updateTargetPriceAction,
+  updateVehicleFullAction,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -56,6 +61,7 @@ interface Props {
   searchParams: Promise<{
     tab?: string
     action?: string
+    repairId?: string
     error?: string
     success?: string
     info?: string
@@ -64,7 +70,7 @@ interface Props {
 
 export default async function VehicleDetailPage({ params, searchParams }: Props) {
   const { id } = await params
-  const { tab = 'overview', action, error, success, info } = await searchParams
+  const { tab = 'overview', action, repairId, error, success, info } = await searchParams
 
   await vehicleStateMachine.expireDueReservations()
 
@@ -123,6 +129,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
   const purchaseCommPhone = purchase?.commissionerPhone || purchase?.commissioner?.phone || null
   const purchaseCommCin = purchase?.commissionerCin || purchase?.commissioner?.cin || null
   const purchaseCommAddress = purchase?.commissionerAddress || purchase?.commissioner?.address || null
+  const purchaseCommCity = purchase?.commissionerCity || 'Casablanca'
   const purchaseCommPaidByName = purchase?.commissionPaidBy?.name || purchase?.handledBy?.name || null
 
   // Derived Commissioner fields for Sale
@@ -132,11 +139,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
   const saleCommPhone = sale?.commissionerPhone || sale?.commissioner?.phone || null
   const saleCommCin = sale?.commissionerCin || sale?.commissioner?.cin || null
   const saleCommAddress = sale?.commissionerAddress || sale?.commissioner?.address || null
+  const saleCommCity = sale?.commissionerCity || 'Casablanca'
   const saleCommPaidByName = sale?.commissionPaidBy?.name || sale?.salesperson?.name || null
   const saleReceivedByName = sale?.receivedBy?.name || null
 
+  // Visual color swatches
+  const extColorSwatch = getVisualColorSwatch(vehicle.colorExterior, 'exterior')
+  const intColorSwatch = getVisualColorSwatch(vehicle.colorInterior || 'Standard', 'interior')
+
   // Bound Server actions
   const handleCreateRepair = createRepairAction.bind(null, id)
+  const handleUpdateRepair = updateRepairAction.bind(null, id)
   const handleCompleteRepair = completeRepairAction.bind(null, id)
   const handleCancelRepair = cancelRepairAction.bind(null, id)
   const handleCreateReservation = createReservationAction.bind(null, id)
@@ -145,6 +158,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
   const handleUpdatePurchaseCommissioner = updatePurchaseCommissionerAction.bind(null, id)
   const handleUpdateSaleCommissioner = updateSaleCommissionerAction.bind(null, id)
   const handleUpdateTargetPrice = updateTargetPriceAction.bind(null, id)
+  const handleUpdateVehicleFull = updateVehicleFullAction.bind(null, id)
 
   return (
     <div className="space-y-6">
@@ -159,6 +173,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
         ]}
         actions={
           <div className="flex items-center gap-2">
+            <Link
+              href={
+                action === 'edit-vehicle'
+                  ? `/vehicles/${vehicle.id}`
+                  : `/vehicles/${vehicle.id}?action=edit-vehicle`
+              }
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-600 hover:text-white text-xs font-bold transition-all shadow-sm"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              <span>{action === 'edit-vehicle' ? 'Fermer édition' : 'Modifier la fiche'}</span>
+            </Link>
             <StatusBadge status={vehicle.status} />
           </div>
         }
@@ -171,6 +196,16 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
         info={info}
         dismissHref={`/vehicles/${vehicle.id}?tab=${tab}`}
       />
+
+      {/* Formulaire d'édition intégrale de la fiche véhicule */}
+      {action === 'edit-vehicle' && (
+        <VehicleEditForm
+          vehicle={vehicle}
+          parks={allParks}
+          action={handleUpdateVehicleFull}
+          cancelHref={`/vehicles/${vehicle.id}`}
+        />
+      )}
 
       {/* Urgent Updates Banner for Bulk Imported Vehicles with Incomplete Dossier */}
       <BulkImportUrgentBanner
@@ -361,11 +396,22 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 flex-wrap">
                   <StatusBadge status={vehicle.status} />
                   {vehicle.matricule && (
                     <span className="rounded-md bg-black/80 px-2.5 py-1 font-mono text-xs font-bold text-white border border-zinc-700 backdrop-blur-sm">
                       {vehicle.matricule}
+                    </span>
+                  )}
+                  {vehicle.customsStatus === 'DEDOUANEE' ? (
+                    <span className="rounded-md bg-amber-950/80 px-2.5 py-1 text-xs font-bold text-amber-300 border border-amber-500/40 backdrop-blur-sm flex items-center gap-1 shadow">
+                      <span>🌍</span>
+                      <span>Dédouanée {vehicle.customsYear ? `(${vehicle.customsYear})` : ''}</span>
+                    </span>
+                  ) : (
+                    <span className="rounded-md bg-emerald-950/80 px-2.5 py-1 text-xs font-bold text-emerald-300 border border-emerald-500/40 backdrop-blur-sm flex items-center gap-1 shadow">
+                      <span>🇲🇦</span>
+                      <span>WW Maroc</span>
                     </span>
                   )}
                 </div>
@@ -432,11 +478,23 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   </div>
                   <div>
                     <span className="text-zinc-400 block text-[11px]">Couleur Extérieure</span>
-                    <span className="font-semibold text-zinc-200">{vehicle.colorExterior}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div
+                        className="h-3.5 w-3.5 rounded-full border border-white/20 shrink-0 shadow-sm relative overflow-hidden"
+                        style={{ background: extColorSwatch.cssBackground }}
+                      />
+                      <span className="font-semibold text-zinc-200">{vehicle.colorExterior}</span>
+                    </div>
                   </div>
                   <div>
                     <span className="text-zinc-400 block text-[11px]">Couleur Intérieure</span>
-                    <span className="font-semibold text-zinc-200">{vehicle.colorInterior || 'Standard'}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div
+                        className="h-3.5 w-3.5 rounded-full border border-white/20 shrink-0 shadow-sm relative overflow-hidden"
+                        style={{ background: intColorSwatch.cssBackground }}
+                      />
+                      <span className="font-semibold text-zinc-200">{vehicle.colorInterior || 'Standard'}</span>
+                    </div>
                   </div>
                   <div>
                     <span className="text-zinc-400 block text-[11px]">Puissance Fiscale</span>
@@ -447,6 +505,23 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                     <span className="font-mono font-bold text-white bg-black/50 px-2 py-0.5 rounded border border-zinc-700 inline-block">
                       {vehicle.matricule || 'N/A'}
                     </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Origine &amp; Statut Douanier</span>
+                    <div className="mt-0.5">
+                      {vehicle.customsStatus === 'DEDOUANEE' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-xs font-bold text-amber-300">
+                          <span>🌍 Dédouanée</span>
+                          <span className="text-zinc-400">•</span>
+                          <span className="font-mono text-white">{vehicle.customsYear ? `Année : ${vehicle.customsYear}` : 'Année non précisée'}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold text-emerald-300">
+                          <span>🇲🇦 WW Maroc</span>
+                          <span className="text-zinc-400 text-[10px] font-normal">(Origine Maroc)</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <span className="text-zinc-400 block text-[11px]">Parc &amp; Emplacement</span>
@@ -553,9 +628,16 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-400 block text-[11px]">Adresse / Ville</span>
+                      <span className="text-zinc-400 block text-[11px]">Adresse</span>
                       <span className="text-zinc-300">
-                        {purchase?.supplierAddress || purchase?.seller?.address || 'Maroc'}
+                        {purchase?.supplierAddress || purchase?.seller?.address || 'Non renseignée'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-400 block text-[11px]">Ville</span>
+                      <span className="text-white font-medium flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-red-500 shrink-0" />
+                        <span>{purchase?.supplierCity || 'Casablanca'}</span>
                       </span>
                     </div>
                     <div>
@@ -662,8 +744,16 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                           type="text"
                           name="commissionerAddress"
                           defaultValue={purchaseCommAddress || ''}
-                          placeholder="Ex: Maârif, Casablanca"
+                          placeholder="Ex: Bd Zerktouni, Maârif"
                           className="h-9 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <MoroccanCityCombobox
+                          name="commissionerCity"
+                          label="Ville du Semsar"
+                          defaultValue={purchaseCommCity}
                         />
                       </div>
 
@@ -735,7 +825,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                   <div className="space-y-4">
                     {purchaseCommName ? (
                       <>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
                           <div>
                             <span className="text-zinc-500 block text-[10px] uppercase">
                               Nom du Commissionnaire
@@ -765,10 +855,20 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
 
                           <div>
                             <span className="text-zinc-500 block text-[10px] uppercase">
-                              Adresse / Ville
+                              Adresse
                             </span>
                             <span className="text-zinc-300 truncate block">
-                              {purchaseCommAddress || 'Maroc'}
+                              {purchaseCommAddress || 'Non renseignée'}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-zinc-500 block text-[10px] uppercase">
+                              Ville
+                            </span>
+                            <span className="text-amber-300 font-semibold flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-amber-400 shrink-0" />
+                              <span>{purchaseCommCity}</span>
                             </span>
                           </div>
                         </div>
@@ -975,10 +1075,101 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                           </span>
                           <StatusBadge status={rep.status} />
                         </div>
-                        <div className="text-xs text-zinc-400 font-mono">
-                          Débuté le {new Date(rep.startedAt).toLocaleDateString('fr-MA')}
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={
+                              action === 'edit-repair' && repairId === rep.id
+                                ? `/vehicles/${vehicle.id}?tab=repairs`
+                                : `/vehicles/${vehicle.id}?tab=repairs&action=edit-repair&repairId=${rep.id}`
+                            }
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-[#2e2e38] bg-[#181820] text-zinc-300 hover:text-white hover:border-purple-500/50 text-[11px] font-semibold transition-all"
+                          >
+                            <Edit3 className="h-3 w-3 text-purple-400" />
+                            <span>{action === 'edit-repair' && repairId === rep.id ? 'Fermer' : 'Modifier'}</span>
+                          </Link>
+                          <div className="text-xs text-zinc-400 font-mono">
+                            Débuté le {new Date(rep.startedAt).toLocaleDateString('fr-MA')}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Formulaire d'édition de l'intervention */}
+                      {action === 'edit-repair' && repairId === rep.id && (
+                        <form action={handleUpdateRepair} className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 space-y-3 animate-in fade-in">
+                          <input type="hidden" name="repairId" value={rep.id} />
+                          <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
+                            <span className="text-xs font-bold text-purple-300">Modifier l&apos;intervention : {rep.code}</span>
+                            <Link
+                              href={`/vehicles/${vehicle.id}?tab=repairs`}
+                              className="text-[11px] text-zinc-400 hover:text-white"
+                            >
+                              Annuler
+                            </Link>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                            <div>
+                              <label className="block text-zinc-400 mb-1">Type de Travaux *</label>
+                              <select
+                                name="repairType"
+                                defaultValue={rep.repairType}
+                                className="h-8 w-full rounded-lg border border-[#282834] bg-[#16161c] px-2.5 text-xs text-white focus:outline-none"
+                              >
+                                <option value="MECANIQUE">Mécanique</option>
+                                <option value="CARROSSERIE">Carrosserie</option>
+                                <option value="ELECTRICITE">Électricité &amp; Diagnostic</option>
+                                <option value="PNEUMATIQUES">Pneumatiques &amp; Freinage</option>
+                                <option value="CLIMATISATION">Climatisation</option>
+                                <option value="ENTRETIEN">Entretien / Vidange</option>
+                                <option value="NETTOYAGE">Lavage &amp; Préparation</option>
+                                <option value="AUTRE">Autre intervention</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-zinc-400 mb-1">Garage / Prestataire</label>
+                              <input
+                                type="text"
+                                name="garageName"
+                                defaultValue={rep.garageName || ''}
+                                placeholder="Ex: Garage Hassan, Auto Point..."
+                                className="h-8 w-full rounded-lg border border-[#282834] bg-[#16161c] px-2.5 text-xs text-white focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-zinc-400 mb-1">Devis Estimé (MAD)</label>
+                              <input
+                                type="number"
+                                name="estimatedAmount"
+                                defaultValue={rep.estimatedAmount || 0}
+                                className="h-8 w-full rounded-lg border border-[#282834] bg-[#16161c] px-2.5 text-xs text-purple-300 font-mono focus:outline-none"
+                              />
+                            </div>
+                            <div className="sm:col-span-3">
+                              <label className="block text-zinc-400 mb-1">Description des travaux</label>
+                              <textarea
+                                name="description"
+                                rows={2}
+                                defaultValue={rep.description || ''}
+                                placeholder="Détail des pièces et opérations prévues..."
+                                className="w-full rounded-lg border border-[#282834] bg-[#16161c] p-2 text-xs text-white focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2 pt-2 border-t border-purple-500/20">
+                            <Link
+                              href={`/vehicles/${vehicle.id}?tab=repairs`}
+                              className="px-3 py-1 rounded-lg border border-[#282834] bg-[#16161c] text-xs text-zinc-400 hover:text-white"
+                            >
+                              Fermer
+                            </Link>
+                            <button
+                              type="submit"
+                              className="px-4 py-1 rounded-lg bg-purple-600 text-xs font-bold text-white hover:bg-purple-500 transition-colors shadow-sm"
+                            >
+                              Enregistrer modifications
+                            </button>
+                          </div>
+                        </form>
+                      )}
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div>
@@ -1333,7 +1524,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                     <StatusBadge status={sale.status} />
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 text-xs">
                     <div>
                       <span className="text-zinc-500 block text-[10px] uppercase">Acheteur</span>
                       <span className="font-bold text-white text-sm">
@@ -1347,6 +1538,17 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                     <div>
                       <span className="text-zinc-500 block text-[10px] uppercase">CIN Acheteur</span>
                       <span className="font-mono text-zinc-200">{sale.buyerCin || sale.buyer?.cin || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase">Adresse</span>
+                      <span className="text-zinc-300 block truncate">{sale.buyerAddress || sale.buyer?.address || 'Non renseignée'}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase">Ville</span>
+                      <span className="text-white font-medium flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-red-500 shrink-0" />
+                        <span>{sale?.buyerCity || 'Casablanca'}</span>
+                      </span>
                     </div>
                     <div>
                       <span className="text-zinc-500 block text-[10px] uppercase">Date de Vente</span>
@@ -1449,13 +1651,21 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                           </div>
 
                           <div>
-                            <label className="block text-[11px] text-zinc-400 mb-1">Adresse / Ville</label>
+                            <label className="block text-[11px] text-zinc-400 mb-1">Adresse / Quartier</label>
                             <input
                               type="text"
                               name="commissionerAddress"
                               defaultValue={saleCommAddress || ''}
-                              placeholder="Ex: Casablanca"
+                              placeholder="Ex: Boulevard d'Anfa"
                               className="h-8 w-full rounded-lg border border-[#282834] bg-[#121216] px-2.5 text-xs text-white focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <MoroccanCityCombobox
+                              name="commissionerCity"
+                              label="Ville du Semsar"
+                              defaultValue={saleCommCity}
                             />
                           </div>
 
@@ -1506,7 +1716,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                     ) : (
                       <div className="space-y-2">
                         {saleCommName ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                             <div>
                               <span className="text-zinc-500 block text-[10px] uppercase">Courtier / Semsar</span>
                               <span className="font-semibold text-white">
@@ -1521,6 +1731,13 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
                               {saleCommAddress && (
                                 <span className="text-[10px] text-zinc-500 block truncate">{saleCommAddress}</span>
                               )}
+                            </div>
+                            <div>
+                              <span className="text-zinc-500 block text-[10px] uppercase">Ville</span>
+                              <span className="text-amber-300 font-semibold flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-amber-400 shrink-0" />
+                                <span>{saleCommCity}</span>
+                              </span>
                             </div>
                             <div>
                               <span className="text-zinc-500 block text-[10px] uppercase">Commission Versée</span>

@@ -160,5 +160,49 @@ describe('Vehicle Import Service (.xsl / .xlsx / .csv)', () => {
       expect(validation.invalidCount).toBeGreaterThanOrEqual(1)
       expect(validation.invalidRows.some((r) => r.errors.some((e) => e.includes('dupliqué')))).toBe(true)
     })
+
+    it('correctly maps headers with parenthetical units and extracts description metadata like BULL-ADD.xlsx', async () => {
+      const rawRows = [
+        {
+          'VIN (Châssis)*': 'MAALAL26B00000099',
+          Immatriculation: '',
+          'Marque*': 'Autre',
+          'Modèle*': 'Véhicule',
+          Version: '',
+          'Année*': 2021,
+          'Kilométrage (km)*': 65000,
+          'Carburant*': 'DIESEL',
+          'Boîte de Vitesse*': 'AUTOMATIQUE',
+          Carrosserie: 'SUV',
+          'Couleur Extérieure*': 'Gris Métallisé',
+          'Couleur Intérieure': 'Standard',
+          "Prix d'Achat (DH)*": 120000,
+          'Prix de Vente Souhaité (DH)*': 138000,
+          'Prix Minimum (DH)': 125000,
+          'Puissance Fiscale (CV)': 8,
+          Portes: 5,
+          Places: 5,
+          'Parc / Site': 'Casablanca Showroom',
+          Description: 'Vendeur: Particulier | Payé par: Direction | Semsar: Sans intermédiaire (Com: 0)',
+        },
+      ]
+
+      const validation = await vehicleImportService.validateRows(rawRows)
+      expect(validation.validCount).toBe(1)
+      expect(validation.invalidCount).toBe(0)
+
+      const row = validation.validRows[0]
+      expect(row.vin).toBe('MAALAL26B00000099')
+      expect(row.mileage).toBe(65000)
+      expect(row.purchasePrice).toBe(120000)
+      expect(row.targetSalePrice).toBe(138000)
+      expect(row.minSalePrice).toBe(125000)
+      expect(row.fiscalPower).toBe(8)
+      expect(row.supplierName).toBe('Particulier')
+      expect(row.handledByName).toBe('Direction')
+      expect(row.commissionerName).toBe('Sans intermédiaire')
+      expect(row.commissionAmount).toBe(0)
+      expect(row.missingFields).toHaveLength(0)
+    })
   })
 })

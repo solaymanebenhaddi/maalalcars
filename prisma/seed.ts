@@ -2831,6 +2831,48 @@ async function main() {
     })
   }
 
+  // 17. Official Parks (Casablanca & Fès)
+  const officialParks = [
+    {
+      code: 'PRK-CAS-01',
+      name: 'Park Casablanca Secteur Car',
+      city: 'Casablanca',
+      address: 'Boulevard Sidi Maârouf, Secteur Car, Casablanca',
+      phone: '+212 5 22 78 45 10',
+      managerName: 'Adem Maalal',
+      capacity: 50,
+      isActive: true,
+    },
+    {
+      code: 'PRK-FES-01',
+      name: 'Park Fes Maalal Cars Atlas',
+      city: 'Fès',
+      address: 'Boulevard Allal Ben Abdellah, Quartier Atlas, Fès',
+      phone: '+212 5 35 62 78 90',
+      managerName: 'Tariq Alami',
+      capacity: 35,
+      isActive: true,
+    },
+    {
+      code: 'PRK-FES-02',
+      name: 'Park Fes Maalal Cars Ennargiss',
+      city: 'Fès',
+      address: 'Avenue des Forces Armées Royales, Quartier Ennargiss, Fès',
+      phone: '+212 5 35 73 15 20',
+      managerName: 'Hamza Maalal',
+      capacity: 40,
+      isActive: true,
+    },
+  ]
+
+  for (const park of officialParks) {
+    await prisma.park.upsert({
+      where: { code: park.code },
+      update: park,
+      create: park,
+    })
+  }
+
   console.log('Seed completed successfully! MAALAL CARS is ready.')
 }
 

@@ -4,7 +4,13 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { repairService } from '@/services/repair.service'
 import { reservationService } from '@/services/reservation.service'
+import { vehicleService } from '@/services/vehicle.service'
+import { vehicleFuelTypes, vehicleTransmissions, vehicleBodyTypes } from '@/validation/vehicle.schema'
 import prisma from '@/lib/db'
+
+type FuelType = (typeof vehicleFuelTypes)[number]
+type TransmissionType = (typeof vehicleTransmissions)[number]
+type BodyType = (typeof vehicleBodyTypes)[number]
 
 function isRedirectError(error: unknown) {
   return Boolean(
@@ -315,6 +321,7 @@ export async function updatePurchaseCommissionerAction(vehicleId: string, formDa
     const commissionerPhone = (formData.get('commissionerPhone') as string) || null
     const commissionerCin = (formData.get('commissionerCin') as string) || null
     const commissionerAddress = (formData.get('commissionerAddress') as string) || null
+    const commissionerCity = (formData.get('commissionerCity') as string) || null
     const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
     const commissionPaidById = (formData.get('commissionPaidById') as string) || null
     const handledById = (formData.get('handledById') as string) || null
@@ -331,6 +338,7 @@ export async function updatePurchaseCommissionerAction(vehicleId: string, formDa
           commissionerPhone,
           commissionerCin,
           commissionerAddress,
+          commissionerCity: commissionerCity || 'Casablanca',
           commissionAmount,
           commissionPaidById: commissionPaidById || null,
           ...(handledById !== null ? { handledById: handledById || null } : {}),
@@ -360,6 +368,7 @@ export async function updateSaleCommissionerAction(vehicleId: string, formData: 
     const commissionerPhone = (formData.get('commissionerPhone') as string) || null
     const commissionerCin = (formData.get('commissionerCin') as string) || null
     const commissionerAddress = (formData.get('commissionerAddress') as string) || null
+    const commissionerCity = (formData.get('commissionerCity') as string) || null
     const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
     const commissionPaidById = (formData.get('commissionPaidById') as string) || null
 
@@ -371,6 +380,7 @@ export async function updateSaleCommissionerAction(vehicleId: string, formData: 
           commissionerPhone,
           commissionerCin,
           commissionerAddress,
+          commissionerCity: commissionerCity || 'Casablanca',
           commissionAmount,
           commissionPaidById: commissionPaidById || null,
         },
@@ -391,6 +401,7 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
     const supplierPhone = (formData.get('supplierPhone') as string) || null
     const supplierCin = (formData.get('supplierCin') as string) || null
     const supplierAddress = (formData.get('supplierAddress') as string) || null
+    const supplierCity = (formData.get('supplierCity') as string) || null
     const handledById = (formData.get('handledById') as string) || null
     const paymentMethod = (formData.get('paymentMethod') as string) || 'VIREMENT'
 
@@ -400,6 +411,7 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
     const commissionerPhone = isWithComm ? ((formData.get('commissionerPhone') as string) || null) : null
     const commissionerCin = isWithComm ? ((formData.get('commissionerCin') as string) || null) : null
     const commissionerAddress = isWithComm ? ((formData.get('commissionerAddress') as string) || null) : null
+    const commissionerCity = isWithComm ? ((formData.get('commissionerCity') as string) || null) : null
     const commissionAmount = isWithComm ? (parseFloat(formData.get('commissionAmount') as string) || 0) : 0
     const commissionPaidById = isWithComm ? ((formData.get('commissionPaidById') as string) || null) : null
 
@@ -507,6 +519,7 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
           supplierPhone,
           supplierCin,
           supplierAddress,
+          supplierCity: supplierCity || 'Casablanca',
           handledById: handledById || null,
           paymentMethod,
           hasCommissioner: isWithComm,
@@ -514,6 +527,7 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
           commissionerPhone,
           commissionerCin,
           commissionerAddress,
+          commissionerCity: isWithComm ? (commissionerCity || 'Casablanca') : null,
           commissionAmount,
           commissionPaidById: commissionPaidById || null,
           status: 'CONFIRMED',
@@ -539,6 +553,7 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
           supplierPhone,
           supplierCin,
           supplierAddress,
+          supplierCity: supplierCity || 'Casablanca',
           handledById: handledById || null,
           paymentMethod,
           hasCommissioner: isWithComm,
@@ -546,6 +561,7 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
           commissionerPhone,
           commissionerCin,
           commissionerAddress,
+          commissionerCity: isWithComm ? (commissionerCity || 'Casablanca') : null,
           commissionAmount,
           commissionPaidById: commissionPaidById || null,
           notes: isWithComm ? purchase.notes : 'Achat direct sans intermédiaire [SANS_COMMISSIONNAIRE]',
@@ -570,4 +586,115 @@ export async function completeAcquisitionDossierAction(vehicleId: string, formDa
     redirect(`/vehicles/${vehicleId}?tab=acquisition&error=${encodeURIComponent(message)}`)
   }
 }
+
+export async function updateRepairAction(vehicleId: string, formData: FormData) {
+  try {
+    const repairId = (formData.get('repairId') as string) || ''
+    const repairType = (formData.get('repairType') as string) || undefined
+    const garageName = (formData.get('garageName') as string) || undefined
+    const estimatedAmountRaw = formData.get('estimatedAmount') as string
+    const estimatedAmount = estimatedAmountRaw ? parseFloat(estimatedAmountRaw) : undefined
+    const finalAmountRaw = formData.get('finalAmount') as string
+    const finalAmount = finalAmountRaw ? parseFloat(finalAmountRaw) : undefined
+    const description = (formData.get('description') as string) || undefined
+    const notes = (formData.get('notes') as string) || undefined
+
+    if (!repairId) {
+      redirect(`/vehicles/${vehicleId}?tab=repairs&error=${encodeURIComponent('Identifiant d\'intervention manquant.')}`)
+    }
+
+    await repairService.updateRepair(repairId, {
+      repairType,
+      garageName,
+      estimatedAmount,
+      finalAmount,
+      description,
+      notes,
+    })
+
+    revalidatePath(`/vehicles/${vehicleId}`)
+    revalidatePath('/vehicles')
+    redirect(`/vehicles/${vehicleId}?tab=repairs&success=${encodeURIComponent('Intervention mise à jour avec succès.')}`)
+  } catch (error: unknown) {
+    if (isRedirectError(error)) throw error
+    const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour de l\'intervention.'
+    redirect(`/vehicles/${vehicleId}?tab=repairs&error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function updateVehicleFullAction(vehicleId: string, formData: FormData) {
+  try {
+    const brand = (formData.get('brand') as string) || ''
+    const model = (formData.get('model') as string) || ''
+    const version = (formData.get('version') as string) || null
+    const customsStatus = (formData.get('customsStatus') as 'MAROC' | 'DEDOUANEE') || 'MAROC'
+    const customsYearRaw = formData.get('customsYear') as string
+    const customsYear = customsStatus === 'DEDOUANEE' && customsYearRaw ? parseInt(customsYearRaw, 10) : null
+    const colorExterior = (formData.get('colorExterior') as string) || 'Gris Métallisé'
+    const colorInterior = (formData.get('colorInterior') as string) || null
+    const parkId = (formData.get('parkId') as string) || null
+    const matricule = (formData.get('matricule') as string) || null
+    const vin = (formData.get('vin') as string) || ''
+    const mileage = parseInt(formData.get('mileage') as string, 10) || 0
+    const year = parseInt(formData.get('year') as string, 10) || new Date().getFullYear()
+    const rawFuel = formData.get('fuelType') as string
+    const fuelType: FuelType = vehicleFuelTypes.includes(rawFuel as FuelType) ? (rawFuel as FuelType) : 'DIESEL'
+    const rawTrans = formData.get('transmission') as string
+    const transmission: TransmissionType = vehicleTransmissions.includes(rawTrans as TransmissionType)
+      ? (rawTrans as TransmissionType)
+      : 'AUTOMATIQUE'
+    const rawBody = formData.get('bodyType') as string
+    const bodyType: BodyType = vehicleBodyTypes.includes(rawBody as BodyType) ? (rawBody as BodyType) : 'SUV'
+    const purchasePrice = parseFloat(formData.get('purchasePrice') as string) || 0
+    const targetSalePrice = parseFloat(formData.get('targetSalePrice') as string) || 0
+    const description = (formData.get('description') as string) || null
+
+    if (!brand.trim() || !model.trim()) {
+      throw new Error('La marque et le modèle du véhicule sont obligatoires')
+    }
+
+    // Determine location name from park if parkId is set
+    let location = 'Casablanca Showroom'
+    if (parkId) {
+      const park = await prisma.park.findUnique({ where: { id: parkId } })
+      if (park) {
+        location = `${park.city} — ${park.name}`
+      }
+    }
+
+    await vehicleService.updateVehicle(vehicleId, {
+      brand: brand.trim(),
+      model: model.trim(),
+      version: version ? version.trim() : null,
+      customsStatus,
+      customsYear,
+      colorExterior: colorExterior.trim(),
+      colorInterior: colorInterior ? colorInterior.trim() : null,
+      parkId,
+      location,
+      matricule: matricule ? matricule.trim() : null,
+      vin: vin.trim().toUpperCase(),
+      mileage,
+      year,
+      fuelType,
+      transmission,
+      bodyType,
+      purchasePrice,
+      targetSalePrice,
+      description,
+    })
+
+    revalidatePath('/vehicles')
+    revalidatePath(`/vehicles/${vehicleId}`)
+    revalidatePath('/stock')
+    revalidatePath('/parks')
+
+    redirect(`/vehicles/${vehicleId}?success=${encodeURIComponent('Fiche technique et informations du véhicule mises à jour avec succès.')}`)
+  } catch (error: unknown) {
+    if (isRedirectError(error)) throw error
+    const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour de la fiche véhicule.'
+    redirect(`/vehicles/${vehicleId}?action=edit-vehicle&error=${encodeURIComponent(message)}`)
+  }
+}
+
 

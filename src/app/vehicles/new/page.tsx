@@ -16,6 +16,11 @@ import {
 import { parkRepository } from '@/repositories/park.repository'
 import { VehiclePhotoUploader } from '@/components/vehicles/vehicle-photo-uploader'
 import { DocumentFormUploader } from '@/components/documents/document-form-uploader'
+import { MoroccanCityCombobox } from '@/components/ui/moroccan-city-combobox'
+import { VehicleColorPicker } from '@/components/ui/vehicle-color-picker'
+import { MoroccanPlateInput } from '@/components/ui'
+import { VehicleTaxonomySelector } from '@/components/vehicles/vehicle-taxonomy-selector'
+import { VehicleCustomsSelector } from '@/components/vehicles/vehicle-customs-selector'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +41,9 @@ async function createVehicleAction(formData: FormData) {
   const colorInterior = (formData.get('colorInterior') as string) || ''
   const bodyType = (formData.get('bodyType') as string) || 'SUV'
   const fiscalPower = parseInt(formData.get('fiscalPower') as string, 10) || 8
+  const customsStatus = ((formData.get('customsStatus') as string) || 'MAROC').toUpperCase() === 'DEDOUANEE' ? 'DEDOUANEE' : 'MAROC'
+  const rawCustomsYear = formData.get('customsYear') as string
+  const customsYear = customsStatus === 'DEDOUANEE' && rawCustomsYear ? parseInt(rawCustomsYear, 10) : null
   const parkId = (formData.get('parkId') as string) || null
   let location = (formData.get('location') as string) || 'Casablanca'
   if (parkId) {
@@ -53,6 +61,7 @@ async function createVehicleAction(formData: FormData) {
   const supplierPhone = (formData.get('supplierPhone') as string) || null
   const supplierCin = (formData.get('supplierCin') as string) || null
   const supplierAddress = (formData.get('supplierAddress') as string) || null
+  const supplierCity = (formData.get('supplierCity') as string) || 'Casablanca'
   const handledById = (formData.get('handledById') as string) || null
   const paymentMethod = (formData.get('paymentMethod') as string) || 'VIREMENT'
 
@@ -61,6 +70,7 @@ async function createVehicleAction(formData: FormData) {
   const commissionerPhone = (formData.get('commissionerPhone') as string) || null
   const commissionerCin = (formData.get('commissionerCin') as string) || null
   const commissionerAddress = (formData.get('commissionerAddress') as string) || null
+  const commissionerCity = (formData.get('commissionerCity') as string) || 'Casablanca'
   const commissionAmount = parseFloat(formData.get('commissionAmount') as string) || 0
   const commissionPaidById = (formData.get('commissionPaidById') as string) || null
 
@@ -107,6 +117,8 @@ async function createVehicleAction(formData: FormData) {
       colorInterior,
       bodyType,
       fiscalPower,
+      customsStatus,
+      customsYear,
       parkId,
       location,
       purchasePrice,
@@ -141,11 +153,13 @@ async function createVehicleAction(formData: FormData) {
       supplierPhone,
       supplierCin,
       supplierAddress,
+      supplierCity,
       handledById: handledById || null,
       commissionerName,
       commissionerPhone,
       commissionerCin,
       commissionerAddress,
+      commissionerCity,
       commissionAmount,
       commissionPaidById: commissionPaidById || null,
       paymentMethod,
@@ -249,36 +263,15 @@ export default async function NewVehiclePage() {
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Marque *</label>
-              <input
-                type="text"
-                name="brand"
-                required
-                placeholder="Ex: Toyota, BMW, Mercedes"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
-              />
-            </div>
+            {/* Cascading Automotive Taxonomy: Marque -> Modèle -> Version / Finition */}
+            <VehicleTaxonomySelector className="col-span-1 sm:col-span-3" />
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Modèle *</label>
-              <input
-                type="text"
-                name="model"
-                required
-                placeholder="Ex: Land Cruiser, X5, GLC"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
-              />
-            </div>
+            {/* Vehicle Customs & Origin: WW Maroc vs Dédouanée */}
+            <VehicleCustomsSelector className="col-span-1 sm:col-span-3" />
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Version / Finition</label>
-              <input
-                type="text"
-                name="version"
-                placeholder="Ex: VXR 4.0L Auto, Pack M"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-red-500 focus:outline-none"
-              />
+            {/* Moroccan License Plate (xxxxxx | x | xx) */}
+            <div className="col-span-1 sm:col-span-3 rounded-xl border border-[#242430] bg-[#16161c] p-4">
+              <MoroccanPlateInput name="matricule" />
             </div>
 
             <div>
@@ -304,11 +297,12 @@ export default async function NewVehiclePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Matricule (Maroc)</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Kilométrage (km) *</label>
               <input
-                type="text"
-                name="matricule"
-                placeholder="Ex: 12345 | A | 6"
+                type="number"
+                name="mileage"
+                required
+                defaultValue={0}
                 className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white font-mono focus:border-red-500 focus:outline-none"
               />
             </div>
@@ -342,34 +336,21 @@ export default async function NewVehiclePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Kilométrage (km) *</label>
-              <input
-                type="number"
-                name="mileage"
-                required
-                defaultValue={0}
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white font-mono focus:border-red-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Couleur Extérieure *</label>
-              <input
-                type="text"
+              <VehicleColorPicker
                 name="colorExterior"
+                label="Couleur Extérieure"
+                mode="exterior"
                 required
-                placeholder="Ex: Blanc Nacré, Noir Saphir"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-red-500 focus:outline-none"
+                defaultValue="Gris Métallisé"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Couleur Intérieure</label>
-              <input
-                type="text"
+              <VehicleColorPicker
                 name="colorInterior"
-                placeholder="Ex: Cuir Beige, Cuir Noir"
-                className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white focus:border-red-500 focus:outline-none"
+                label="Couleur Intérieure"
+                mode="interior"
+                defaultValue="Standard"
               />
             </div>
 
@@ -482,12 +463,21 @@ export default async function NewVehiclePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville Fournisseur</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse Fournisseur</label>
               <input
                 type="text"
                 name="supplierAddress"
-                placeholder="Ex: Maarif, Casablanca"
+                placeholder="Ex: 12 Rue des Lilas, Maarif"
                 className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Ville Fournisseur</label>
+              <MoroccanCityCombobox
+                name="supplierCity"
+                defaultValue="Casablanca"
+                placeholder="Sélectionner la ville..."
               />
             </div>
 
@@ -568,12 +558,21 @@ export default async function NewVehiclePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse / Ville Courtier</label>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Adresse Courtier</label>
               <input
                 type="text"
                 name="commissionerAddress"
-                placeholder="Ex: Maârif, Casablanca"
+                placeholder="Ex: 24 Rue Ibn Sina"
                 className="h-10 w-full rounded-lg border border-[#282834] bg-[#16161c] px-3 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Ville Courtier</label>
+              <MoroccanCityCombobox
+                name="commissionerCity"
+                defaultValue="Casablanca"
+                placeholder="Sélectionner la ville..."
               />
             </div>
 

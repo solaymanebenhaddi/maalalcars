@@ -64,6 +64,8 @@ export const vehicleService = {
       minSalePrice: input.minSalePrice || null,
       description: input.description || null,
       status: input.status,
+      customsStatus: input.customsStatus || 'MAROC',
+      customsYear: input.customsStatus === 'DEDOUANEE' ? (input.customsYear || null) : null,
     })
 
     await auditService.log({

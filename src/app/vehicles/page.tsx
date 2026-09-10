@@ -431,9 +431,27 @@ export default async function VehiclesPage({ searchParams }: Props) {
                           >
                             {v.brand} {v.model}
                           </Link>
-                          <span className="rounded-lg bg-[#1a1a22] px-2 py-0.5 text-xs font-bold text-zinc-300">
-                            {v.year}
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {v.customsStatus === 'DEDOUANEE' ? (
+                              <span
+                                className="rounded-lg bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300 flex items-center gap-1"
+                                title={`Véhicule dédouané au Maroc${v.customsYear ? ` en ${v.customsYear}` : ''}`}
+                              >
+                                <span>🌍 Déd.</span>
+                                {v.customsYear && <span className="font-mono">{v.customsYear}</span>}
+                              </span>
+                            ) : (
+                              <span
+                                className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400 flex items-center gap-1"
+                                title="Véhicule WW Maroc (concessionnaire marocain)"
+                              >
+                                <span>🇲🇦 WW</span>
+                              </span>
+                            )}
+                            <span className="rounded-lg bg-[#1a1a22] px-2 py-0.5 text-xs font-bold text-zinc-300 font-mono">
+                              {v.year}
+                            </span>
+                          </div>
                         </div>
 
                         {v.version && (

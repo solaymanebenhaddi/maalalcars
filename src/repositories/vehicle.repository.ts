@@ -11,6 +11,7 @@ export interface VehicleFilterParams {
   location?: string
   parkId?: string
   search?: string
+  customsStatus?: string
 }
 
 export const vehicleRepository = {
@@ -56,6 +57,10 @@ export const vehicleRepository = {
 
     if (params.parkId && params.parkId !== 'Tous') {
       andConditions.push({ parkId: params.parkId })
+    }
+
+    if (params.customsStatus && params.customsStatus !== 'Tous') {
+      andConditions.push({ customsStatus: params.customsStatus })
     }
 
     if (params.search) {

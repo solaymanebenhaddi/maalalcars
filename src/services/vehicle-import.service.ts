@@ -206,6 +206,9 @@ export const vehicleImportService = {
       const normMap: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(raw)) {
         normMap[normalizeHeader(key)] = value
+        // Also strip parenthetical unit suffixes (e.g. "Kilométrage (km)*" -> "kilometrage")
+        const strippedKey = key.replace(/\s*\([^)]*\)/g, '')
+        normMap[normalizeHeader(strippedKey)] = value
       }
 
       const missingFields: string[] = []
@@ -368,6 +371,8 @@ export const vehicleImportService = {
       const rawPurchasePrice =
         normMap['prixachat'] ||
         normMap['prixdachat'] ||
+        normMap['prixdachatdh'] ||
+        normMap['prixachatdh'] ||
         normMap['purchaseprice'] ||
         normMap['coutachat'] ||
         normMap['achat']
@@ -380,8 +385,11 @@ export const vehicleImportService = {
       const rawTargetPrice =
         normMap['prixvente'] ||
         normMap['prixdevente'] ||
-        normMap['targetsaleprice'] ||
+        normMap['prixdeventesouhaite'] ||
+        normMap['prixdeventesouhaitedh'] ||
         normMap['prixsouhaite'] ||
+        normMap['prixsouhaitedh'] ||
+        normMap['targetsaleprice'] ||
         normMap['prix'] ||
         normMap['vente']
       let targetSalePrice = parseNumber(rawTargetPrice, 0)
@@ -392,19 +400,36 @@ export const vehicleImportService = {
         }
       }
 
-      const rawMinPrice = normMap['prixminimum'] || normMap['minsaleprice'] || normMap['prixmin']
+      const rawMinPrice =
+        normMap['prixminimum'] ||
+        normMap['prixminimumdh'] ||
+        normMap['minsaleprice'] ||
+        normMap['prixmin'] ||
+        normMap['prixmindh']
       const minSalePrice = rawMinPrice ? parseNumber(rawMinPrice, 0) : null
 
       // 14. Portes, Places, CV
       const doors = parseNumber(normMap['portes'] || normMap['doors'], 5)
       const seats = parseNumber(normMap['places'] || normMap['seats'], 5)
-      const fiscalPower = parseNumber(normMap['puissancefiscale'] || normMap['fiscalpower'] || normMap['cv'], 8)
+      const fiscalPower = parseNumber(
+        normMap['puissancefiscale'] ||
+          normMap['puissancefiscalecv'] ||
+          normMap['fiscalpower'] ||
+          normMap['cv'],
+        8
+      )
 
       // 15. Emplacement & Parc
       const rawLocation = normMap['emplacement'] || normMap['location'] || normMap['site'] || 'Casablanca Showroom'
       const location = String(rawLocation).trim()
 
-      const rawPark = normMap['parc'] || normMap['parcid'] || normMap['park'] || normMap['parkid'] || ''
+      const rawPark =
+        normMap['parc'] ||
+        normMap['parcid'] ||
+        normMap['park'] ||
+        normMap['parkid'] ||
+        normMap['parcsite'] ||
+        ''
       let parkId = options.defaultParkId || null
 
       if (rawPark) {
@@ -414,7 +439,10 @@ export const vehicleImportService = {
             p.id === rawPark ||
             p.code.toLowerCase() === parkStr ||
             p.city.toLowerCase() === parkStr ||
-            p.name.toLowerCase().includes(parkStr)
+            p.name.toLowerCase().includes(parkStr) ||
+            parkStr.includes(p.city.toLowerCase()) ||
+            (parkStr.includes('casa') && p.city.toLowerCase() === 'casablanca') ||
+            (parkStr.includes('fes') && p.city.toLowerCase().includes('fès'))
         )
         if (matchedPark) parkId = matchedPark.id
       }
@@ -428,19 +456,39 @@ export const vehicleImportService = {
 
       // 17. Extraction Fournisseur & Courtier si présents dans le fichier
       const rawSupplier = normMap['vendeur'] || normMap['fournisseur'] || normMap['seller'] || ''
-      const supplierName = rawSupplier ? String(rawSupplier).trim() : null
+      let supplierName = rawSupplier ? String(rawSupplier).trim() : null
 
       const rawPaidBy = normMap['quilapaye'] || normMap['payeur'] || normMap['payepar'] || ''
-      const handledByName = rawPaidBy ? String(rawPaidBy).trim() : null
+      let handledByName = rawPaidBy ? String(rawPaidBy).trim() : null
 
       const rawComm = normMap['commissionnaire'] || normMap['semsar'] || normMap['courtier'] || ''
-      const commissionerName = rawComm ? String(rawComm).trim() : null
+      let commissionerName = rawComm ? String(rawComm).trim() : null
 
       const rawCommFee = parseNumber(
         normMap['fraiscommissionnaire'] || normMap['commission'] || normMap['commissionamount'],
         0
       )
-      const commissionAmount = rawCommFee > 0 ? rawCommFee : 0
+      let commissionAmount = rawCommFee > 0 ? rawCommFee : 0
+
+      // Extract metadata structured in description: e.g. "Vendeur: Particulier | Payé par: Direction | Semsar: Sans intermédiaire (Com: 0)"
+      if (description) {
+        if (!supplierName) {
+          const m = description.match(/vendeur\s*:\s*([^|]+)/i)
+          if (m) supplierName = m[1].trim()
+        }
+        if (!handledByName) {
+          const m = description.match(/pay[eé]\s*par\s*:\s*([^|]+)/i)
+          if (m) handledByName = m[1].trim()
+        }
+        if (!commissionerName) {
+          const m = description.match(/(?:semsar|courtier|commissionnaire)\s*:\s*([^|(]+)/i)
+          if (m) commissionerName = m[1].trim()
+        }
+        if (commissionAmount === 0) {
+          const m = description.match(/com\s*:\s*([0-9.]+)/i)
+          if (m) commissionAmount = parseNumber(m[1], 0)
+        }
+      }
 
       if (errors.length > 0) {
         invalidRows.push({
