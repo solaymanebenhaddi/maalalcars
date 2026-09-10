@@ -1,7 +1,74 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { parkRepository } from '@/repositories/park.repository'
+import prisma from '@/lib/db'
 
 describe('Parks Multi-Site Management (Casablanca & Fès)', () => {
+  beforeAll(async () => {
+    // Ensure the 3 designated parks exist for hermetic testing across local and CI environments
+    await prisma.park.upsert({
+      where: { code: 'PRK-CAS-01' },
+      update: {
+        name: 'Park Casablanca Secteur Car',
+        city: 'Casablanca',
+        address: 'Boulevard Sidi Maârouf, Secteur Car, Casablanca',
+        phone: '+212 5 22 78 45 10',
+        capacity: 50,
+        isActive: true,
+      },
+      create: {
+        code: 'PRK-CAS-01',
+        name: 'Park Casablanca Secteur Car',
+        city: 'Casablanca',
+        address: 'Boulevard Sidi Maârouf, Secteur Car, Casablanca',
+        phone: '+212 5 22 78 45 10',
+        capacity: 50,
+        isActive: true,
+      },
+    })
+
+    await prisma.park.upsert({
+      where: { code: 'PRK-FES-01' },
+      update: {
+        name: 'Park Fes Maalal Cars Atlas',
+        city: 'Fès',
+        address: 'Boulevard Allal Ben Abdellah, Quartier Atlas, Fès',
+        phone: '+212 5 35 62 78 90',
+        capacity: 35,
+        isActive: true,
+      },
+      create: {
+        code: 'PRK-FES-01',
+        name: 'Park Fes Maalal Cars Atlas',
+        city: 'Fès',
+        address: 'Boulevard Allal Ben Abdellah, Quartier Atlas, Fès',
+        phone: '+212 5 35 62 78 90',
+        capacity: 35,
+        isActive: true,
+      },
+    })
+
+    await prisma.park.upsert({
+      where: { code: 'PRK-FES-02' },
+      update: {
+        name: 'Park Fes Maalal Cars Ennargiss',
+        city: 'Fès',
+        address: 'Avenue des Forces Armées Royales, Quartier Ennargiss, Fès',
+        phone: '+212 5 35 73 15 20',
+        capacity: 40,
+        isActive: true,
+      },
+      create: {
+        code: 'PRK-FES-02',
+        name: 'Park Fes Maalal Cars Ennargiss',
+        city: 'Fès',
+        address: 'Avenue des Forces Armées Royales, Quartier Ennargiss, Fès',
+        phone: '+212 5 35 73 15 20',
+        capacity: 40,
+        isActive: true,
+      },
+    })
+  })
+
   it('loads active parks including the 3 designated sites', async () => {
     const parks = await parkRepository.getAll()
 
