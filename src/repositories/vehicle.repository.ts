@@ -321,4 +321,57 @@ export const vehicleRepository = {
       },
     })
   },
+
+  async delete(id: string) {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id },
+      include: {
+        sales: { select: { id: true } },
+        purchases: { select: { id: true } },
+        repairs: { select: { id: true } },
+      },
+    })
+    if (!vehicle) throw new Error('Véhicule introuvable')
+
+    // If there are recorded financial/workshop transactions, soft-archive instead of hard deleting
+    // to preserve accounting integrity and tax/audit compliance in Morocco
+    if (vehicle.sales.length > 0 || vehicle.purchases.length > 0 || vehicle.repairs.length > 0) {
+      await this.archive(id, 'Archivage automatique suite à une demande de suppression (transactions liées existantes)')
+      return { id, deleted: false, archived: true }
+    }
+
+    // Clean up dependent transient records safely before deleting the vehicle
+    await prisma.$transaction([
+      prisma.reservation.deleteMany({ where: { vehicleId: id } }),
+      prisma.vehicleInspection.deleteMany({ where: { vehicleId: id } }),
+      prisma.vehicleStatusHistory.deleteMany({ where: { vehicleId: id } }),
+      prisma.document.deleteMany({ where: { vehicleId: id } }),
+      prisma.vehiclePhoto.deleteMany({ where: { vehicleId: id } }),
+      prisma.expense.deleteMany({ where: { vehicleId: id } }),
+      prisma.archiveRecord.deleteMany({ where: { entityId: id, entityType: 'Vehicle' } }),
+      prisma.vehicle.delete({ where: { id } }),
+    ])
+
+    return { id, deleted: true, archived: false }
+  },
+
+  async deleteMany(ids: string[]) {
+    const results = []
+    for (const id of ids) {
+      try {
+        const res = await this.delete(id)
+        results.push(res)
+      } catch (err) {
+        console.error(`Erreur lors de la suppression du véhicule ${id}:`, err)
+      }
+    }
+    const deletedCount = results.filter((r) => r.deleted).length
+    const archivedCount = results.filter((r) => r.archived).length
+    return {
+      total: ids.length,
+      deletedCount,
+      archivedCount,
+      results,
+    }
+  },
 }

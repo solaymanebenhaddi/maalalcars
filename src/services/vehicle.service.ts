@@ -148,4 +148,29 @@ export const vehicleService = {
     })
     return restored
   },
+
+  async deleteVehicle(id: string, userId?: string) {
+    const result = await vehicleRepository.delete(id)
+    await auditService.log({
+      action: result.deleted ? 'VEHICLE_DELETED' : 'VEHICLE_ARCHIVED',
+      entityType: 'Vehicle',
+      entityId: id,
+      details: result.deleted
+        ? 'Suppression définitive du véhicule et de ses éléments rattachés'
+        : 'Archivage de sécurité (transactions commerciales ou atelier liées)',
+      userId,
+    })
+    return result
+  },
+
+  async deleteMultipleVehicles(ids: string[], userId?: string) {
+    const result = await vehicleRepository.deleteMany(ids)
+    await auditService.log({
+      action: 'VEHICLES_BULK_DELETED',
+      entityType: 'Vehicle',
+      details: `Suppression groupée de ${ids.length} véhicules : ${result.deletedCount} supprimés, ${result.archivedCount} archivés`,
+      userId,
+    })
+    return result
+  },
 }

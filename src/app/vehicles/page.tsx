@@ -1,39 +1,25 @@
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import {
-  Car,
   Plus,
   Filter,
-  Eye,
-  CalendarDays,
-  Wrench,
-  BadgePercent,
-  CheckCircle2,
-  FileText,
   Search,
   MapPin,
   Building2,
   FileSpreadsheet,
   AlertTriangle,
-  Check,
-  X,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-import { StatusBadge } from '@/components/shared/status-badge'
-import { Currency } from '@/components/shared/currency'
 import { EmptyState } from '@/components/shared/empty-state'
-import { Pagination } from '@/components/ui'
 import { vehicleRepository } from '@/repositories/vehicle.repository'
 import { parkRepository } from '@/repositories/park.repository'
 import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
-import { VehicleCardWrapper } from '@/components/vehicles/vehicle-card-wrapper'
-import { RestoreVehicleButton } from '@/components/vehicles/restore-vehicle-button'
 import { getActiveUserRole } from '@/lib/auth-roles'
-import { checkVehicleCompleteness } from '@/services/vehicle-completeness.service'
+import { checkVehicleCompleteness, VehicleCompletenessResult } from '@/services/vehicle-completeness.service'
 import clsx from 'clsx'
 
 import { VehiclesPageActions } from '@/components/vehicles/vehicles-page-actions'
+import { VehiclesCatalogManager } from '@/components/vehicles/vehicles-catalog-manager'
 import prisma from '@/lib/db'
 import { requireAuth } from '@/lib/session'
 
@@ -49,6 +35,8 @@ interface Props {
     search?: string
     urgent?: string
     page?: string
+    pageSize?: string
+    view?: string
   }>
 }
 
@@ -62,9 +50,13 @@ export default async function VehiclesPage({ searchParams }: Props) {
   const params = await searchParams
   const activeStatus = params.status || 'Tous'
 
-  // Pagination parameters: 9 cars per page
-  const PAGE_SIZE = 9
+  // Pagination parameters: dynamic page size (default 9, options: 6, 9, 12, 18, 24)
+  const pageSizeParam = parseInt(params.pageSize || '9', 10)
+  const PAGE_SIZE = [6, 9, 12, 18, 24].includes(pageSizeParam) ? pageSizeParam : 9
   const currentPage = Math.max(1, parseInt(params.page || '1', 10) || 1)
+  const activeView = (['grid', 'compact', 'list'].includes(params.view || '')
+    ? params.view
+    : 'grid') as 'grid' | 'compact' | 'list'
 
   // Fetch parks for multi-park filtering
   const allParks = await parkRepository.getAll()
@@ -116,6 +108,8 @@ export default async function VehiclesPage({ searchParams }: Props) {
     if (params.search) q.set('search', params.search)
     if (params.urgent) q.set('urgent', params.urgent)
     if (params.page && params.page !== '1') q.set('page', params.page)
+    if (params.pageSize && params.pageSize !== '9') q.set('pageSize', params.pageSize)
+    if (params.view && params.view !== 'grid') q.set('view', params.view)
 
     for (const [k, v] of Object.entries(newParams)) {
       if (!v || v === 'Tous' || v === 'Toutes' || (k === 'page' && v === '1')) {
@@ -130,9 +124,10 @@ export default async function VehiclesPage({ searchParams }: Props) {
   }
 
   // Pre-calculate completeness for all vehicles on the current page
-  const vehicleCompletenessMap = new Map(
-    vehicles.map((v) => [v.id, checkVehicleCompleteness(v)])
-  )
+  const completenessRecord: Record<string, VehicleCompletenessResult> = {}
+  vehicles.forEach((v) => {
+    completenessRecord[v.id] = checkVehicleCompleteness(v)
+  })
 
   const urgentCount = await prisma.vehicle.count({
     where: {
@@ -369,365 +364,79 @@ export default async function VehiclesPage({ searchParams }: Props) {
 
         <div className="text-[11px] text-zinc-500 font-mono flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
-          <span>9 véhicules par page</span>
+          <span>{PAGE_SIZE} véhicules par page</span>
         </div>
       </div>
 
-      {/* Vehicles Cards Grid */}
+      {/* Vehicles Catalog Interactive Manager (Grid / Compact / List & Bulk Deletion) */}
       {displayedVehicles.length > 0 ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {displayedVehicles.map((v) => {
-            const completeness = vehicleCompletenessMap.get(v.id) || checkVehicleCompleteness(v)
-            const activeReservation = v.reservations.find(
-              (r) => r.status === 'ACTIVE' || r.status === 'EXPIRING'
-            )
-            const activeRepair = v.repairs?.find((r) => r.status === 'EN_COURS')
-            const lastSale = v.sales[0]
-
-            return (
-              <VehicleCardWrapper
-                key={v.id}
-                vehicleId={v.id}
-                className={clsx(
-                  "group flex flex-col justify-between rounded-2xl overflow-hidden shadow-sm transition-all cursor-pointer select-none relative",
-                  completeness.needsUrgentUpdates
-                    ? "border-2 border-red-500/90 bg-gradient-to-b from-[#220d12] via-[#151014] to-[#121216] shadow-[0_0_22px_rgba(239,68,68,0.22)] hover:border-red-400 hover:shadow-[0_0_32px_rgba(239,68,68,0.4)]"
-                    : "border border-[#222228] bg-[#121216] hover:border-zinc-700 hover:bg-[#15151a]"
-                )}
-              >
-                    {/* Urgent Updates Top Banner */}
-                    {completeness.needsUrgentUpdates && (
-                      <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-3 py-1.5 flex items-center justify-between text-[11px] font-black tracking-wide shadow-md z-20">
-                        <div className="flex items-center gap-1.5">
-                          <AlertTriangle className="h-3.5 w-3.5 animate-pulse text-white" />
-                          <span>MISE À JOUR URGENTE</span>
-                        </div>
-                        <span className="rounded bg-black/40 px-2 py-0.5 text-[10px] font-mono font-bold">
-                          {completeness.completedCount}/{completeness.totalRequired} complété
-                          {completeness.hasDefaultedFields && (
-                            <span className="text-amber-300 ml-1 font-extrabold">• {completeness.defaultedCount} def-</span>
-                          )}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Photo & Top Badges */}
-                    <div className="relative h-48 w-full bg-gradient-to-t from-black via-zinc-900 to-zinc-950 flex items-center justify-center border-b border-[#222228] overflow-hidden">
-                      {v.photos[0]?.url ? (
-                        <Image
-                          src={v.photos[0].url}
-                          alt={`${v.brand} ${v.model}`}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-zinc-600 group-hover:text-red-400 transition-colors">
-                          <Car className={clsx("h-16 w-16 mb-1", completeness.needsUrgentUpdates ? "text-red-400/80" : "text-zinc-600")} />
-                          <span className={clsx("text-[11px] font-semibold", completeness.needsUrgentUpdates ? "text-red-400 font-bold" : "text-zinc-400")}>
-                            {completeness.needsUrgentUpdates ? '⚠️ Photos requises' : (v.bodyType || 'Véhicule')}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 pointer-events-none" />
-
-                      <div className="absolute top-3 left-3 z-10">
-                        <StatusBadge status={v.status} />
-                      </div>
-
-                      <div className="absolute top-3 right-3 z-10">
-                        <span className="rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-200 border border-zinc-700 backdrop-blur-sm">
-                          {v.code}
-                        </span>
-                      </div>
-
-                      {v.matricule && (
-                        <div className="absolute bottom-2.5 left-3 z-10 rounded-md bg-black/80 px-2.5 py-1 font-mono text-[11px] font-semibold text-white border border-zinc-700 backdrop-blur-sm">
-                          {v.matricule}
-                        </div>
-                      )}
-
-                      <div className="absolute bottom-2.5 right-3 z-10 rounded-md bg-black/80 px-2.5 py-1 text-[10px] font-bold text-cyan-400 border border-cyan-500/30 backdrop-blur-sm flex items-center gap-1 shadow">
-                        <MapPin className="h-3 w-3" />
-                        <span>{v.park?.city || v.location}</span>
-                      </div>
-                    </div>
-
-                    {/* Card Content */}
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                      <div>
-                        <div className="flex items-start justify-between gap-2">
-                          <Link
-                            href={`/vehicles/${v.id}`}
-                            className="text-base font-bold text-white group-hover:text-red-400 transition-colors"
-                          >
-                            {v.brand} {v.model}
-                          </Link>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {v.customsStatus === 'DEDOUANEE' ? (
-                              <span
-                                className="rounded-lg bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300 flex items-center gap-1"
-                                title={`Véhicule dédouané au Maroc${v.customsYear ? ` en ${v.customsYear}` : ''}`}
-                              >
-                                <span>🌍 Déd.</span>
-                                {v.customsYear && <span className="font-mono">{v.customsYear}</span>}
-                              </span>
-                            ) : (
-                              <span
-                                className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400 flex items-center gap-1"
-                                title="Véhicule WW Maroc (concessionnaire marocain)"
-                              >
-                                <span>🇲🇦 WW</span>
-                              </span>
-                            )}
-                            <span className="rounded-lg bg-[#1a1a22] px-2 py-0.5 text-xs font-bold text-zinc-300 font-mono">
-                              {v.year}
-                            </span>
-                          </div>
-                        </div>
-
-                        {v.version && (
-                          <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5">{v.version}</p>
-                        )}
-
-                        {/* Specs Bar */}
-                        <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[#17171e] p-2.5 text-center text-[11px] border border-[#22222a]">
-                          <div>
-                            <span className="text-zinc-500 block text-[10px] uppercase">Boîte</span>
-                            <span className="font-semibold text-zinc-200">{v.transmission}</span>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500 block text-[10px] uppercase">Carburant</span>
-                            <span className="font-semibold text-zinc-200">{v.fuelType}</span>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500 block text-[10px] uppercase">Kilométrage</span>
-                            <span className="font-semibold text-zinc-200 font-mono">
-                              {v.mileage?.toLocaleString('fr-FR')} km
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Urgent Updates Checklist Pill */}
-                        {completeness.needsUrgentUpdates && (
-                          <div className="mt-2.5 rounded-xl border border-red-500/40 bg-red-950/40 p-2.5 space-y-2 text-[11px]">
-                            <div className="flex items-center justify-between font-bold text-red-300 text-[10px] uppercase tracking-wider">
-                              <span>Informations obligatoires :</span>
-                              <span className="font-mono text-red-400 font-extrabold">({completeness.missingCount} manquante{completeness.missingCount > 1 ? 's' : ''})</span>
-                            </div>
-
-                            {/* Prominent def- fields list if present */}
-                            {completeness.hasDefaultedFields && (
-                              <div className="rounded-lg bg-red-950/80 border border-red-500/60 p-2 space-y-1">
-                                <span className="text-[10px] font-black uppercase text-amber-300 flex items-center gap-1">
-                                  <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
-                                  Valeurs par défaut (def-) à compléter :
-                                </span>
-                                <div className="flex flex-wrap gap-1">
-                                  {completeness.defFields
-                                    .filter((f) => f.isDefaulted)
-                                    .map((f) => (
-                                      <span
-                                        key={f.key}
-                                        className="rounded bg-red-900/60 px-1.5 py-0.5 text-[9px] font-mono font-bold text-red-200 border border-red-500/50"
-                                      >
-                                        ⚠️ {f.label} ({f.currentValue})
-                                      </span>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-1 text-[10px]">
-                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.images.satisfied ? "text-emerald-400" : "text-red-300")}>
-                                {completeness.items.images.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
-                                <span>Images ({v.photos.length})</span>
-                              </div>
-                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.supplier.satisfied ? "text-emerald-400" : "text-red-300")}>
-                                {completeness.items.supplier.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
-                                <span>Fournisseur</span>
-                              </div>
-                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.whoPaid.satisfied ? "text-emerald-400" : "text-red-300")}>
-                                {completeness.items.whoPaid.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
-                                <span>Payé par</span>
-                              </div>
-                              <div className={clsx("flex items-center gap-1 font-semibold", completeness.items.commissioner.satisfied ? "text-emerald-400" : "text-red-300")}>
-                                {completeness.items.commissioner.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
-                                <span>Courtier</span>
-                              </div>
-                              <div className={clsx("col-span-2 flex items-center gap-1 font-semibold", completeness.items.documents.satisfied ? "text-emerald-400" : "text-red-300")}>
-                                {completeness.items.documents.satisfied ? <Check className="h-3 w-3 text-emerald-400 shrink-0" /> : <X className="h-3 w-3 text-red-400 shrink-0" />}
-                                <span>Documents du véhicule</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                    {/* Operational Alert Tags */}
-                    {activeReservation && (
-                      <div className="mt-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-300 flex items-center justify-between">
-                        <span>Réservé par {activeReservation.clientName || 'Client'}</span>
-                        <span className="font-mono font-bold text-amber-400">
-                          <Currency amount={activeReservation.depositAmount} />
-                        </span>
-                      </div>
-                    )}
-
-                    {activeRepair && (
-                      <div className="mt-2.5 rounded-lg border border-purple-500/20 bg-purple-500/10 px-2.5 py-1.5 text-[11px] text-purple-300 flex items-center justify-between">
-                        <span>En atelier : {activeRepair.garageName || activeRepair.repairType}</span>
-                        <span className="font-bold text-purple-400">{activeRepair.repairType}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Price & Status-Dependent Quick Actions */}
-                  <div className="pt-3 border-t border-[#1e1e24] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-semibold text-zinc-500 block uppercase">
-                          {v.status === 'SOLD' ? 'Prix Vendu' : 'Prix de Vente'}
-                        </span>
-                        <div className="font-mono font-bold text-base text-white">
-                          <Currency amount={v.actualSalePrice || v.targetSalePrice} />
-                        </div>
-                      </div>
-
-                      <Link
-                        href={`/vehicles/${v.id}`}
-                        className="flex h-8 items-center gap-1.5 rounded-lg border border-[#2e2e38] bg-[#1a1a22] px-3 text-xs font-semibold text-zinc-300 hover:bg-[#252530] hover:text-white transition-colors"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>Fiche</span>
-                      </Link>
-                    </div>
-
-                    {/* Prominent Quick Action for Urgent Updates */}
-                    {completeness.needsUrgentUpdates && (
-                      <Link
-                        href={`/vehicles/${v.id}?tab=acquisition&action=complete-dossier`}
-                        className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 px-3 text-xs font-bold text-white shadow-md transition-all"
-                      >
-                        <AlertTriangle className="h-3.5 w-3.5 animate-pulse" />
-                        <span>Compléter les informations urgentes</span>
-                      </Link>
-                    )}
-
-                    {/* Status Actions */}
-                    <div className="flex items-center gap-2 pt-1">
-                      {v.status === 'IN_STOCK' && (
-                        <>
-                          <Link
-                            href={`/vehicles/${v.id}?tab=reservations&action=new`}
-                            className="flex-1 flex h-8 items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 text-[11px] font-bold text-amber-400 hover:bg-amber-500/20 transition-colors"
-                          >
-                            <CalendarDays className="h-3 w-3" />
-                            <span>Réserver</span>
-                          </Link>
-                          <Link
-                            href={`/vehicles/${v.id}?tab=repairs&action=new`}
-                            className="flex-1 flex h-8 items-center justify-center gap-1 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2 text-[11px] font-bold text-purple-400 hover:bg-purple-500/20 transition-colors"
-                          >
-                            <Wrench className="h-3 w-3" />
-                            <span>Réparation</span>
-                          </Link>
-                          <Link
-                            href={`/sales/new?vehicleId=${v.id}`}
-                            className="flex-1 flex h-8 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-2 text-[11px] font-bold text-white hover:bg-emerald-500 transition-colors"
-                          >
-                            <BadgePercent className="h-3 w-3" />
-                            <span>Vendre</span>
-                          </Link>
-                        </>
-                      )}
-
-                      {v.status === 'RESERVED' && (
-                        <>
-                          <Link
-                            href={`/sales/new?vehicleId=${v.id}${activeReservation ? `&reservationId=${activeReservation.id}` : ''}`}
-                            className="flex-1 flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
-                          >
-                            <BadgePercent className="h-3.5 w-3.5" />
-                            <span>Convertir en vente</span>
-                          </Link>
-                          <Link
-                            href={`/vehicles/${v.id}#reservations`}
-                            className="flex h-8 items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
-                          >
-                            <span>Gérer</span>
-                          </Link>
-                        </>
-                      )}
-
-                      {v.status === 'WORKSHOP' && (
-                        <>
-                          <Link
-                            href={`/vehicles/${v.id}#repairs`}
-                            className="flex-1 flex h-8 items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 text-xs font-bold text-white hover:bg-purple-500 transition-colors shadow-sm"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Clôturer réparation</span>
-                          </Link>
-                          <Link
-                            href={`/vehicles/${v.id}#repairs`}
-                            className="flex h-8 items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 text-xs font-semibold text-purple-300 hover:bg-purple-500/20"
-                          >
-                            <span>Détails</span>
-                          </Link>
-                        </>
-                      )}
-
-                      {(v.status === 'ARCHIVED' || v.status === 'SOLD') && (
-                        <div className="w-full space-y-2">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400 border border-zinc-700">
-                              {lastSale ? 'VENDU & ARCHIVÉ' : 'ARCHIVÉ — HORS STOCK'}
-                            </span>
-                            <span className="text-[10px] text-zinc-500 font-mono">
-                              {v.archivedAt ? new Date(v.archivedAt).toLocaleDateString('fr-FR') : 'Archive'}
-                            </span>
-                          </div>
-                          {lastSale && (
-                            <div className="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
-                              <span className="text-[11px] text-zinc-400 truncate max-w-[150px]">
-                                {lastSale.buyerName ? `Client : ${lastSale.buyerName}` : 'Vente clôturée'}
-                              </span>
-                              <Link
-                                href={`/sales/${lastSale.id}`}
-                                className="text-xs font-bold text-cyan-400 hover:underline flex items-center gap-1 shrink-0"
-                              >
-                                <span>Facture & Reçu</span>
-                                <FileText className="h-3.5 w-3.5" />
-                              </Link>
-                            </div>
-                          )}
-                          <RestoreVehicleButton
-                            vehicleId={v.id}
-                            vehicleTitle={`${v.brand} ${v.model}`}
-                            isSuperAdmin={activeUser.isSuperAdmin}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </VehicleCardWrapper>
-            )
-          })}
-          </div>
-
-          {/* Pagination Bar (9 voitures par page) */}
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={total}
-            pageSize={PAGE_SIZE}
-            itemName="véhicules"
-            createPageUrl={(p) => buildQueryUrl({ page: p === 1 ? undefined : String(p) })}
-          />
-        </div>
+        <VehiclesCatalogManager
+          vehicles={displayedVehicles.map((v) => ({
+            id: v.id,
+            code: v.code,
+            vin: v.vin,
+            matricule: v.matricule,
+            brand: v.brand,
+            model: v.model,
+            version: v.version,
+            bodyType: v.bodyType,
+            year: v.year,
+            colorExterior: v.colorExterior,
+            colorInterior: v.colorInterior,
+            fuelType: v.fuelType,
+            transmission: v.transmission,
+            mileage: v.mileage,
+            doors: v.doors,
+            seats: v.seats,
+            fiscalPower: v.fiscalPower,
+            location: v.location,
+            customsStatus: v.customsStatus,
+            customsYear: v.customsYear,
+            purchasePrice: v.purchasePrice,
+            targetSalePrice: v.targetSalePrice,
+            minSalePrice: v.minSalePrice,
+            actualSalePrice: v.actualSalePrice,
+            status: v.status,
+            description: v.description,
+            archivedAt: v.archivedAt ? v.archivedAt.toISOString() : null,
+            park: v.park
+              ? {
+                  id: v.park.id,
+                  code: v.park.code,
+                  name: v.park.name,
+                  city: v.park.city,
+                }
+              : null,
+            photos: v.photos.map((p) => ({
+              id: p.id,
+              url: p.url,
+              isPrimary: p.isPrimary,
+            })),
+            reservations: v.reservations.map((r) => ({
+              id: r.id,
+              status: r.status,
+              clientName: r.clientName,
+              depositAmount: r.depositAmount,
+            })),
+            repairs: v.repairs?.map((rep) => ({
+              id: rep.id,
+              status: rep.status,
+              repairType: rep.repairType,
+              garageName: rep.garageName,
+            })),
+            sales: v.sales.map((s) => ({
+              id: s.id,
+              buyerName: s.buyerName,
+            })),
+          }))}
+          total={total}
+          page={page}
+          totalPages={totalPages}
+          pageSize={PAGE_SIZE}
+          activeView={activeView}
+          vehicleCompletenessMap={completenessRecord}
+          isSuperAdmin={activeUser.isSuperAdmin}
+        />
       ) : (
         <EmptyState
           type="vehicles"

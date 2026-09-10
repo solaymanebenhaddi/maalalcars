@@ -76,3 +76,8 @@ storage/temp/*
 # Shared hosting build artifacts
 dist_shared_hosting/
 *.zip
+
+# Temporary and backup files
+*.bak
+~$*
+

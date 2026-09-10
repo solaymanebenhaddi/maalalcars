@@ -275,12 +275,21 @@ export const vehicleImportService = {
         missingFields.push('brand')
       }
 
-      // 4. Modèle (Auto-fallback: check type first, then def-Modèle)
+      // 4. Modèle (Auto-fallback: check type first or detect vintage in modele)
+      const rawType = normMap['type'] ? String(normMap['type']).trim() : ''
       const rawModel = normMap['modele'] || normMap['model'] || ''
       let model = String(rawModel).trim()
-      if (!model && normMap['type']) {
-        model = String(normMap['type']).trim()
+
+      // If "modele" looks like a year, serial date, or customs note and "type" has the vehicle model name
+      if (rawType && (!model || /^\d{4}$/.test(model) || /^\d{5}$/.test(model) || model.toUpperCase().includes('DOUANE'))) {
+        if (!normMap['version'] && model && model !== rawType) {
+          normMap['version'] = model
+        }
+        model = rawType
+      } else if (!model && rawType) {
+        model = rawType
       }
+
       if (!model) {
         model = 'def-Modèle'
         missingFields.push('model')
