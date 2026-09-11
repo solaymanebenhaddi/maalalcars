@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
-import { getAbsolutePath } from '@/lib/storage'
+import { getExistingFilePath } from '@/lib/storage'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,12 +13,6 @@ const MIME_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.pdf': 'application/pdf',
-}
-
-interface Props {
-  params: Promise<{
-    path: string[]
-  }>
 }
 
 export async function GET(
@@ -34,15 +28,9 @@ export async function GET(
     }
 
     const relativePath = pathSegments.join('/')
-    const absolutePath = getAbsolutePath(relativePath)
+    const absolutePath = await getExistingFilePath(relativePath)
 
-    // Check if file exists
-    try {
-      const stat = await fs.stat(absolutePath)
-      if (!stat.isFile()) {
-        return NextResponse.json({ error: 'Fichier non trouvé' }, { status: 404 })
-      }
-    } catch (_) {
+    if (!absolutePath) {
       return NextResponse.json({ error: 'Fichier non trouvé' }, { status: 404 })
     }
 
@@ -67,3 +55,4 @@ export async function GET(
     )
   }
 }
+

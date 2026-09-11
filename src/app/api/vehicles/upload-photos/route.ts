@@ -28,9 +28,11 @@ export async function POST(request: Request) {
     }
 
     const uploadedPhotos: Array<{
+      id?: string
       url: string
       name: string
       size: number
+      isPrimary?: boolean
     }> = []
 
     for (const file of files) {
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
       const hasPrimary = await prisma.vehiclePhoto.findFirst({ where: { vehicleId, isPrimary: true } })
 
       for (let i = 0; i < uploadedPhotos.length; i++) {
-        await prisma.vehiclePhoto.create({
+        const photoRecord = await prisma.vehiclePhoto.create({
           data: {
             vehicleId,
             url: uploadedPhotos[i].url,
@@ -88,6 +90,8 @@ export async function POST(request: Request) {
             category: 'EXTERIEUR',
           },
         })
+        uploadedPhotos[i].id = photoRecord.id
+        uploadedPhotos[i].isPrimary = photoRecord.isPrimary
       }
     }
 
@@ -99,8 +103,9 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error('Vehicle photo upload error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erreur lors du téléversement' },
+      { error: error instanceof Error ? error.message : 'Erreur lors du téléversement sur le serveur' },
       { status: 500 }
     )
   }
 }
+

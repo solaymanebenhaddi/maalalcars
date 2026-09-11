@@ -143,15 +143,16 @@ export function VehiclePhotoUploader({
 
       const data = (await res.json()) as {
         success: boolean
-        photos: Array<{ url: string; name: string; size: number }>
+        photos: Array<{ id?: string; url: string; name: string; size: number; isPrimary?: boolean }>
       }
 
       const newlyUploaded: VehiclePhotoItem[] = data.photos.map((p, idx) => {
         const meta = metaMap[p.name]
         return {
+          id: p.id,
           url: p.url,
           name: p.name,
-          isPrimary: photos.length === 0 && idx === 0,
+          isPrimary: p.isPrimary ?? (photos.length === 0 && idx === 0),
           originalSize: meta?.originalSize,
           optimizedSize: p.size,
         }

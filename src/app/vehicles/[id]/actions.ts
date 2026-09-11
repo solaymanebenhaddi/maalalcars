@@ -228,10 +228,19 @@ export async function addVehiclePhotosAction(
   const currentCount = await prisma.vehiclePhoto.count({ where: { vehicleId } })
   const availableSlots = Math.max(0, 10 - currentCount)
   if (availableSlots <= 0) {
-    throw new Error('Limite maximale de 10 photos déjà atteinte pour ce véhicule.')
+    return
   }
 
-  const photosToAdd = photos.slice(0, availableSlots)
+  // Check existing URLs to prevent duplicate entries
+  const existingPhotos = await prisma.vehiclePhoto.findMany({
+    where: { vehicleId },
+    select: { url: true },
+  })
+  const existingUrls = new Set(existingPhotos.map((p) => p.url))
+
+  const photosToAdd = photos.filter((p) => !existingUrls.has(p.url)).slice(0, availableSlots)
+  if (photosToAdd.length === 0) return
+
   const hasPrimary = await prisma.vehiclePhoto.findFirst({ where: { vehicleId, isPrimary: true } })
 
   for (let i = 0; i < photosToAdd.length; i++) {
@@ -250,6 +259,7 @@ export async function addVehiclePhotosAction(
   revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${vehicleId}`)
 }
+
 
 export async function syncVehiclePhotosAction(
   vehicleId: string,

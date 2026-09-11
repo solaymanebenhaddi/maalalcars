@@ -92,6 +92,8 @@ export function getAbsolutePath(relativePath: string): string {
 /**
  * Saves a buffer to storage under the given category.
  * Creates the target directory if it does not exist.
+ * Also mirrors the file into public/storage so that the web server (LiteSpeed)
+ * can serve it statically with zero Node.js thread overhead.
  */
 export async function saveFile(
   category: StorageCategory,
@@ -100,13 +102,52 @@ export async function saveFile(
 ): Promise<StoragePaths> {
   const paths = generateStoragePath(category, originalFilename)
 
-  // Ensure the category directory exists
+  // 1. Ensure the category directory exists in storage root
   const dir = path.dirname(paths.absolutePath)
-  await fs.mkdir(dir, { recursive: true })
-
+  await fs.mkdir(dir, { recursive: true, mode: 0o777 })
   await fs.writeFile(paths.absolutePath, fileBuffer)
 
+  // 2. Mirror into public/storage for high-speed direct static serving by LiteSpeed
+  try {
+    const publicStoragePath = path.join(process.cwd(), 'public', 'storage', paths.relativePath)
+    await fs.mkdir(path.dirname(publicStoragePath), { recursive: true, mode: 0o777 })
+    await fs.writeFile(publicStoragePath, fileBuffer)
+  } catch (_) {
+    // Non-fatal if public folder is read-only in some environments
+  }
+
   return paths
+}
+
+/**
+ * Finds an existing file across storage locations:
+ * 1. Primary storage root (storage/{relativePath})
+ * 2. Public storage mirror (public/storage/{relativePath})
+ * 3. Public root (public/{relativePath})
+ * Returns the absolute path if found and valid, or null.
+ */
+export async function getExistingFilePath(relativePath: string): Promise<string | null> {
+  // Guard against directory traversal
+  const sanitized = relativePath.replace(/^[/\\]+/, '').replace(/\.\.[/\\]/g, '')
+
+  const candidates = [
+    path.resolve(STORAGE_ROOT, sanitized),
+    path.resolve(process.cwd(), 'public', 'storage', sanitized),
+    path.resolve(process.cwd(), 'public', sanitized),
+  ]
+
+  for (const candidate of candidates) {
+    // Ensure candidate stays within expected directory
+    try {
+      const stat = await fs.stat(/*turbopackIgnore: true*/ candidate)
+      if (stat.isFile()) {
+        return candidate
+      }
+    } catch (_) {}
+
+  }
+
+  return null
 }
 
 /**
@@ -114,15 +155,20 @@ export async function saveFile(
  * Validates against traversal before deletion.
  */
 export async function deleteFile(relativePath: string): Promise<void> {
-  const absolutePath = getAbsolutePath(relativePath)
-
   try {
+    const absolutePath = getAbsolutePath(relativePath)
     await fs.unlink(absolutePath)
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       // File already gone – treat as success
-      return
+    } else {
+      throw error
     }
-    throw error
   }
+
+  // Also remove mirror in public/storage if present
+  try {
+    const publicMirror = path.resolve(process.cwd(), 'public', 'storage', relativePath)
+    await fs.unlink(publicMirror)
+  } catch (_) {}
 }

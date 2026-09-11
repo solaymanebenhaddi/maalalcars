@@ -104,6 +104,8 @@ jobs:
           echo "Assemblage des assets statiques, schéma Prisma et déclencheur de redémarrage..."
           mkdir -p .next/standalone/.next/static
           mkdir -p .next/standalone/public
+          mkdir -p .next/standalone/public/storage/vehicles
+          mkdir -p .next/standalone/storage/vehicles
           mkdir -p .next/standalone/prisma
           mkdir -p .next/standalone/tmp
           mkdir -p .next/standalone/scripts
@@ -157,7 +159,7 @@ jobs:
           cp scripts/diagnose.js .next/standalone/scripts/diagnose.js
           cp scripts/watchdog.js .next/standalone/scripts/watchdog.js
 
-          # Point d'entrée Phusion Passenger pour cPanel avec traçage temps réel et route /__debug
+          # Point d'entrée Phusion Passenger pour cPanel avec traçage temps réel et gestion sécurisée du pool
           cat << 'EOF' > .next/standalone/app.js
           // Point d'entrée Phusion Passenger / cPanel Node.js avec traçage temps réel
           process.env.NODE_ENV = process.env.NODE_ENV || 'production';
@@ -166,26 +168,17 @@ jobs:
           const fs = require('fs');
           const path = require('path');
 
-          // ═══════════════════════════════════════════════════════
-          // PID LOCKFILE — Kill previous instance before starting
-          // ═══════════════════════════════════════════════════════
-          const pidFile = path.join(__dirname, 'app.pid');
+          // Assurer l'existence et les permissions des dossiers de stockage pour les téléversements
           try {
-            if (fs.existsSync(pidFile)) {
-              const oldPid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
-              if (oldPid && oldPid !== process.pid) {
-                try {
-                  process.kill(oldPid, 0); // Check if alive
-                  process.kill(oldPid, 'SIGTERM');
-                  setTimeout(() => {
-                    try { process.kill(oldPid, 'SIGKILL'); } catch (_) {}
-                  }, 3000);
-                } catch (_) {} // Already dead — fine
-              }
+            const storages = [
+              path.join(__dirname, 'storage', 'vehicles'),
+              path.join(__dirname, 'public', 'storage', 'vehicles')
+            ];
+            for (const s of storages) {
+              fs.mkdirSync(s, { recursive: true, mode: 0o777 });
+              try { fs.chmodSync(s, 0o777); } catch (_) {}
             }
           } catch (_) {}
-          // Write our PID
-          try { fs.writeFileSync(pidFile, String(process.pid)); } catch (_) {}
 
           // Assurer les droits d'exécution et l'alias de runtime sur les moteurs binaires Prisma
           try {
@@ -226,9 +219,6 @@ jobs:
             if (isShuttingDown) return;
             isShuttingDown = true;
             log('🛑 [SHUTDOWN] Signal reçu: ' + signal + ' — arrêt gracieux...');
-            // Remove PID file
-            try { fs.unlinkSync(pidFile); } catch (_) {}
-            // Give ongoing requests 5s to finish, then force exit
             setTimeout(() => {
               log('🛑 [SHUTDOWN] Timeout — forçage de l\'arrêt.');
               process.exit(0);
@@ -243,7 +233,6 @@ jobs:
           process.on('unhandledRejection', (reason) => {
             log('💥 [REJECTION NON GÉRÉE] ' + (reason && reason.stack ? reason.stack : reason));
           });
-
 
           // 1. Charge les variables d'environnement depuis .env.production ou .env si présent
           try {
@@ -317,9 +306,18 @@ jobs:
             log('⚠️ Erreur init SQLite : ' + e.message);
           }
 
-          // 3.b Synchronisation automatique du schéma (tables et colonnes manquantes)
+          // 3.b Synchronisation automatique du schéma (une seule fois par version de template pour éviter les verrous)
           async function syncDatabaseSchema() {
             if (!templateDb || !fs.existsSync(templateDb) || !fs.existsSync(targetDb)) return;
+
+            let tplMtime = '0';
+            try { tplMtime = String(fs.statSync(templateDb).mtimeMs); } catch (_) {}
+            const syncMarker = path.join(__dirname, 'prisma', '.synced_' + tplMtime);
+            if (fs.existsSync(syncMarker)) {
+              log('ℹ️ [SYNC] Schéma SQLite déjà synchronisé avec ce template.');
+              return;
+            }
+
             log('🔄 Vérification et synchronisation du schéma SQLite...');
             const { PrismaClient } = require('@prisma/client');
             const syncPrisma = new PrismaClient({
@@ -391,6 +389,7 @@ jobs:
               }
 
               try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
+              try { fs.writeFileSync(syncMarker, new Date().toISOString()); } catch (_) {}
               log('✅ [SYNC] Synchronisation SQLite terminée avec succès.');
             } catch (err) {
               log('⚠️ [SYNC] Note synchronisation : ' + (err && err.message ? err.message : err));
@@ -399,39 +398,7 @@ jobs:
             }
           }
 
-          // 4. Nettoyage préventif des processus orphelins (anti-503 CloudLinux CageFS NPROC)
-          try {
-            const { execSync } = require('child_process');
-            const myPid = process.pid;
-            const myPpid = process.ppid;
-            // List all user processes with PID, PPID, elapsed time, and command
-            const ps = execSync('ps -u $(whoami) -o pid,ppid,etimes,comm,args --no-headers', { encoding: 'utf8', timeout: 5000 });
-            const procs = ps.split('\n').filter(l => l.trim()).map(l => {
-              const parts = l.trim().split(/\s+/);
-              return { pid: parseInt(parts[0],10), ppid: parseInt(parts[1],10), age: parseInt(parts[2],10), comm: parts[3]||'', args: parts.slice(4).join(' ') };
-            });
-            // Kill ALL other node processes except ourselves and our parent
-            const orphans = procs.filter(p => p.pid && p.pid !== myPid && p.pid !== myPpid && (p.comm === 'node' || p.comm === 'nodejs' || p.args.includes('server.js') || p.args.includes('app.js')));
-            if (orphans.length > 0) {
-              log('🧹 Nettoyage de ' + orphans.length + ' processus orphelin(s)...');
-              // SIGTERM first, then SIGKILL after 2s
-              orphans.forEach(p => {
-                try { process.kill(p.pid, 'SIGTERM'); log('🧹 SIGTERM → PID ' + p.pid + ' (age: ' + Math.round(p.age/60) + 'min, ' + p.comm + ')'); } catch (_) {}
-              });
-              // Wait 2s then force-kill any survivors
-              try {
-                execSync('sleep 2', { timeout: 3000 });
-              } catch (_) {}
-              orphans.forEach(p => {
-                try { process.kill(p.pid, 'SIGKILL'); } catch (_) {}
-              });
-              log('🧹 Nettoyage terminé.');
-            } else {
-              log('✅ Aucun processus orphelin détecté.');
-            }
-          } catch (e) { log('⚠️ Erreur nettoyage processus: ' + (e && e.message ? e.message : e)); }
-
-          // 5. Synchronisation de la base puis démarrage du serveur Next.js
+          // 4. Synchronisation de la base puis démarrage du serveur Next.js
           (async () => {
             try {
               await syncDatabaseSchema();
@@ -446,6 +413,7 @@ jobs:
 
           # Dupliquer app.js en App.js au cas où cPanel a été configuré avec une majuscule
           cp .next/standalone/app.js .next/standalone/App.js
+
 
           # Injecter un log trace et allowRetry: true au début de server.js
           node -e '
