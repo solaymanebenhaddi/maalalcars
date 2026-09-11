@@ -33,6 +33,9 @@ interface VehiclePhotoUploaderProps {
   onSetPrimaryPhoto?: (photoId: string) => Promise<void>
 }
 
+const normalizePhotoUrl = (url: string) =>
+  url.startsWith('/api/storage/') ? url.replace('/api/storage/', '/storage/') : url
+
 export function VehiclePhotoUploader({
   initialPhotos = [],
   vehicleId,
@@ -48,6 +51,7 @@ export function VehiclePhotoUploader({
       const hasPrimary = initialPhotos.some((p) => p.isPrimary)
       return initialPhotos.map((p, idx) => ({
         ...p,
+        url: normalizePhotoUrl(p.url),
         isPrimary: hasPrimary ? p.isPrimary : idx === 0,
       }))
     }
@@ -150,7 +154,7 @@ export function VehiclePhotoUploader({
         const meta = metaMap[p.name]
         return {
           id: p.id,
-          url: p.url,
+          url: normalizePhotoUrl(p.url),
           name: p.name,
           isPrimary: p.isPrimary ?? (photos.length === 0 && idx === 0),
           originalSize: meta?.originalSize,

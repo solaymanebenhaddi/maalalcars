@@ -1,0 +1,8 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAALAL CARS — LiteSpeed / Apache Direct Static Storage Rewrite Rules
+# ═══════════════════════════════════════════════════════════════════════════════
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Redirect any legacy /api/storage/ request to high-speed static /storage/
+  RewriteRule ^api/storage/(.*)$ /storage/$1 [R=307,L,NC]
+</IfModule>

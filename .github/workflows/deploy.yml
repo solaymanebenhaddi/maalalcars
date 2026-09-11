@@ -115,6 +115,8 @@ jobs:
 
           # Copie du dossier public (images, roue Michelin, logos)
           cp -r public/* .next/standalone/public/
+          cp public/.htaccess .next/standalone/public/.htaccess 2>/dev/null || true
+          cp public/.htaccess .next/standalone/.htaccess 2>/dev/null || true
 
           # Copie du schéma Prisma et des migrations
           cp -r prisma/* .next/standalone/prisma/
@@ -405,6 +407,21 @@ jobs:
             } catch (errSyncBoot) {
               log('⚠️ Erreur pré-démarrage sync DB : ' + errSyncBoot.message);
             }
+            // Migration rapide des URLs photos et documents en base
+            try {
+              if (targetDb && fs.existsSync(targetDb)) {
+                const { PrismaClient } = require('@prisma/client');
+                const quickPrisma = new PrismaClient({ datasources: { db: { url: 'file:' + targetDb } } });
+                await quickPrisma.$executeRawUnsafe(`UPDATE "VehiclePhoto" SET "url" = REPLACE("url", '/api/storage/', '/storage/') WHERE "url" LIKE '/api/storage/%'`);
+                await quickPrisma.$executeRawUnsafe(`UPDATE "Vehicle" SET "imageUrl" = REPLACE("imageUrl", '/api/storage/', '/storage/') WHERE "imageUrl" LIKE '/api/storage/%'`);
+                await quickPrisma.$executeRawUnsafe(`UPDATE "Document" SET "fileUrl" = REPLACE("fileUrl", '/api/storage/', '/storage/') WHERE "fileUrl" LIKE '/api/storage/%'`);
+                await quickPrisma.$disconnect();
+                log('✅ [MIGRATION] URLs photos et documents migrées vers /storage/');
+              }
+            } catch (errQuick) {
+              log('ℹ️ [MIGRATION] Note: ' + (errQuick && errQuick.message ? errQuick.message : errQuick));
+            }
+
             log('⏳ Chargement de ./server.js...');
             require('./server.js');
             log('✅ ./server.js requis sans erreur synchrone');

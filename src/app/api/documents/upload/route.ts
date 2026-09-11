@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     // Save to storage/documents
     const saved = await saveFile('documents', buffer, file.name)
-    const fileUrl = `/api/storage/${saved.relativePath.replace(/\\/g, '/')}`
+    const fileUrl = `/storage/${saved.relativePath.replace(/\\/g, '/')}`
 
     // Count for unique document code
     const count = await prisma.document.count()

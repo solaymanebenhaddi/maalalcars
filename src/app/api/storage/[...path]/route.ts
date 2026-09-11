@@ -1,22 +1,9 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
-import { getExistingFilePath } from '@/lib/storage'
 
 export const dynamic = 'force-dynamic'
 
-const MIME_TYPES: Record<string, string> = {
-  '.webp': 'image/webp',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.pdf': 'application/pdf',
-}
-
 export async function GET(
-  _request: Request,
+  request: Request,
   context?: { params?: Promise<{ path: string[] }> | { path: string[] } }
 ) {
   try {
@@ -28,31 +15,16 @@ export async function GET(
     }
 
     const relativePath = pathSegments.join('/')
-    const absolutePath = await getExistingFilePath(relativePath)
+    const redirectUrl = new URL(`/storage/${relativePath}`, request.url)
 
-    if (!absolutePath) {
-      return NextResponse.json({ error: 'Fichier non trouvé' }, { status: 404 })
-    }
-
-    const ext = path.extname(absolutePath).toLowerCase()
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream'
-
-    const fileBuffer = await fs.readFile(absolutePath)
-
-    return new Response(new Uint8Array(fileBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Content-Length': fileBuffer.length.toString(),
-      },
-    })
+    return NextResponse.redirect(redirectUrl, 307)
   } catch (error: unknown) {
-    console.error('Storage route error:', error)
+    console.error('Storage route redirect error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erreur de lecture du fichier' },
+      { error: error instanceof Error ? error.message : 'Erreur de redirection de fichier' },
       { status: 500 }
     )
   }
 }
+
 

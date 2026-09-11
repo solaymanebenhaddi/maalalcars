@@ -65,8 +65,8 @@ export async function POST(request: Request) {
       // Save to storage/vehicles
       const saved = await saveFile('vehicles', buffer, filename)
 
-      // Generate public API URL
-      const publicUrl = `/api/storage/${saved.relativePath.replace(/\\/g, '/')}`
+      // Generate public static URL
+      const publicUrl = `/storage/${saved.relativePath.replace(/\\/g, '/')}`
 
       uploadedPhotos.push({
         url: publicUrl,

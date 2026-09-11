@@ -305,9 +305,9 @@ export async function deleteVehiclePhotoAction(photoId: string, url?: string) {
   }
 
   // Attempt to delete file from storage
-  if (url && url.startsWith('/api/storage/')) {
+  if (url && (url.startsWith('/storage/') || url.startsWith('/api/storage/'))) {
     try {
-      const relativePath = url.replace('/api/storage/', '')
+      const relativePath = url.replace(/^\/?(api\/)?storage\//, '')
       const { deleteFile } = await import('@/lib/storage')
       await deleteFile(relativePath)
     } catch (_) {}

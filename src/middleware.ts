@@ -29,6 +29,7 @@ export function middleware(request: NextRequest) {
     pathname === '/api/auth/login' ||
     pathname === '/api/features' ||
     pathname.startsWith('/api/storage/') ||
+    pathname.startsWith('/storage/') ||
     (isStaticAsset && !pathname.startsWith('/api/'))
   ) {
     return NextResponse.next()

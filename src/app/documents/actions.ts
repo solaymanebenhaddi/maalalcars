@@ -43,7 +43,7 @@ export async function uploadDocumentAction(formData: FormData) {
   const buffer = Buffer.from(arrayBuffer)
 
   const saved = await saveFile('documents', buffer, file.name)
-  const fileUrl = `/api/storage/${saved.relativePath.replace(/\\/g, '/')}`
+  const fileUrl = `/storage/${saved.relativePath.replace(/\\/g, '/')}`
 
   const count = await prisma.document.count()
   const code = `DOC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`
@@ -131,9 +131,9 @@ export async function deleteDocumentAction(documentId: string, revalidateTarget?
 
   await prisma.document.delete({ where: { id: documentId } })
 
-  if (document.fileUrl && document.fileUrl.startsWith('/api/storage/')) {
+  if (document.fileUrl && (document.fileUrl.startsWith('/storage/') || document.fileUrl.startsWith('/api/storage/'))) {
     try {
-      const relativePath = document.fileUrl.replace('/api/storage/', '')
+      const relativePath = document.fileUrl.replace(/^\/?(api\/)?storage\//, '')
       await deleteFile(relativePath)
     } catch (_) {}
   }

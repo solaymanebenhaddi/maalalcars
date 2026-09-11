@@ -30,9 +30,9 @@ export async function DELETE(request: Request, { params }: Props) {
     await prisma.document.delete({ where: { id } })
 
     // Try deleting physical file
-    if (document.fileUrl && document.fileUrl.startsWith('/api/storage/')) {
+    if (document.fileUrl && (document.fileUrl.startsWith('/storage/') || document.fileUrl.startsWith('/api/storage/'))) {
       try {
-        const relativePath = document.fileUrl.replace('/api/storage/', '')
+        const relativePath = document.fileUrl.replace(/^\/?(api\/)?storage\//, '')
         await deleteFile(relativePath)
       } catch (err) {
         console.warn('Could not delete physical file:', err)
