@@ -21,11 +21,15 @@ interface Props {
   }>
 }
 
-export async function GET(request: Request, { params }: Props) {
+export async function GET(
+  _request: Request,
+  context?: { params?: Promise<{ path: string[] }> | { path: string[] } }
+) {
   try {
-    const { path: pathSegments } = await params
+    const rawParams = context?.params ? await context.params : null
+    const pathSegments = rawParams?.path
 
-    if (!pathSegments || pathSegments.length === 0) {
+    if (!pathSegments || !Array.isArray(pathSegments) || pathSegments.length === 0) {
       return NextResponse.json({ error: 'Chemin introuvable' }, { status: 400 })
     }
 
@@ -47,7 +51,7 @@ export async function GET(request: Request, { params }: Props) {
 
     const fileBuffer = await fs.readFile(absolutePath)
 
-    return new NextResponse(fileBuffer, {
+    return new Response(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': contentType,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/session'
 import { saveFile } from '@/lib/storage'
+import prisma from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,14 +14,15 @@ export async function POST(request: Request) {
 
     const formData = await request.formData()
     const files = formData.getAll('photos') as File[]
+    const vehicleId = formData.get('vehicleId') as string | null
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
-    if (files.length > 10) {
+    if (files.length > 20) {
       return NextResponse.json(
-        { error: 'Vous ne pouvez pas téléverser plus de 10 photos simultanément' },
+        { error: 'Vous ne pouvez pas téléverser plus de 20 photos simultanément' },
         { status: 400 }
       )
     }
@@ -69,6 +71,24 @@ export async function POST(request: Request) {
         name: file.name,
         size: file.size,
       })
+    }
+
+    // If vehicleId is provided, associate photos directly in the database
+    if (vehicleId && uploadedPhotos.length > 0) {
+      const currentCount = await prisma.vehiclePhoto.count({ where: { vehicleId } })
+      const hasPrimary = await prisma.vehiclePhoto.findFirst({ where: { vehicleId, isPrimary: true } })
+
+      for (let i = 0; i < uploadedPhotos.length; i++) {
+        await prisma.vehiclePhoto.create({
+          data: {
+            vehicleId,
+            url: uploadedPhotos[i].url,
+            isPrimary: !hasPrimary && i === 0,
+            order: currentCount + i,
+            category: 'EXTERIEUR',
+          },
+        })
+      }
     }
 
     return NextResponse.json({
