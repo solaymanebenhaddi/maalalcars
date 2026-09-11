@@ -7,10 +7,27 @@ export function middleware(request: NextRequest) {
 
   const isStaticAsset = /\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|eot)$/i.test(pathname)
 
-  // 1. Allow Next.js internal files, login endpoint, storage assets, and static assets (excluding other /api/)
+  // 0. Enforce HTTPS in production
+  const proto = request.headers.get('x-forwarded-proto')
+  if (proto === 'http' && process.env.NODE_ENV === 'production') {
+    const httpsUrl = new URL(request.url)
+    httpsUrl.protocol = 'https:'
+    return NextResponse.redirect(httpsUrl, 301)
+  }
+
+  // 0.b Security: Strip any accidentally leaked credentials from URL query parameters
+  if (pathname === '/login' && (request.nextUrl.searchParams.has('password') || request.nextUrl.searchParams.has('email'))) {
+    const cleanUrl = new URL('/login', request.url)
+    const callbackUrl = request.nextUrl.searchParams.get('callbackUrl')
+    if (callbackUrl) cleanUrl.searchParams.set('callbackUrl', callbackUrl)
+    return NextResponse.redirect(cleanUrl, 302)
+  }
+
+  // 1. Allow Next.js internal files, login endpoint, features flags, storage assets, and static assets (excluding other /api/)
   if (
     pathname.startsWith('/_next') ||
     pathname === '/api/auth/login' ||
+    pathname === '/api/features' ||
     pathname.startsWith('/api/storage/') ||
     (isStaticAsset && !pathname.startsWith('/api/'))
   ) {

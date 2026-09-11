@@ -41,6 +41,16 @@ export default function LoginPage() {
     return () => clearInterval(timer)
   }, [lockoutRemaining])
 
+  // Security: Immediately purge any credentials accidentally passed in the browser URL
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window.location.search.includes('password') || window.location.search.includes('email'))) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('password')
+      url.searchParams.delete('email')
+      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+    }
+  }, [])
+
   const isLocked = lockoutRemaining > 0
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -148,7 +158,7 @@ export default function LoginPage() {
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleLogin} className="space-y-4" noValidate>
+        <form method="POST" action="/api/auth/login" onSubmit={handleLogin} className="space-y-4" noValidate>
           {/* Identifiant / Email */}
           <div>
             <label
@@ -161,8 +171,8 @@ export default function LoginPage() {
               <Mail className="absolute left-4 h-[18px] w-[18px] text-zinc-400 pointer-events-none" />
               <input
                 id="email"
-                type="email"
                 name="email"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@payroll.com"
@@ -186,8 +196,8 @@ export default function LoginPage() {
               <Lock className="absolute left-4 h-[18px] w-[18px] text-zinc-400 pointer-events-none" />
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
                 name="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••"
