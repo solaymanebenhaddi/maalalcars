@@ -16,7 +16,10 @@ import {
   CheckCircle,
   Building2,
   MapPin,
+  ArrowLeftRight,
+  ExternalLink,
 } from 'lucide-react'
+import { fromMinorUnits } from '@/domain/vehicle'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Currency } from '@/components/shared/currency'
@@ -196,6 +199,129 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
         info={info}
         dismissHref={`/vehicles/${vehicle.id}?tab=${tab}`}
       />
+
+      {/* Exchanged Outgoing Vehicle Banner */}
+      {(vehicle.status === 'ECHANGE' || vehicle.exchangeAsOutgoing) && (
+        <div className="rounded-2xl border-2 border-indigo-500/40 bg-gradient-to-r from-indigo-950/40 via-[#131220] to-indigo-950/20 p-5 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-900/50 shrink-0">
+                <ArrowLeftRight className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 text-xs uppercase tracking-wider border border-indigo-500/30">
+                    Sorti du parc par reprise / échange
+                  </span>
+                  <span className="text-xs text-zinc-400 font-mono">
+                    {vehicle.exchangeAsOutgoing?.createdAt
+                      ? new Date(vehicle.exchangeAsOutgoing.createdAt).toLocaleDateString('fr-MA')
+                      : (vehicle.archivedAt ? new Date(vehicle.archivedAt).toLocaleDateString('fr-MA') : '')}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Ce véhicule a été cédé en échange contre{' '}
+                  {vehicle.exchangeAsOutgoing?.incomingVehicle ? (
+                    <Link
+                      href={`/vehicles/${vehicle.exchangeAsOutgoing.incomingVehicle.id}`}
+                      className="text-indigo-300 underline hover:text-white transition-colors"
+                    >
+                      {vehicle.exchangeAsOutgoing.incomingVehicle.brand}{' '}
+                      {vehicle.exchangeAsOutgoing.incomingVehicle.model} (
+                      {vehicle.exchangeAsOutgoing.incomingVehicle.year})
+                    </Link>
+                  ) : (
+                    'un nouveau véhicule'
+                  )}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-300 mt-1 font-mono">
+                  <span>
+                    Valeur de reprise convenue :{' '}
+                    <strong className="text-amber-400">
+                      {vehicle.exchangeAsOutgoing?.outgoingVehicleValue
+                        ? fromMinorUnits(vehicle.exchangeAsOutgoing.outgoingVehicleValue).toLocaleString('fr-MA')
+                        : vehicle.purchasePrice.toLocaleString('fr-MA')}{' '}
+                      DH
+                    </strong>
+                  </span>
+                  {vehicle.exchangeAsOutgoing?.cashAdjustmentDirection !== 'NONE' && (
+                    <span>
+                      Soulte :{' '}
+                      <strong className="text-white">
+                        {vehicle.exchangeAsOutgoing?.cashAdjustmentAmount
+                          ? fromMinorUnits(vehicle.exchangeAsOutgoing.cashAdjustmentAmount).toLocaleString('fr-MA')
+                          : '0'}{' '}
+                        DH
+                      </strong>{' '}
+                      (
+                      {vehicle.exchangeAsOutgoing?.cashAdjustmentDirection === 'COMPANY_TO_SUPPLIER'
+                        ? 'versée au fournisseur'
+                        : 'reçue du fournisseur'}
+                      )
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {vehicle.exchangeAsOutgoing?.incomingVehicle && (
+              <Link
+                href={`/vehicles/${vehicle.exchangeAsOutgoing.incomingVehicle.id}`}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition-all shadow-md shrink-0"
+              >
+                <span>Voir le nouveau véhicule acquis</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Incoming Vehicle Acquired Through Reprise Banner */}
+      {vehicle.exchangeAsIncoming && (
+        <div className="rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-[#101814] to-emerald-950/20 p-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 shrink-0">
+                <ArrowLeftRight className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 text-xs uppercase tracking-wider border border-emerald-500/30">
+                    Acquis par reprise / échange
+                  </span>
+                  <span className="text-xs text-zinc-400 font-mono">
+                    {new Date(vehicle.exchangeAsIncoming.createdAt).toLocaleDateString('fr-MA')}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-300 mt-0.5">
+                  Véhicule cédé en contrepartie :{' '}
+                  <Link
+                    href={`/vehicles/${vehicle.exchangeAsIncoming.outgoingVehicle.id}`}
+                    className="text-emerald-300 font-bold underline hover:text-white"
+                  >
+                    {vehicle.exchangeAsIncoming.outgoingVehicle.brand}{' '}
+                    {vehicle.exchangeAsIncoming.outgoingVehicle.model} (
+                    {vehicle.exchangeAsIncoming.outgoingVehicle.year})
+                  </Link>{' '}
+                  — Valeur :{' '}
+                  <strong className="text-white font-mono">
+                    {fromMinorUnits(vehicle.exchangeAsIncoming.outgoingVehicleValue).toLocaleString('fr-MA')} DH
+                  </strong>
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href={`/vehicles/${vehicle.exchangeAsIncoming.outgoingVehicle.id}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-300 hover:text-white transition-all shrink-0"
+            >
+              <span>Consulter l&apos;archive du véhicule cédé</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Formulaire d'édition intégrale de la fiche véhicule */}
       {action === 'edit-vehicle' && (
@@ -574,6 +700,179 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
           {/* STAGE 2 / TAB 2: ACQUISITION & FOURNISSEUR & COMMISSIONNAIRE (OPTIONNEL) */}
           {tab === 'acquisition' && (
             <div className="space-y-6">
+              {/* Dossier de Reprise / Échange (Cross-Reference Incoming) */}
+              {vehicle.exchangeAsIncoming && (
+                <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-[#1c1812] to-[#121216] p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <ArrowLeftRight className="h-5 w-5 text-amber-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                          Mode d&apos;Acquisition : REPRISE / ÉCHANGE
+                        </h3>
+                        <p className="text-xs text-zinc-400">
+                          Véhicule intégré au parc suite à l&apos;échange d&apos;un véhicule existant de MAALAL CARS
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-amber-500/20 text-amber-300 px-2.5 py-0.5 text-xs font-mono font-bold border border-amber-500/30">
+                      {vehicle.exchangeAsIncoming.code}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Véhicule Donné en Échange (Cédé)
+                      </span>
+                      <Link
+                        href={`/vehicles/${vehicle.exchangeAsIncoming.outgoingVehicle.id}`}
+                        className="font-bold text-amber-300 hover:underline flex items-center gap-1 text-sm truncate"
+                      >
+                        <span>
+                          {vehicle.exchangeAsIncoming.outgoingVehicle.brand}{' '}
+                          {vehicle.exchangeAsIncoming.outgoingVehicle.model} (
+                          {vehicle.exchangeAsIncoming.outgoingVehicle.year})
+                        </span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </Link>
+                      <span className="text-zinc-500 block font-mono text-[11px]">
+                        Matricule : {vehicle.exchangeAsIncoming.outgoingVehicle.matricule || vehicle.exchangeAsIncoming.outgoingVehicle.code}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Valeur Convenue de Reprise
+                      </span>
+                      <span className="text-base font-bold font-mono text-amber-400 block">
+                        {fromMinorUnits(vehicle.exchangeAsIncoming.outgoingVehicleValue).toLocaleString('fr-MA')} DH
+                      </span>
+                      <span className="text-zinc-500 block text-[11px]">
+                        Valeur allouée au véhicule cédé
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Soulte (Ajustement Financier)
+                      </span>
+                      <span className="text-base font-bold font-mono text-white block">
+                        {vehicle.exchangeAsIncoming.cashAdjustmentDirection === 'NONE'
+                          ? '0 DH'
+                          : `${fromMinorUnits(vehicle.exchangeAsIncoming.cashAdjustmentAmount).toLocaleString('fr-MA')} DH`}
+                      </span>
+                      <span className="text-amber-400 font-semibold block text-[11px]">
+                        {vehicle.exchangeAsIncoming.cashAdjustmentDirection === 'COMPANY_TO_SUPPLIER' &&
+                          'Versée au fournisseur par MAALAL CARS'}
+                        {vehicle.exchangeAsIncoming.cashAdjustmentDirection === 'SUPPLIER_TO_COMPANY' &&
+                          'Versée par le fournisseur à MAALAL CARS'}
+                        {vehicle.exchangeAsIncoming.cashAdjustmentDirection === 'NONE' &&
+                          'Aucune soulte (échange équilibré)'}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Opération Traitée Par
+                      </span>
+                      <span className="font-bold text-cyan-300 block text-sm">
+                        {vehicle.exchangeAsIncoming.handledBy?.name || 'Direction MAALAL CARS'}
+                      </span>
+                      <span className="text-zinc-500 block font-mono text-[11px]">
+                        Mode : {vehicle.exchangeAsIncoming.paymentMethod || 'VIREMENT'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Dossier de Sortie par Reprise (Cross-Reference Outgoing) */}
+              {vehicle.exchangeAsOutgoing && (
+                <div className="rounded-2xl border-2 border-indigo-500/40 bg-gradient-to-br from-[#161424] to-[#121216] p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <ArrowLeftRight className="h-5 w-5 text-indigo-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                          Sorti du Parc par Reprise / Échange
+                        </h3>
+                        <p className="text-xs text-zinc-400">
+                          Ce véhicule a quitté l&apos;inventaire actif en contrepartie d&apos;une nouvelle acquisition
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 text-xs font-mono font-bold border border-indigo-500/30">
+                      {vehicle.exchangeAsOutgoing.code}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Échangé Contre (Nouveau Véhicule)
+                      </span>
+                      <Link
+                        href={`/vehicles/${vehicle.exchangeAsOutgoing.incomingVehicle.id}`}
+                        className="font-bold text-indigo-300 hover:underline flex items-center gap-1 text-sm truncate"
+                      >
+                        <span>
+                          {vehicle.exchangeAsOutgoing.incomingVehicle.brand}{' '}
+                          {vehicle.exchangeAsOutgoing.incomingVehicle.model} (
+                          {vehicle.exchangeAsOutgoing.incomingVehicle.year})
+                        </span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </Link>
+                      <span className="text-zinc-500 block font-mono text-[11px]">
+                        Code : {vehicle.exchangeAsOutgoing.incomingVehicle.code}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Valeur de Reprise Convenue
+                      </span>
+                      <span className="text-base font-bold font-mono text-amber-400 block">
+                        {fromMinorUnits(vehicle.exchangeAsOutgoing.outgoingVehicleValue).toLocaleString('fr-MA')} DH
+                      </span>
+                      <span className="text-zinc-500 block text-[11px]">
+                        Valeur accordée au véhicule lors de la sortie
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Soulte (Ajustement Financier)
+                      </span>
+                      <span className="text-base font-bold font-mono text-white block">
+                        {vehicle.exchangeAsOutgoing.cashAdjustmentDirection === 'NONE'
+                          ? '0 DH'
+                          : `${fromMinorUnits(vehicle.exchangeAsOutgoing.cashAdjustmentAmount).toLocaleString('fr-MA')} DH`}
+                      </span>
+                      <span className="text-indigo-300 font-semibold block text-[11px]">
+                        {vehicle.exchangeAsOutgoing.cashAdjustmentDirection === 'COMPANY_TO_SUPPLIER' &&
+                          'Soulte versée au fournisseur'}
+                        {vehicle.exchangeAsOutgoing.cashAdjustmentDirection === 'SUPPLIER_TO_COMPANY' &&
+                          'Soulte reçue du fournisseur'}
+                        {vehicle.exchangeAsOutgoing.cashAdjustmentDirection === 'NONE' &&
+                          'Échange équilibré sans soulte'}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#282834] bg-[#16161c] p-3 space-y-1">
+                      <span className="text-zinc-400 block text-[10px] uppercase font-bold">
+                        Date & Opérateur
+                      </span>
+                      <span className="font-bold text-white block text-sm font-mono">
+                        {new Date(vehicle.exchangeAsOutgoing.createdAt).toLocaleDateString('fr-MA')}
+                      </span>
+                      <span className="text-cyan-400 block text-[11px]">
+                        Par {vehicle.exchangeAsOutgoing.handledBy?.name || 'Direction'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Détails Financiers de l'Acquisition */}
                 <div className="rounded-2xl border border-[#222228] bg-[#121216] p-5 shadow-sm space-y-4">

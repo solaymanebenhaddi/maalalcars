@@ -139,7 +139,7 @@ export const vehicleStateMachine = {
         where: { id: vehicleId },
         data: {
           status: toStatus,
-          ...(toStatus === 'ARCHIVED' ? { archivedAt: new Date() } : {}),
+          ...(toStatus === 'ARCHIVED' || toStatus === 'ECHANGE' ? { archivedAt: new Date() } : {}),
           ...(toStatus === 'IN_STOCK' ? { archivedAt: null } : {}),
         },
       })

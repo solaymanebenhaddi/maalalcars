@@ -27,12 +27,17 @@ export function buildVehicleWhere(params: VehicleFilterParams = {}): Prisma.Vehi
         { status: 'ARCHIVED' },
         { archivedAt: { not: null } },
         { status: 'SOLD' },
+        { status: 'ECHANGE' },
       ],
     })
-  } else {
-    // Strictly hide archived & sold vehicles from general inventory and "Tous"
+  } else if (params.status === 'ECHANGE') {
     andConditions.push({
-      status: { notIn: ['ARCHIVED', 'SOLD'] },
+      status: 'ECHANGE',
+    })
+  } else {
+    // Strictly hide archived, sold, & exchanged vehicles from general inventory and "Tous"
+    andConditions.push({
+      status: { notIn: ['ARCHIVED', 'SOLD', 'ECHANGE'] },
       archivedAt: null,
     })
 
@@ -190,6 +195,22 @@ export const vehicleRepository = {
         statusHistory: {
           orderBy: { createdAt: 'desc' },
         },
+        exchangeAsIncoming: {
+          include: {
+            outgoingVehicle: {
+              include: { photos: { where: { isPrimary: true }, take: 1 } },
+            },
+            handledBy: { select: { id: true, name: true } },
+          },
+        },
+        exchangeAsOutgoing: {
+          include: {
+            incomingVehicle: {
+              include: { photos: { where: { isPrimary: true }, take: 1 } },
+            },
+            handledBy: { select: { id: true, name: true } },
+          },
+        },
       },
     })
   },
@@ -217,6 +238,7 @@ export const vehicleRepository = {
           { status: 'ARCHIVED' },
           { archivedAt: { not: null } },
           { status: 'SOLD' },
+          { status: 'ECHANGE' },
         ],
       },
     })
@@ -376,5 +398,52 @@ export const vehicleRepository = {
       archivedCount,
       results,
     }
+  },
+
+  /**
+   * Returns active vehicles in stock eligible to be ceded in an exchange.
+   * Strictly enforces:
+   * - status is IN_STOCK
+   * - not archived
+   * - no active reservations
+   * - no in-progress repairs
+   */
+  async getEligibleForExchange() {
+    return prisma.vehicle.findMany({
+      where: {
+        status: 'IN_STOCK',
+        archivedAt: null,
+        reservations: {
+          none: {
+            status: 'ACTIVE',
+          },
+        },
+        repairs: {
+          none: {
+            status: 'EN_COURS',
+          },
+        },
+      },
+      select: {
+        id: true,
+        code: true,
+        brand: true,
+        model: true,
+        version: true,
+        year: true,
+        matricule: true,
+        mileage: true,
+        purchasePrice: true,
+        targetSalePrice: true,
+        status: true,
+        location: true,
+        photos: {
+          where: { isPrimary: true },
+          select: { url: true },
+          take: 1,
+        },
+      },
+      orderBy: [{ brand: 'asc' }, { model: 'asc' }, { year: 'desc' }],
+    })
   },
 }

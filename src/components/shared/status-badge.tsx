@@ -49,6 +49,15 @@ export function StatusBadge({ status, className, dot = true }: StatusBadgeProps)
           bg: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30',
           dotBg: 'bg-zinc-400',
         }
+      case 'ECHANGE':
+      case 'ÉCHANGÉ':
+      case 'ECHANGEE':
+      case 'EXCHANGED':
+        return {
+          label: 'Échangé',
+          bg: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+          dotBg: 'bg-indigo-400',
+        }
       case 'EN_COURS':
         return {
           label: 'En cours',

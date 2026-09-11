@@ -43,6 +43,7 @@ model User {
   purchaseCommissionsPaid Purchase[]          @relation("PurchaseCommissionPaidBy")
   saleCommissionsPaid Sale[]                  @relation("SaleCommissionPaidBy")
   salesReceived       Sale[]                  @relation("SaleReceivedBy")
+  exchangesHandled    VehicleExchange[]       @relation("ExchangeHandledBy")
 }
 
 model Role {
@@ -286,6 +287,8 @@ model Vehicle {
   statusHistory   VehicleStatusHistory[]
   financingApplications FinancingApplication[]
   repairs         Repair[]
+  exchangeAsIncoming   VehicleExchange? @relation("IncomingVehicleExchange")
+  exchangeAsOutgoing   VehicleExchange? @relation("OutgoingVehicleExchange")
 }
 
 model Park {
@@ -402,6 +405,42 @@ model Purchase {
 
   payments           Payment[]
   documents          Document[]
+}
+
+// ==========================================
+// 6bis. REPRISE & ÉCHANGE DE VÉHICULES
+// ==========================================
+
+model VehicleExchange {
+  id                      String    @id @default(cuid())
+  code                    String    @unique // ECH-2026-0001
+
+  // Relations directes avec les véhicules
+  incomingVehicleId       String    @unique
+  incomingVehicle         Vehicle   @relation("IncomingVehicleExchange", fields: [incomingVehicleId], references: [id], onDelete: Restrict)
+  outgoingVehicleId       String    @unique
+  outgoingVehicle         Vehicle   @relation("OutgoingVehicleExchange", fields: [outgoingVehicleId], references: [id], onDelete: Restrict)
+
+  // Valeurs monétaires autoritaires (unités mineures entières / centimes : 1 DH = 100 centimes)
+  incomingVehicleValue    Int       // Valeur du véhicule reçu (en centimes)
+  outgoingVehicleValue    Int       // Valeur du véhicule cédé en reprise (en centimes)
+  cashAdjustmentDirection String    // NONE, COMPANY_TO_SUPPLIER, SUPPLIER_TO_COMPANY
+  cashAdjustmentAmount    Int       @default(0) // Montant de la soulte (en centimes)
+
+  paymentMethod           String?   // ESPECES, VIREMENT, CHEQUE, AUTRE
+  handledById             String?
+  handledBy               User?     @relation("ExchangeHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+
+  // Snapshot Fournisseur / Cédant (MVP)
+  supplierName            String?
+  supplierPhone           String?
+  supplierCin             String?
+  supplierAddress         String?
+  supplierCity            String?   @default("Casablanca")
+
+  notes                   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 }
 
 // ==========================================

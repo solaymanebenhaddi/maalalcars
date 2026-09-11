@@ -3,7 +3,7 @@ import { positiveMoneySchema } from './common'
 
 export const vehicleFuelTypes = ['DIESEL', 'ESSENCE', 'HYBRIDE', 'HYBRIDE_RECHARGEABLE', 'ELECTRIQUE'] as const
 export const vehicleTransmissions = ['AUTOMATIQUE', 'MANUELLE', 'SEMI_AUTO', 'ROBOTISEE'] as const
-export const vehicleStatuses = ['IN_STOCK', 'RESERVED', 'SOLD', 'WORKSHOP', 'TRANSIT', 'ARCHIVED'] as const
+export const vehicleStatuses = ['IN_STOCK', 'RESERVED', 'SOLD', 'WORKSHOP', 'TRANSIT', 'ARCHIVED', 'ECHANGE'] as const
 export const vehicleBodyTypes = ['SUV', 'Berline', '4x4 & Pick-up', 'Citadine', 'Utilitaire', 'Coupé'] as const
 export const vehicleCustomsStatuses = ['MAROC', 'DEDOUANEE'] as const
 

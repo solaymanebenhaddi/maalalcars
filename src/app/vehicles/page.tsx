@@ -83,6 +83,7 @@ export default async function VehiclesPage({ searchParams }: Props) {
   })
 
   const counts = await vehicleRepository.countByStatus()
+  const exchangedCount = await prisma.vehicle.count({ where: { status: 'ECHANGE' } })
   const distinctBrands = await prisma.vehicle.findMany({
     where: { archivedAt: null, status: { not: 'ARCHIVED' } },
     select: { brand: true },
@@ -96,7 +97,7 @@ export default async function VehiclesPage({ searchParams }: Props) {
     { label: 'En stock', value: 'IN_STOCK', count: counts.inStock, color: 'text-emerald-400' },
     { label: 'Réservés', value: 'RESERVED', count: counts.reserved, color: 'text-amber-400' },
     { label: 'En réparation', value: 'WORKSHOP', count: counts.workshop, color: 'text-purple-400' },
-    { label: 'Archivés (Vendus & Retirés)', value: 'ARCHIVED', count: counts.archived, color: 'text-zinc-400' },
+    { label: 'Archivés (Vendus & Sortis)', value: 'ARCHIVED', count: counts.archived, color: 'text-zinc-400' },
   ]
 
   const buildQueryUrl = (newParams: Record<string, string | undefined>) => {
@@ -263,6 +264,38 @@ export default async function VehiclesPage({ searchParams }: Props) {
           }))}
         />
       </div>
+
+      {/* Archive Sub-Filter for Exchanged vs Sold/Other */}
+      {(activeStatus === 'ARCHIVED' || activeStatus === 'ECHANGE') && (
+        <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 text-xs">
+          <span className="text-zinc-400 font-semibold mr-1">Filtre d&apos;archive :</span>
+          <Link
+            href={buildQueryUrl({ status: 'ARCHIVED' })}
+            className={clsx(
+              'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+              activeStatus === 'ARCHIVED'
+                ? 'bg-zinc-200 text-black shadow'
+                : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
+            )}
+          >
+            Tous les archivés ({counts.archived})
+          </Link>
+          <Link
+            href={buildQueryUrl({ status: 'ECHANGE' })}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+              activeStatus === 'ECHANGE'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-indigo-300 hover:text-white hover:bg-indigo-900/40'
+            )}
+          >
+            <span>Échangés (Reprise)</span>
+            <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[10px] font-mono">
+              {exchangedCount}
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="rounded-2xl border border-[#222228] bg-[#121216] p-4 shadow-sm">
