@@ -269,18 +269,29 @@ export async function deleteVehiclePhotoAction(photoId: string, url?: string) {
 
   await prisma.vehiclePhoto.delete({ where: { id: photoId } })
 
-  // If deleted photo was primary, promote next photo
-  if (photo.isPrimary) {
-    const nextPhoto = await prisma.vehiclePhoto.findFirst({
-      where: { vehicleId },
-      orderBy: { order: 'asc' },
-    })
-    if (nextPhoto) {
-      await prisma.vehiclePhoto.update({
-        where: { id: nextPhoto.id },
-        data: { isPrimary: true },
-      })
-    }
+  // Re-index remaining photos and ensure exactly one is primary
+  const remainingPhotos = await prisma.vehiclePhoto.findMany({
+    where: { vehicleId },
+    orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }],
+  })
+
+  if (remainingPhotos.length > 0) {
+    const hasPrimary = remainingPhotos.some((p) => p.isPrimary)
+    await prisma.$transaction([
+      ...remainingPhotos.map((p, idx) =>
+        prisma.vehiclePhoto.update({
+          where: { id: p.id },
+          data: {
+            order: idx,
+            isPrimary: hasPrimary ? p.isPrimary : idx === 0,
+          },
+        })
+      ),
+      prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { updatedAt: new Date() },
+      }),
+    ])
   }
 
   // Attempt to delete file from storage
@@ -292,26 +303,57 @@ export async function deleteVehiclePhotoAction(photoId: string, url?: string) {
     } catch (_) {}
   }
 
+  revalidatePath('/')
   revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath('/sales')
+  revalidatePath('/purchases')
+  revalidatePath('/repairs')
+  revalidatePath('/reservations')
 }
 
 export async function setPrimaryVehiclePhotoAction(photoId: string) {
   const target = await prisma.vehiclePhoto.findUnique({ where: { id: photoId } })
   if (!target) return
 
-  await prisma.vehiclePhoto.updateMany({
-    where: { vehicleId: target.vehicleId, isPrimary: true },
-    data: { isPrimary: false },
+  const vehicleId = target.vehicleId
+
+  // Fetch all photos of this vehicle ordered by their existing sequence
+  const allPhotos = await prisma.vehiclePhoto.findMany({
+    where: { vehicleId },
+    orderBy: { order: 'asc' },
   })
 
-  await prisma.vehiclePhoto.update({
-    where: { id: photoId },
-    data: { isPrimary: true },
-  })
+  const otherPhotos = allPhotos.filter((p) => p.id !== photoId)
 
+  // Transaction: Target photo becomes order 0 with isPrimary = true
+  // All other photos become order 1, 2, 3... with isPrimary = false
+  await prisma.$transaction([
+    prisma.vehiclePhoto.update({
+      where: { id: photoId },
+      data: { isPrimary: true, order: 0 },
+    }),
+    ...otherPhotos.map((p, idx) =>
+      prisma.vehiclePhoto.update({
+        where: { id: p.id },
+        data: { isPrimary: false, order: idx + 1 },
+      })
+    ),
+    prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { updatedAt: new Date() },
+    }),
+  ])
+
+  // Revalidate all pages across the platform displaying this vehicle
+  revalidatePath('/')
   revalidatePath('/vehicles')
-  revalidatePath(`/vehicles/${target.vehicleId}`)
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath('/sales')
+  revalidatePath('/purchases')
+  revalidatePath('/repairs')
+  revalidatePath('/reservations')
+  revalidatePath('/workshop')
 }
 
 export async function updatePurchaseCommissionerAction(vehicleId: string, formData: FormData) {

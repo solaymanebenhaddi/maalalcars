@@ -110,6 +110,62 @@ describe('Vehicle Photos & Image Optimization Rules', () => {
       expect(photos[0].id).toBe('p2')
       expect(photos[0].isPrimary).toBe(true)
     })
+
+    it('should reorder photos so that newly assigned couverture photo is at index 0 with order 0', () => {
+      const photos = [
+        { id: 'p1', url: '/vehicles/photo1.webp', isPrimary: true, order: 0 },
+        { id: 'p2', url: '/vehicles/photo2.webp', isPrimary: false, order: 1 },
+        { id: 'p3', url: '/vehicles/photo3.webp', isPrimary: false, order: 2 },
+      ]
+
+      // User sets p3 as new couverture photo
+      const targetId = 'p3'
+      const target = photos.find((p) => p.id === targetId)!
+      const others = photos.filter((p) => p.id !== targetId)
+
+      const reordered = [
+        { ...target, isPrimary: true, order: 0 },
+        ...others.map((p, idx) => ({ ...p, isPrimary: false, order: idx + 1 })),
+      ]
+
+      expect(reordered[0].id).toBe('p3')
+      expect(reordered[0].isPrimary).toBe(true)
+      expect(reordered[0].order).toBe(0)
+
+      expect(reordered[1].id).toBe('p1')
+      expect(reordered[1].isPrimary).toBe(false)
+      expect(reordered[1].order).toBe(1)
+
+      expect(reordered[2].id).toBe('p2')
+      expect(reordered[2].isPrimary).toBe(false)
+      expect(reordered[2].order).toBe(2)
+
+      // Test helper logic used across catalog, dashboard, and detail page
+      const getCoverUrl = (list: typeof reordered) =>
+        list.find((p) => p.isPrimary)?.url || list[0]?.url || ''
+
+      expect(getCoverUrl(reordered)).toBe('/vehicles/photo3.webp')
+    })
+
+    it('should sort photos prioritizing isPrimary: desc then order: asc', () => {
+      // Even if order is unordered or not yet synced, isPrimary: desc ensures primary is first
+      const photos = [
+        { id: 'p1', url: '/vehicles/photo1.webp', isPrimary: false, order: 0 },
+        { id: 'p2', url: '/vehicles/photo2.webp', isPrimary: true, order: 2 },
+        { id: 'p3', url: '/vehicles/photo3.webp', isPrimary: false, order: 1 },
+      ]
+
+      const sorted = photos.slice().sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) {
+          return a.isPrimary ? -1 : 1
+        }
+        return a.order - b.order
+      })
+
+      expect(sorted[0].id).toBe('p2')
+      expect(sorted[0].url).toBe('/vehicles/photo2.webp')
+      expect(sorted[0].isPrimary).toBe(true)
+    })
   })
 
   describe('Storage Path Generation & WebP Extension Safety', () => {

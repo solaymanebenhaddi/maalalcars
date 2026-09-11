@@ -65,7 +65,7 @@ export const parkRepository = {
       include: {
         vehicles: {
           include: {
-            photos: true,
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
             reservations: {
               where: { status: 'ACTIVE' },
               include: { contact: true },

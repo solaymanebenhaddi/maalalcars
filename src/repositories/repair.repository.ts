@@ -28,7 +28,7 @@ export const repairRepository = {
       include: {
         vehicle: {
           include: {
-            photos: true,
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
           },
         },
         paidBy: true,
@@ -43,7 +43,7 @@ export const repairRepository = {
       include: {
         vehicle: {
           include: {
-            photos: true,
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
             expenses: true,
           },
         },
@@ -58,7 +58,7 @@ export const repairRepository = {
       include: {
         vehicle: {
           include: {
-            photos: true,
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
           },
         },
         paidBy: true,

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useTransition } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import {
   UploadCloud,
   X,
@@ -40,6 +41,7 @@ export function VehiclePhotoUploader({
   onDeletePhoto,
   onSetPrimaryPhoto,
 }: VehiclePhotoUploaderProps) {
+  const router = useRouter()
   const [photos, setPhotos] = useState<VehiclePhotoItem[]>(() => {
     if (initialPhotos.length > 0) {
       // Ensure at least one primary
@@ -238,6 +240,9 @@ export function VehiclePhotoUploader({
         try {
           await onSetPrimaryPhoto(photo.id!)
           executeLocalSetPrimary(index)
+          setSuccessMessage('Photo de couverture mise à jour. Mise à jour partout sur le véhicule.')
+          setTimeout(() => setSuccessMessage(null), 3500)
+          router.refresh()
         } catch (err: unknown) {
           setErrorMessage(err instanceof Error ? err.message : 'Erreur modification photo principale')
         }
@@ -248,10 +253,12 @@ export function VehiclePhotoUploader({
   }
 
   const executeLocalSetPrimary = (index: number) => {
-    const next = photos.map((p, idx) => ({
-      ...p,
-      isPrimary: idx === index,
-    }))
+    const target = photos[index]
+    const others = photos.filter((_, idx) => idx !== index)
+    const next = [
+      { ...target, isPrimary: true },
+      ...others.map((p) => ({ ...p, isPrimary: false })),
+    ]
     updatePhotos(next)
   }
 

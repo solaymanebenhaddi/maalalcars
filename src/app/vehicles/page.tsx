@@ -407,11 +407,14 @@ export default async function VehiclesPage({ searchParams }: Props) {
                   city: v.park.city,
                 }
               : null,
-            photos: v.photos.map((p) => ({
-              id: p.id,
-              url: p.url,
-              isPrimary: p.isPrimary,
-            })),
+            photos: v.photos
+              .slice()
+              .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
+              .map((p) => ({
+                id: p.id,
+                url: p.url,
+                isPrimary: p.isPrimary,
+              })),
             reservations: v.reservations.map((r) => ({
               id: r.id,
               status: r.status,

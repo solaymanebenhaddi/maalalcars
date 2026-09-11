@@ -106,7 +106,7 @@ export const vehicleRepository = {
       take,
       include: {
         park: true,
-        photos: true,
+        photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
         expenses: {
           include: { category: true },
         },
@@ -158,7 +158,7 @@ export const vehicleRepository = {
       where: { id },
       include: {
         park: true,
-        photos: { orderBy: { order: 'asc' } },
+        photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
         expenses: {
           include: { category: true },
           orderBy: { expenseDate: 'desc' },
@@ -230,7 +230,10 @@ export const vehicleRepository = {
     const now = new Date()
     const vehicles = await prisma.vehicle.findMany({
       where: { status: { in: ['IN_STOCK', 'RESERVED'] }, archivedAt: null },
-      include: { photos: true, expenses: true },
+      include: {
+        photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+        expenses: true,
+      },
       orderBy: { entryDate: 'asc' },
     })
 

@@ -379,21 +379,24 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
             <div className="space-y-6">
               {/* Hero Vehicle Photo Card */}
               <div className="relative h-64 sm:h-80 w-full rounded-2xl overflow-hidden border border-[#282834] bg-gradient-to-t from-black via-zinc-950 to-zinc-900 shadow-md">
-                {vehicle.photos[0]?.url ? (
-                  <Image
-                    src={vehicle.photos[0].url}
-                    alt={`${vehicle.brand} ${vehicle.model}`}
-                    fill
-                    className="object-cover"
-                    priority
-                    unoptimized
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center text-zinc-600">
-                    <Car className="h-20 w-20 mb-2" />
-                    <span className="text-xs">Aucune photo principale</span>
-                  </div>
-                )}
+                {(() => {
+                  const coverPhoto = vehicle.photos.find((p) => p.isPrimary) || vehicle.photos[0]
+                  return coverPhoto?.url ? (
+                    <Image
+                      src={coverPhoto.url}
+                      alt={`${vehicle.brand} ${vehicle.model}`}
+                      fill
+                      className="object-cover"
+                      priority
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center text-zinc-600">
+                      <Car className="h-20 w-20 mb-2" />
+                      <span className="text-xs">Aucune photo principale</span>
+                    </div>
+                  )
+                })()}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-2 flex-wrap">

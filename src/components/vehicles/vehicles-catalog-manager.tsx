@@ -84,6 +84,12 @@ interface VehiclesCatalogManagerProps {
 
 const PAGE_SIZE_OPTIONS = [6, 9, 12, 18, 24]
 
+function getVehicleCoverPhotoUrl(photos: Array<{ id: string; url: string; isPrimary: boolean }>): string | null {
+  if (!photos || photos.length === 0) return null
+  const primary = photos.find((p) => p.isPrimary)
+  return primary ? primary.url : (photos[0]?.url || null)
+}
+
 export function VehiclesCatalogManager({
   vehicles,
   total,
@@ -430,9 +436,9 @@ export function VehiclesCatalogManager({
 
                 {/* Photo & Top Badges */}
                 <div className="relative h-48 w-full bg-gradient-to-t from-black via-zinc-900 to-zinc-950 flex items-center justify-center border-b border-[#222228] overflow-hidden">
-                  {v.photos[0]?.url ? (
+                  {getVehicleCoverPhotoUrl(v.photos) ? (
                     <Image
-                      src={v.photos[0].url}
+                      src={getVehicleCoverPhotoUrl(v.photos)!}
                       alt={`${v.brand} ${v.model}`}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -692,9 +698,9 @@ export function VehiclesCatalogManager({
               >
                 {/* Compact Photo */}
                 <div className="relative h-36 w-full bg-zinc-950 flex items-center justify-center overflow-hidden border-b border-[#222228]">
-                  {v.photos[0]?.url ? (
+                  {getVehicleCoverPhotoUrl(v.photos) ? (
                     <Image
-                      src={v.photos[0].url}
+                      src={getVehicleCoverPhotoUrl(v.photos)!}
                       alt={`${v.brand} ${v.model}`}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -857,9 +863,9 @@ export function VehiclesCatalogManager({
                       {/* Photo Thumbnail */}
                       <td className="py-2.5 px-2">
                         <div className="relative h-10 w-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                          {v.photos[0]?.url ? (
+                          {getVehicleCoverPhotoUrl(v.photos) ? (
                             <Image
-                              src={v.photos[0].url}
+                              src={getVehicleCoverPhotoUrl(v.photos)!}
                               alt=""
                               fill
                               className="object-cover"

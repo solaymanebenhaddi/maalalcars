@@ -26,7 +26,10 @@ export const saleRepository = {
       where,
       include: {
         vehicle: {
-          include: { photos: true, expenses: true },
+          include: {
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+            expenses: true,
+          },
         },
         buyer: true,
         commissioner: true,
@@ -44,7 +47,9 @@ export const saleRepository = {
     return prisma.sale.findMany({
       include: {
         vehicle: {
-          include: { photos: true },
+          include: {
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+          },
         },
         buyer: true,
         salesperson: true,
@@ -74,7 +79,7 @@ export const saleRepository = {
       include: {
         vehicle: {
           include: {
-            photos: true,
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
             expenses: { include: { category: true } },
             purchases: { include: { seller: true } },
             repairs: {

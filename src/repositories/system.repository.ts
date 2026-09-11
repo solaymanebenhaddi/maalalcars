@@ -93,7 +93,9 @@ export const systemRepository = {
     return prisma.vehicleListing.findMany({
       include: {
         vehicle: {
-          include: { photos: true },
+          include: {
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },

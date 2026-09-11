@@ -39,7 +39,10 @@ export const workshopRepository = {
       where: { id },
       include: {
         vehicle: {
-          include: { photos: true, inspections: true },
+          include: {
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+            inspections: true,
+          },
         },
         client: true,
         technician: true,

@@ -66,7 +66,7 @@ export default async function DashboardPage() {
     saleRepository.countSales({ startDate: startOfMonth }),
     prisma.vehicle.findMany({
       where: { archivedAt: null, status: { notIn: ['ARCHIVED', 'SOLD'] } },
-      include: { photos: { orderBy: { order: 'asc' }, take: 1 } },
+      include: { photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }], take: 1 } },
       orderBy: { createdAt: 'desc' },
       take: 4,
     }),
@@ -624,19 +624,22 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative h-12 w-16 overflow-hidden rounded-lg border border-[#242636] bg-[#161822] flex-shrink-0">
-                      {v.photos[0]?.url ? (
-                        <Image
-                          src={v.photos[0].url}
-                          alt={`${v.brand} ${v.model}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-zinc-600">
-                          <Car className="h-5 w-5" />
-                        </div>
-                      )}
+                      {(() => {
+                        const coverUrl = v.photos.find((p) => p.isPrimary)?.url || v.photos[0]?.url
+                        return coverUrl ? (
+                          <Image
+                            src={coverUrl}
+                            alt={`${v.brand} ${v.model}`}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-zinc-600">
+                            <Car className="h-5 w-5" />
+                          </div>
+                        )
+                      })()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <Link

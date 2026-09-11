@@ -25,7 +25,7 @@ export const reservationRepository = {
     return prisma.reservation.findMany({
       where,
       include: {
-        vehicle: { include: { photos: true } },
+        vehicle: { include: { photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] } } },
         contact: true,
         convertedSale: true,
       },
@@ -38,7 +38,10 @@ export const reservationRepository = {
       where: { id },
       include: {
         vehicle: {
-          include: { photos: true, expenses: true },
+          include: {
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+            expenses: true,
+          },
         },
         contact: true,
         convertedSale: true,
@@ -60,7 +63,7 @@ export const reservationRepository = {
       },
       include: {
         vehicle: {
-          include: { photos: true },
+          include: { photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] } },
         },
         contact: true,
       },
@@ -72,7 +75,7 @@ export const reservationRepository = {
     return prisma.reservation.findMany({
       where: { status: 'ACTIVE' },
       include: {
-        vehicle: { include: { photos: true } },
+        vehicle: { include: { photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] } } },
         contact: true,
       },
       orderBy: { createdAt: 'desc' },

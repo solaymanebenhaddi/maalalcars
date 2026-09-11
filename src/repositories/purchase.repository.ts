@@ -40,7 +40,10 @@ export const purchaseRepository = {
       where: { id },
       include: {
         vehicle: {
-          include: { photos: true, expenses: true },
+          include: {
+            photos: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] },
+            expenses: true,
+          },
         },
         seller: true,
         supplier: true,
