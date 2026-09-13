@@ -96,13 +96,14 @@ jobs:
           # Prisma schema
           cp prisma/schema.prisma .next/standalone/prisma/
 
-          # Prisma engines + CLI (needed for db push on first deploy)
+          # Prisma engines (runtime query engine for the app)
           mkdir -p .next/standalone/node_modules
           cp -r node_modules/.prisma .next/standalone/node_modules/ 2>/dev/null || true
           cp -r node_modules/@prisma .next/standalone/node_modules/ 2>/dev/null || true
-          cp -r node_modules/prisma .next/standalone/node_modules/ 2>/dev/null || true
           chmod +x .next/standalone/node_modules/.prisma/client/query-engine* 2>/dev/null || true
-          chmod +x .next/standalone/node_modules/@prisma/engines/* 2>/dev/null || true
+
+          # Generate SQL init script for first-deploy DB creation
+          npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > .next/standalone/prisma/init.sql
 
       - name: Install SSH key
         run: |
@@ -138,10 +139,8 @@ jobs:
 
             # Initialize DB if it doesn't exist yet (first deploy)
             if [ ! -f /var/www/maalalcars/shared/prisma/production.db ]; then
-              cd ${RELEASE_DIR}
-              export DATABASE_URL="file:/var/www/maalalcars/shared/prisma/production.db"
-              node node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss
-              echo "Database initialized via prisma db push"
+              sqlite3 /var/www/maalalcars/shared/prisma/production.db < ${RELEASE_DIR}/prisma/init.sql
+              echo "Database initialized via init.sql"
             fi
 
             # Symlink .env.production
