@@ -105,9 +105,11 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          # Verify key is readable
+          ssh-keygen -l -f ~/.ssh/deploy_key || (echo "SSH key format error - check VPS_SSH_KEY secret" && exit 1)
 
       - name: Deploy to VPS
         env:
