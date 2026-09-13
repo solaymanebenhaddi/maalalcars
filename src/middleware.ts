@@ -7,9 +7,9 @@ export function middleware(request: NextRequest) {
 
   const isStaticAsset = /\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|eot)$/i.test(pathname)
 
-  // 0. Enforce HTTPS in production
+  // 0. Enforce HTTPS in production (only when SSL is configured)
   const proto = request.headers.get('x-forwarded-proto')
-  if (proto === 'http' && process.env.NODE_ENV === 'production') {
+  if (proto === 'http' && process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS === 'true') {
     const httpsUrl = new URL(request.url)
     httpsUrl.protocol = 'https:'
     return NextResponse.redirect(httpsUrl, 301)
