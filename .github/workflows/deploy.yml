@@ -1,4 +1,4 @@
-name: Deploy MAALAL CARS (Shared Hosting FTP CI/CD)
+name: Deploy MAALAL CARS (VPS SSH CI/CD)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       skip_tests:
-        description: "Ignorer les tests (déploiement d’urgence)"
+        description: "Ignorer les tests (deploiement d'urgence)"
         required: false
         type: boolean
         default: false
@@ -23,454 +23,152 @@ env:
 
 jobs:
   quality-gates:
-    name: 🛡️ Quality Gates & Tests
+    name: Quality Gates & Tests
     runs-on: ubuntu-latest
     if: inputs.skip_tests != true
     steps:
-      - name: 📥 Checkout du Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Configuration Node.js (v20)
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
 
-      - name: 📦 Installation Dépendances
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🔍 Génération Client Prisma
+      - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: 🗄️ Initialisation Base SQLite Locale pour Tests
-        run: |
-          if [ -f prisma/production.template ]; then
-            cp prisma/production.template prisma/dev.db
-          fi
-          npx prisma db push --skip-generate
+      - name: Init SQLite for tests
+        run: npx prisma db push --skip-generate
 
-      - name: 🧪 Vérification Statique TypeScript
+      - name: TypeScript check
         run: npm run typecheck
 
-      - name: 🧹 Vérification Lint ESLint
+      - name: ESLint
         run: npm run lint
 
-      - name: 🚦 Exécution Suite de Tests Vitest (80 tests)
+      - name: Run tests
         run: npm run test
 
   build-and-deploy:
-    name: 🚀 Build Standalone & Déploiement FTP Mutualisé
+    name: Build & Deploy to VPS
     runs-on: ubuntu-latest
     needs: [quality-gates]
     if: always() && (needs.quality-gates.result == 'success' || inputs.skip_tests == true)
     steps:
-      - name: 📥 Checkout du Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Configuration Node.js (v20)
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
 
-      - name: 📦 Installation Dépendances
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🔨 Génération Client Prisma Linux
+      - name: Generate Prisma client (linux)
         run: npx prisma generate
 
-      - name: 🗄️ Synchronisation du Template SQLite de Production
-        run: npx prisma db push --schema=./prisma/schema.prisma --skip-generate --accept-data-loss
-        env:
-          DATABASE_URL: "file:./prisma/production.template"
-
-      # Si une URL de base de données distante est configurée dans les secrets GitHub (ex: MySQL cPanel ou Neon/Supabase),
-      # GitHub Actions applique directement les migrations de schéma avant l'envoi des fichiers
-      - name: 🗄️ Application du Schéma Prisma (Optionnel si PROD_DATABASE_URL est défini)
-        if: env.PROD_DATABASE_URL != ''
-        run: npx prisma db push --skip-generate
-        env:
-          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-
-      - name: 🏗️ Compilation Next.js Standalone
+      - name: Build Next.js standalone
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
           NODE_ENV: production
 
-      - name: 📦 Assemblage de l'Artefact Standalone & Adaptateur Passenger
+      - name: Prepare standalone artifact
         run: |
-          echo "Assemblage des assets statiques, schéma Prisma et déclencheur de redémarrage..."
           mkdir -p .next/standalone/.next/static
           mkdir -p .next/standalone/public
-          mkdir -p .next/standalone/public/storage/vehicles
-          mkdir -p .next/standalone/storage/vehicles
           mkdir -p .next/standalone/prisma
-          mkdir -p .next/standalone/tmp
-          mkdir -p .next/standalone/scripts
 
-          # Copie des fichiers statiques compilés (CSS, JS, fonts)
+          # Static assets
           cp -r .next/static/* .next/standalone/.next/static/
 
-          # Copie du dossier public (images, roue Michelin, logos)
+          # Public folder
           cp -r public/* .next/standalone/public/
-          cp public/.htaccess .next/standalone/public/.htaccess 2>/dev/null || true
-          cp public/.htaccess .next/standalone/.htaccess 2>/dev/null || true
 
-          # Copie du schéma Prisma et des migrations
-          cp -r prisma/* .next/standalone/prisma/
+          # Prisma schema
+          cp prisma/schema.prisma .next/standalone/prisma/
 
-          # Copie du package.json
-          cp package.json .next/standalone/
-
-          # Copie explicite des moteurs Prisma (.prisma / @prisma)
+          # Prisma engines
           mkdir -p .next/standalone/node_modules
           cp -r node_modules/.prisma .next/standalone/node_modules/ 2>/dev/null || true
           cp -r node_modules/@prisma .next/standalone/node_modules/ 2>/dev/null || true
-          # Assurer l'alias debian-openssl-1.0.x si manquant pour CloudLinux 7
-          if [ -f .next/standalone/node_modules/.prisma/client/query-engine-rhel-openssl-1.1.x ]; then
-            cp .next/standalone/node_modules/.prisma/client/query-engine-rhel-openssl-1.1.x .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.0.x 2>/dev/null || true
-          elif [ -f .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.1.x ]; then
-            cp .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.1.x .next/standalone/node_modules/.prisma/client/query-engine-debian-openssl-1.0.x 2>/dev/null || true
-          fi
           chmod +x .next/standalone/node_modules/.prisma/client/query-engine* 2>/dev/null || true
 
-          # Script de migration manuel exécutable depuis l'interface cPanel "Run JS Script"
-          cat << 'EOF' > .next/standalone/scripts/migrate.js
-          const { execSync } = require('child_process');
-          try {
-            console.log('Exécution de prisma db push...');
-            execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
-            console.log('Mise à jour de la base de données réussie.');
-          } catch (e) {
-            console.error('Erreur migration:', e.message);
-          }
-          EOF
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Copie du template SQLite de production avec toutes les tables déjà prêtes
-          cp prisma/production.template .next/standalone/prisma/production.template
-          cp prisma/production.template .next/standalone/prisma/production.init.template
-          cp prisma/production.template .next/standalone/production.init.template
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          RELEASE_DIR="/var/www/maalalcars/releases/$(date +%Y%m%d_%H%M%S)"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${VPS_PORT} -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST}"
+          SCP_CMD="scp -i ~/.ssh/deploy_key -P ${VPS_PORT} -o StrictHostKeyChecking=no"
 
-          # Déclencheur Phusion Passenger : horodate unique pour forcer le hot-reload au transfert FTP
-          date +%s > .next/standalone/tmp/restart.txt
+          # Create release directory
+          ${SSH_CMD} "mkdir -p ${RELEASE_DIR}"
 
-          # Copie des scripts de diagnostic et maintenance
-          mkdir -p .next/standalone/scripts
-          cp scripts/diagnose.js .next/standalone/scripts/diagnose.js
-          cp scripts/watchdog.js .next/standalone/scripts/watchdog.js
+          # Upload standalone build
+          tar czf /tmp/release.tar.gz -C .next/standalone .
+          ${SCP_CMD} /tmp/release.tar.gz ${VPS_USER}@${VPS_HOST}:/tmp/release.tar.gz
 
-          # Point d'entrée Phusion Passenger pour cPanel avec traçage temps réel et gestion sécurisée du pool
-          cat << 'EOF' > .next/standalone/app.js
-          // Point d'entrée Phusion Passenger / cPanel Node.js avec traçage temps réel
-          process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-          process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
+          # Extract and link
+          ${SSH_CMD} << 'ENDSSH'
+            set -e
+            RELEASE_DIR="$(ls -dt /var/www/maalalcars/releases/*/ | head -1 | sed 's:/$::')"
 
-          const fs = require('fs');
-          const path = require('path');
+            # Extract release
+            tar xzf /tmp/release.tar.gz -C ${RELEASE_DIR}
+            rm /tmp/release.tar.gz
 
-          // Assurer l'existence et les permissions des dossiers de stockage pour les téléversements
-          try {
-            const storages = [
-              path.join(__dirname, 'storage', 'vehicles'),
-              path.join(__dirname, 'public', 'storage', 'vehicles')
-            ];
-            for (const s of storages) {
-              fs.mkdirSync(s, { recursive: true, mode: 0o777 });
-              try { fs.chmodSync(s, 0o777); } catch (_) {}
-            }
-          } catch (_) {}
+            # Symlink shared storage into release
+            mkdir -p /var/www/maalalcars/shared/storage
+            ln -sfn /var/www/maalalcars/shared/storage ${RELEASE_DIR}/storage
+            ln -sfn /var/www/maalalcars/shared/storage ${RELEASE_DIR}/public/storage
 
-          // Assurer les droits d'exécution et l'alias de runtime sur les moteurs binaires Prisma
-          try {
-            const engineDir = path.join(__dirname, 'node_modules', '.prisma', 'client');
-            if (fs.existsSync(engineDir)) {
-              const deb10 = path.join(engineDir, 'query-engine-debian-openssl-1.0.x');
-              if (!fs.existsSync(deb10)) {
-                const files = fs.readdirSync(engineDir);
-                const existingEngine = files.find((f) => f.startsWith('query-engine-') && !f.endsWith('.js'));
-                if (existingEngine) {
-                  try { fs.copyFileSync(path.join(engineDir, existingEngine), deb10); } catch (_) {}
-                }
-              }
-              fs.readdirSync(engineDir).forEach((f) => {
-                if (f.startsWith('query-engine')) {
-                  try { fs.chmodSync(path.join(engineDir, f), 0o755); } catch (_) {}
-                }
-              });
-            }
-          } catch (_) {}
+            # Symlink shared database
+            mkdir -p /var/www/maalalcars/shared/prisma
+            ln -sfn /var/www/maalalcars/shared/prisma/production.db ${RELEASE_DIR}/prisma/dev.db
 
-          const debugLog = path.join(__dirname, 'debug.log');
-          function log(msg) {
-            const line = `[${new Date().toISOString()}] ${msg}\n`;
-            try { fs.appendFileSync(debugLog, line); } catch (_) {}
-            console.log(msg);
-          }
+            # Initialize DB if it doesn't exist yet (first deploy)
+            if [ ! -f /var/www/maalalcars/shared/prisma/production.db ]; then
+              cd ${RELEASE_DIR}
+              export DATABASE_URL="file:/var/www/maalalcars/shared/prisma/production.db"
+              npx prisma db push --skip-generate --accept-data-loss
+              echo "Database initialized via prisma db push"
+            fi
 
-          log('====================================================');
-          log('🚀 [MAALAL CARS] app.js DÉMARRAGE DU PROCESSUS');
-          log('PID: ' + process.pid + ' | Node.js: ' + process.version + ' | CWD: ' + process.cwd());
+            # Symlink .env.production
+            if [ -f /var/www/maalalcars/shared/.env.production ]; then
+              ln -sfn /var/www/maalalcars/shared/.env.production ${RELEASE_DIR}/.env.production
+            fi
 
-          // ═══════════════════════════════════════════════════════
-          // GRACEFUL SHUTDOWN — Clean exit on SIGTERM/SIGINT
-          // ═══════════════════════════════════════════════════════
-          let isShuttingDown = false;
-          function gracefulShutdown(signal) {
-            if (isShuttingDown) return;
-            isShuttingDown = true;
-            log('🛑 [SHUTDOWN] Signal reçu: ' + signal + ' — arrêt gracieux...');
-            setTimeout(() => {
-              log('🛑 [SHUTDOWN] Timeout — forçage de l\'arrêt.');
-              process.exit(0);
-            }, 5000);
-          }
-          process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-          process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+            # Switch current symlink to new release
+            ln -sfn ${RELEASE_DIR} /var/www/maalalcars/current
 
-          process.on('uncaughtException', (err) => {
-            log('💥 [EXCEPTION NON GÉRÉE] ' + (err && err.stack ? err.stack : err));
-          });
-          process.on('unhandledRejection', (reason) => {
-            log('💥 [REJECTION NON GÉRÉE] ' + (reason && reason.stack ? reason.stack : reason));
-          });
+            # Restart app via PM2
+            cd /var/www/maalalcars/current
+            pm2 delete maalalcars 2>/dev/null || true
+            PORT=3000 NODE_ENV=production DATABASE_URL="file:/var/www/maalalcars/shared/prisma/production.db" pm2 start server.js --name maalalcars --cwd /var/www/maalalcars/current
+            pm2 save
 
-          // 1. Charge les variables d'environnement depuis .env.production ou .env si présent
-          try {
-            const envFiles = ['.env.production', '.env.local', '.env'];
-            for (const file of envFiles) {
-              const fullPath = path.join(__dirname, file);
-              if (fs.existsSync(fullPath)) {
-                const content = fs.readFileSync(fullPath, 'utf8');
-                content.split(/\r?\n/).forEach((line) => {
-                  const trimmed = line.trim();
-                  if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-                    const idx = trimmed.indexOf('=');
-                    const key = trimmed.slice(0, idx).trim();
-                    let val = trimmed.slice(idx + 1).trim();
-                    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-                      val = val.slice(1, -1);
-                    }
-                    if (!process.env[key]) {
-                      process.env[key] = val;
-                    }
-                  }
-                });
-                log('📄 Variables chargées depuis ' + file);
-              }
-            }
-          } catch (e) {
-            log('⚠️ Note lecture .env : ' + e.message);
-          }
+            # Keep only last 5 releases
+            cd /var/www/maalalcars/releases
+            ls -dt */ | tail -n +6 | xargs rm -rf 2>/dev/null || true
 
-          // 2. Définir et exporter explicitement DATABASE_URL vers maalalcars/prisma/production.db
-          let targetDb = path.join(__dirname, 'prisma', 'production.db');
-          if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('file:') && !process.env.DATABASE_URL.startsWith('sqlite:')) {
-            log('🗄️ DATABASE_URL distante = ' + process.env.DATABASE_URL);
-          } else {
-            process.env.DATABASE_URL = 'file:' + targetDb;
-            log('🗄️ DATABASE_URL SQLite = ' + process.env.DATABASE_URL);
-          }
-
-          // 3. Auto-initialisation SQLite instantanée par copie du template
-          let templateDb = null;
-          try {
-            const candidates = [
-              path.join(__dirname, 'prisma', 'production.init.template'),
-              path.join(__dirname, 'prisma', 'production.template'),
-              path.join(__dirname, 'production.init.template'),
-              path.join(__dirname, 'production.template'),
-              path.join(__dirname, 'maalalcars', 'prisma', 'production.template'),
-            ];
-            templateDb = candidates.find((f) => fs.existsSync(f));
-            log('🔍 Recherche template : ' + (templateDb ? templateDb : 'AUCUN'));
-
-            const stat = fs.existsSync(targetDb) ? fs.statSync(targetDb) : null;
-            log('📊 Statut ' + targetDb + ' : ' + (stat ? stat.size + ' octets' : 'INEXISTANT'));
-
-            if (!stat || stat.size < 100000) {
-              if (templateDb) {
-                fs.mkdirSync(path.dirname(targetDb), { recursive: true });
-                try { fs.unlinkSync(targetDb); } catch (_) {}
-                fs.copyFileSync(templateDb, targetDb);
-                const newStat = fs.statSync(targetDb);
-                log('✅ Base de données initialisée depuis ' + templateDb + ' (' + newStat.size + ' octets)');
-              } else {
-                log('❌ AVERTISSEMENT : Aucun template DB trouvé parmi les candidats');
-              }
-            }
-            if (fs.existsSync(targetDb)) {
-              try { fs.chmodSync(targetDb, 0o666); } catch (_) {}
-              try { fs.chmodSync(path.dirname(targetDb), 0o777); } catch (_) {}
-            }
-          } catch (e) {
-            log('⚠️ Erreur init SQLite : ' + e.message);
-          }
-
-          // 3.b Synchronisation automatique du schéma (une seule fois par version de template pour éviter les verrous)
-          async function syncDatabaseSchema() {
-            if (!templateDb || !fs.existsSync(templateDb) || !fs.existsSync(targetDb)) return;
-
-            let tplMtime = '0';
-            try { tplMtime = String(fs.statSync(templateDb).mtimeMs); } catch (_) {}
-            const syncMarker = path.join(__dirname, 'prisma', '.synced_' + tplMtime);
-            if (fs.existsSync(syncMarker)) {
-              log('ℹ️ [SYNC] Schéma SQLite déjà synchronisé avec ce template.');
-              return;
-            }
-
-            log('🔄 Vérification et synchronisation du schéma SQLite...');
-            const { PrismaClient } = require('@prisma/client');
-            const syncPrisma = new PrismaClient({
-              datasources: { db: { url: 'file:' + targetDb } },
-            });
-
-            try {
-              const escapedTpl = templateDb.replace(/'/g, "''");
-              try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
-              await syncPrisma.$executeRawUnsafe(`ATTACH DATABASE '${escapedTpl}' AS tpl`);
-
-              const tplTables = await syncPrisma.$queryRawUnsafe(
-                "SELECT name, sql FROM tpl.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'"
-              );
-              const mainTables = await syncPrisma.$queryRawUnsafe(
-                "SELECT name FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'"
-              );
-              const mainTableNames = new Set(mainTables.map((t) => t.name));
-
-              for (const tplTable of tplTables) {
-                const tableName = tplTable.name;
-
-                if (!mainTableNames.has(tableName)) {
-                  if (tplTable.sql) {
-                    await syncPrisma.$executeRawUnsafe(tplTable.sql);
-                    log('➕ [SYNC] Table créée : ' + tableName);
-                  }
-                  continue;
-                }
-
-                const tplCols = await syncPrisma.$queryRawUnsafe(`PRAGMA tpl.table_info("${tableName}")`);
-                const mainCols = await syncPrisma.$queryRawUnsafe(`PRAGMA main.table_info("${tableName}")`);
-                const mainColNames = new Set(mainCols.map((c) => c.name));
-
-                for (const col of tplCols) {
-                  if (!mainColNames.has(col.name)) {
-                    log(`➕ [SYNC] Colonne manquante : ${tableName}.${col.name} (${col.type})`);
-                    let defClause = '';
-                    if (col.dflt_value !== null && col.dflt_value !== undefined) {
-                      if (col.dflt_value.toUpperCase().includes('CURRENT_TIMESTAMP')) {
-                        defClause = '';
-                      } else {
-                        defClause = ` DEFAULT ${col.dflt_value}`;
-                      }
-                    } else if (col.notnull) {
-                      if (col.type && (col.type.toUpperCase().includes('INT') || col.type.toUpperCase().includes('BOOL'))) {
-                        defClause = ' DEFAULT 0';
-                      } else if (col.type && (col.type.toUpperCase().includes('CHAR') || col.type.toUpperCase().includes('TEXT'))) {
-                        defClause = " DEFAULT ''";
-                      } else {
-                        defClause = ' DEFAULT 0';
-                      }
-                    }
-
-                    const alterSql = `ALTER TABLE "${tableName}" ADD COLUMN "${col.name}" ${col.type || 'TEXT'}${defClause}`;
-                    try {
-                      await syncPrisma.$executeRawUnsafe(alterSql);
-                      log(`✅ [SYNC] Colonne ${tableName}.${col.name} ajoutée`);
-                    } catch (errAlter) {
-                      try {
-                        await syncPrisma.$executeRawUnsafe(`ALTER TABLE "${tableName}" ADD COLUMN "${col.name}" ${col.type || 'TEXT'}`);
-                        log(`✅ [SYNC] Colonne ${tableName}.${col.name} ajoutée (sans DEFAULT)`);
-                      } catch (errFallback) {
-                        log(`❌ [SYNC] Erreur ajout ${tableName}.${col.name} : ` + errFallback.message);
-                      }
-                    }
-                  }
-                }
-              }
-
-              try { await syncPrisma.$executeRawUnsafe('DETACH DATABASE tpl'); } catch (_) {}
-              try { fs.writeFileSync(syncMarker, new Date().toISOString()); } catch (_) {}
-              log('✅ [SYNC] Synchronisation SQLite terminée avec succès.');
-            } catch (err) {
-              log('⚠️ [SYNC] Note synchronisation : ' + (err && err.message ? err.message : err));
-            } finally {
-              try { await syncPrisma.$disconnect(); } catch (_) {}
-            }
-          }
-
-          // 4. Synchronisation de la base puis démarrage du serveur Next.js
-          (async () => {
-            try {
-              await syncDatabaseSchema();
-            } catch (errSyncBoot) {
-              log('⚠️ Erreur pré-démarrage sync DB : ' + errSyncBoot.message);
-            }
-            // Migration rapide des URLs photos et documents en base
-            try {
-              if (targetDb && fs.existsSync(targetDb)) {
-                const { PrismaClient } = require('@prisma/client');
-                const quickPrisma = new PrismaClient({ datasources: { db: { url: 'file:' + targetDb } } });
-                await quickPrisma.$executeRawUnsafe(`UPDATE "VehiclePhoto" SET "url" = REPLACE("url", '/api/storage/', '/storage/') WHERE "url" LIKE '/api/storage/%'`);
-                await quickPrisma.$executeRawUnsafe(`UPDATE "Vehicle" SET "imageUrl" = REPLACE("imageUrl", '/api/storage/', '/storage/') WHERE "imageUrl" LIKE '/api/storage/%'`);
-                await quickPrisma.$executeRawUnsafe(`UPDATE "Document" SET "fileUrl" = REPLACE("fileUrl", '/api/storage/', '/storage/') WHERE "fileUrl" LIKE '/api/storage/%'`);
-                await quickPrisma.$disconnect();
-                log('✅ [MIGRATION] URLs photos et documents migrées vers /storage/');
-              }
-            } catch (errQuick) {
-              log('ℹ️ [MIGRATION] Note: ' + (errQuick && errQuick.message ? errQuick.message : errQuick));
-            }
-
-            log('⏳ Chargement de ./server.js...');
-            require('./server.js');
-            log('✅ ./server.js requis sans erreur synchrone');
-          })();
-          EOF
-
-          # Dupliquer app.js en App.js au cas où cPanel a été configuré avec une majuscule
-          cp .next/standalone/app.js .next/standalone/App.js
-
-
-          # Injecter un log trace et allowRetry: true au début de server.js
-          node -e '
-            const fs = require("fs");
-            const p = ".next/standalone/server.js";
-            let c = fs.readFileSync(p, "utf8");
-            c = c.replace("allowRetry: false", "allowRetry: true");
-            const trace = "try{require(\"fs\").appendFileSync(require(\"path\").join(__dirname,\"debug.log\"),\"[\"+new Date().toISOString()+\"] ⚡ SERVER.JS EXECUTION\\n\");}catch(_){}\n";
-            fs.writeFileSync(p, trace + c);
-          '
-
-          # Mettre à jour package.json standalone avec scripts start et diagnose
-          node -e '
-            const fs = require("fs");
-            const p = ".next/standalone/package.json";
-            const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
-            pkg.scripts = pkg.scripts || {};
-            pkg.scripts.start = "node app.js";
-            pkg.scripts.diagnose = "node scripts/diagnose.js";
-            fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
-          '
-
-      # DÉPLOIEMENT INCRÉMENTAL VIA FTP / FTPS (Toujours à la racine ./ du compte FTP)
-      - name: 🚀 Déploiement Incrémental via FTP / FTPS
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT || 21 }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
-          local-dir: .next/standalone/
-          server-dir: ./
-          dangerous-clean-slate: false
-          exclude: |
-            **/.env*
-            **/data/**
-            **/storage/**
-            **/*.db
-            **/*.db-journal*
-            **/*.db-wal*
-            **/*.db-shm*
-            **/node_modules/.cache/**
+            echo "Deployment complete: ${RELEASE_DIR}"
+          ENDSSH
