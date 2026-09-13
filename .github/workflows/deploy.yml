@@ -112,11 +112,14 @@ jobs:
       - name: Upload build to VPS
         run: |
           tar czf /tmp/release.tar.gz -C .next/standalone .
-          scp -i ~/.ssh/deploy_key -P ${{ secrets.VPS_PORT }} /tmp/release.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/release.tar.gz
+          ls -la ~/.ssh/deploy_key
+          ssh-keygen -l -f ~/.ssh/deploy_key
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no -v ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo SSH_OK" 2>&1 | tail -30
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -P ${{ secrets.VPS_PORT }} /tmp/release.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/release.tar.gz
 
       - name: Deploy on VPS
         run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             set -e
             RELEASE_DIR="/var/www/maalalcars/releases/$(date +%Y%m%d_%H%M%S)"
             mkdir -p ${RELEASE_DIR}
