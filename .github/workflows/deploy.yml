@@ -96,11 +96,13 @@ jobs:
           # Prisma schema
           cp prisma/schema.prisma .next/standalone/prisma/
 
-          # Prisma engines
+          # Prisma engines + CLI (needed for db push on first deploy)
           mkdir -p .next/standalone/node_modules
           cp -r node_modules/.prisma .next/standalone/node_modules/ 2>/dev/null || true
           cp -r node_modules/@prisma .next/standalone/node_modules/ 2>/dev/null || true
+          cp -r node_modules/prisma .next/standalone/node_modules/ 2>/dev/null || true
           chmod +x .next/standalone/node_modules/.prisma/client/query-engine* 2>/dev/null || true
+          chmod +x .next/standalone/node_modules/@prisma/engines/* 2>/dev/null || true
 
       - name: Install SSH key
         run: |
@@ -112,9 +114,6 @@ jobs:
       - name: Upload build to VPS
         run: |
           tar czf /tmp/release.tar.gz -C .next/standalone .
-          ls -la ~/.ssh/deploy_key
-          ssh-keygen -l -f ~/.ssh/deploy_key
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no -v ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo SSH_OK" 2>&1 | tail -30
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -P ${{ secrets.VPS_PORT }} /tmp/release.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/release.tar.gz
 
       - name: Deploy on VPS
@@ -141,7 +140,7 @@ jobs:
             if [ ! -f /var/www/maalalcars/shared/prisma/production.db ]; then
               cd ${RELEASE_DIR}
               export DATABASE_URL="file:/var/www/maalalcars/shared/prisma/production.db"
-              npx prisma db push --skip-generate --accept-data-loss
+              node node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss
               echo "Database initialized via prisma db push"
             fi
 
