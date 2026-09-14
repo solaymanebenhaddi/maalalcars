@@ -18,6 +18,7 @@ import {
   X,
   Building2,
   Download,
+  CheckSquare,
 } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
@@ -429,12 +430,20 @@ export function Topbar({
                   <span>Paramètres Système</span>
                 </Link>
                 <Link
-                  href="/users/audit-log"
+                  href="/admin/activity"
                   onClick={() => setIsProfileOpen(false)}
                   className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-zinc-300 hover:bg-[#1c1c24] hover:text-white"
                 >
                   <Shield className="h-4 w-4 text-zinc-400" />
-                  <span>Journal de Sécurité</span>
+                  <span>Journal d’activité</span>
+                </Link>
+                <Link
+                  href="/admin/requests"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-zinc-300 hover:bg-[#1c1c24] hover:text-white"
+                >
+                  <CheckSquare className="h-4 w-4 text-amber-400" />
+                  <span>Centre des demandes</span>
                 </Link>
               </div>
               <div className="border-t border-[#222228] pt-1 mt-1">

@@ -10,12 +10,15 @@ import { vehicleRepository } from '@/repositories/vehicle.repository'
 import { exchangeService } from '@/services/exchange.service'
 import { NewVehicleForm } from '@/components/vehicles/new-vehicle-form'
 import { SoulteDirection } from '@/domain/vehicle'
+import { getActiveUserRole } from '@/lib/auth-roles'
+import { approvalService } from '@/services/approval.service'
 
 export const dynamic = 'force-dynamic'
 
 async function createVehicleAction(formData: FormData) {
   'use server'
 
+  const activeUser = await getActiveUserRole()
   const acquisitionMode = (formData.get('acquisitionMode') as string) || 'ACHAT_CLASSIQUE'
 
   // Section 1: Vehicle Information
@@ -94,6 +97,65 @@ async function createVehicleAction(formData: FormData) {
     try {
       parsedDocIds = JSON.parse(documentsDataRaw) as string[]
     } catch (_) {}
+  }
+
+  // Intercept if user is NOT Super Admin: Create ApprovalRequest and redirect to my-requests
+  if (activeUser && !activeUser.isSuperAdmin) {
+    const requestResult = await approvalService.requestMutation(
+      {
+        actionType: 'CREATE',
+        entityType: 'Vehicle',
+        entityLabel: `${brand} ${model} ${year} (${matricule || vin || 'Sans matricule'})`,
+        requestedData: {
+          acquisitionMode,
+          brand,
+          model,
+          version: version || null,
+          year,
+          vin,
+          matricule: matricule || null,
+          fuelType,
+          transmission,
+          mileage,
+          colorExterior,
+          colorInterior: colorInterior || null,
+          bodyType,
+          fiscalPower,
+          customsStatus,
+          customsYear,
+          parkId,
+          location,
+          purchasePrice,
+          targetSalePrice,
+          description: description || null,
+          supplierName,
+          supplierPhone,
+          supplierCin,
+          supplierAddress,
+          supplierCity,
+          handledById,
+          paymentMethod,
+          commissionerName,
+          commissionerPhone,
+          commissionerCin,
+          commissionerAddress,
+          commissionerCity,
+          commissionAmount,
+          commissionPaidById,
+          photos: parsedPhotos,
+          documentIds: parsedDocIds,
+        },
+        targetUrl: '/vehicles',
+        reason: `Demande d'ajout d'un véhicule par ${activeUser.name}`,
+      },
+      {
+        userId: activeUser.id,
+        userRole: activeUser.role,
+        userName: activeUser.name,
+      }
+    )
+
+    redirect(`/my-requests?submitted=1&req=${encodeURIComponent(requestResult.requestNumber || '')}`)
   }
 
   // =========================================================================

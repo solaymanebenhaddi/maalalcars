@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { contactService } from '@/services/contact.service'
 import { contactCreateSchema } from '@/validation/contact.schema'
 
 export async function GET(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { searchParams } = new URL(request.url)
   const role = searchParams.get('role') || undefined
   const segment = searchParams.get('segment') || undefined
@@ -13,11 +17,17 @@ export async function GET(request: Request) {
     return NextResponse.json(contacts)
   } catch (error: unknown) {
     console.error('API Contacts GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
 export async function POST(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const body = await request.json()
     const validated = contactCreateSchema.parse(body)
@@ -25,6 +35,9 @@ export async function POST(request: Request) {
     return NextResponse.json(contact, { status: 201 })
   } catch (error: unknown) {
     console.error('API Contacts POST error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

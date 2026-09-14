@@ -40,6 +40,7 @@ import { DocumentManager } from '@/components/documents/document-manager'
 import { BulkImportUrgentBanner } from '@/components/vehicles/bulk-import-urgent-banner'
 import { checkVehicleCompleteness } from '@/services/vehicle-completeness.service'
 import { VehicleEditForm } from '@/components/vehicles/vehicle-edit-form'
+import { approvalService } from '@/services/approval.service'
 import {
   createRepairAction,
   updateRepairAction,
@@ -77,7 +78,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
 
   await vehicleStateMachine.expireDueReservations()
 
-  const [vehicle, personnelList, allParks, activeUser] = await Promise.all([
+  const [vehicle, personnelList, allParks, activeUser, pendingApproval] = await Promise.all([
     vehicleRepository.getById(id),
     prisma.user.findMany({
       where: { isActive: true },
@@ -86,6 +87,7 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
     }),
     parkRepository.getAll(),
     getActiveUserRole(),
+    approvalService.getPendingRequestForEntity('Vehicle', id),
   ])
 
   if (!vehicle) {
@@ -199,6 +201,46 @@ export default async function VehicleDetailPage({ params, searchParams }: Props)
         info={info}
         dismissHref={`/vehicles/${vehicle.id}?tab=${tab}`}
       />
+
+      {/* In-Context Pending Approval Alert Banner */}
+      {pendingApproval && (
+        <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-[#181610] to-amber-950/20 p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-black font-black shadow-lg shadow-amber-950/50 shrink-0">
+              !
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 text-xs uppercase tracking-wider border border-amber-500/30">
+                  Modification en attente de validation
+                </span>
+                <span className="font-mono text-xs font-bold text-amber-400">
+                  {pendingApproval.requestNumber}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300 mt-1">
+                Une opération de modification a été soumise par {pendingApproval.requestedBy.name} ({pendingApproval.requestedBy.role?.name || 'Utilisateur'}) et attend la validation du Super Administrateur.
+              </p>
+            </div>
+          </div>
+
+          {activeUser.isSuperAdmin ? (
+            <Link
+              href="/admin/requests"
+              className="shrink-0 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md transition-colors"
+            >
+              Examiner la demande
+            </Link>
+          ) : (
+            <Link
+              href="/my-requests"
+              className="shrink-0 px-3.5 py-1.5 rounded-lg bg-[#22222c] border border-amber-500/30 text-amber-300 hover:bg-zinc-800 font-bold text-xs shadow-md transition-colors"
+            >
+              Voir ma demande
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Exchanged Outgoing Vehicle Banner */}
       {(vehicle.status === 'ECHANGE' || vehicle.exchangeAsOutgoing) && (

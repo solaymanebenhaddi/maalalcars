@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { reportService } from '@/services/report.service'
 
 export async function GET() {
   try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
     const report = await reportService.getExecutiveMonthlyReport()
     return NextResponse.json(report)
   } catch (error: unknown) {

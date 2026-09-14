@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { workshopService } from '@/services/workshop.service'
 import { workshopOrderCreateSchema } from '@/validation/workshop.schema'
 
 export async function GET(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') || undefined
   const priority = searchParams.get('priority') || undefined
@@ -18,6 +22,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const body = await request.json()
     const validated = workshopOrderCreateSchema.parse(body)

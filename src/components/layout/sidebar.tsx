@@ -67,10 +67,10 @@ interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
   userName?: string
-  counts?: { vehicles: number; parks: number; activeReservations: number }
+  counts?: { vehicles: number; parks: number; activeReservations: number; pendingApprovals?: number }
 }
 
-function buildNavigationSections(counts?: { vehicles: number; parks: number; activeReservations: number }): NavSection[] {
+function buildNavigationSections(counts?: { vehicles: number; parks: number; activeReservations: number; pendingApprovals?: number }): NavSection[] {
   return [
     {
       items: [
@@ -137,6 +137,9 @@ function buildNavigationSections(counts?: { vehicles: number; parks: number; act
       title: 'PILOTAGE & SYSTÈME',
       items: [
         { name: 'Rapports & Analytics', href: '/reports', icon: BarChart3, featureKey: 'reportsAdvanced' },
+        { name: 'Demandes d’approbation', href: '/admin/requests', icon: CheckSquare, badge: counts?.pendingApprovals ?? undefined, badgeColor: 'amber', featureKey: 'settings' },
+        { name: 'Journal d’activité', href: '/admin/activity', icon: ShieldCheck, featureKey: 'settings' },
+        { name: 'Mes demandes', href: '/my-requests', icon: CalendarCheck },
         { name: 'SAV & Support Client', href: '/sav', icon: HelpCircle, featureKey: 'sav' },
         { name: 'Support & Helpdesk', href: '/helpdesk', icon: LifeBuoy, featureKey: 'helpdesk' },
         { name: 'Utilisateurs & Rôles', href: '/users', icon: UserCog, featureKey: 'settings' },
@@ -150,8 +153,27 @@ function buildNavigationSections(counts?: { vehicles: number; parks: number; act
 export function Sidebar({ isOpen, onClose, userName, counts }: SidebarProps) {
   const pathname = usePathname()
   const { isEnabled } = useFeatures()
+  const [pendingApprovals, setPendingApprovals] = React.useState<number | undefined>(undefined)
 
-  const visibleSections = buildNavigationSections(counts)
+  React.useEffect(() => {
+    fetch('/api/approvals/counts')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.totalPending === 'number') {
+          setPendingApprovals(data.totalPending)
+        }
+      })
+      .catch(() => {})
+  }, [pathname])
+
+  const combinedCounts = {
+    vehicles: counts?.vehicles ?? 0,
+    parks: counts?.parks ?? 0,
+    activeReservations: counts?.activeReservations ?? 0,
+    pendingApprovals,
+  }
+
+  const visibleSections = buildNavigationSections(combinedCounts)
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => !item.featureKey || isEnabled(item.featureKey)),

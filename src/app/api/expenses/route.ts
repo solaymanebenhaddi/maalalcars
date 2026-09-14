@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { expenseService } from '@/services/expense.service'
 import { expenseCreateSchema } from '@/validation/expense.schema'
 
@@ -10,22 +11,32 @@ export async function GET(request: Request) {
   const search = searchParams.get('search') || undefined
 
   try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
     const expenses = await expenseService.listExpenses({ categoryId, vehicleId, status, search })
     return NextResponse.json(expenses)
   } catch (error: unknown) {
     console.error('API Expenses GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
     const body = await request.json()
     const validated = expenseCreateSchema.parse(body)
     const expense = await expenseService.createExpense(validated)
     return NextResponse.json(expense, { status: 201 })
   } catch (error: unknown) {
     console.error('API Expenses POST error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

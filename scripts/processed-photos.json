@@ -1,0 +1,1322 @@
+[
+  {
+    "vehicleId": "cmtwpptce00b4uya3e970z588",
+    "folder": "1- MERCEDES C220",
+    "code": "V-2026-0088",
+    "photos": [
+      {
+        "url": "/vehicles/mercedes-c220-2015-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-c220-2015-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppt9v00b0uya3c91w9vvy",
+    "folder": "2- SKODA OCTAVIA",
+    "code": "V-2026-0078",
+    "photos": [
+      {
+        "url": "/vehicles/skoda-octavia-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpprnp0078uya3wphivz4k",
+    "folder": "3- HYNDAI TUCSON",
+    "code": "V-2026-0060",
+    "photos": [
+      {
+        "url": "/vehicles/hyundai-tucson-2022-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2022-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppsvk00a5uya359jfrd2m",
+    "folder": "4- VOLKSWAGEN T-ROC",
+    "code": "V-2026-0081",
+    "photos": [
+      {
+        "url": "/vehicles/vw-troc-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-troc-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppsxm00aauya3wz4j0ai7",
+    "folder": "5- RENAULT CLIO 5",
+    "code": "V-2026-0082",
+    "photos": [
+      {
+        "url": "/vehicles/renault-clio5-2024-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-clio5-2024-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppsez0091uya3kol9qdab",
+    "folder": "6- HYUNDAI I10",
+    "code": "V-2026-0073",
+    "photos": [
+      {
+        "url": "/vehicles/hyundai-i10-2021-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-i10-2021-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpprxn007xuya3otgohxsw",
+    "folder": "7- KIA PICANTO",
+    "code": "V-2026-0065",
+    "photos": [
+      {
+        "url": "/vehicles/kia-picanto-2022-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/kia-picanto-2022-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppr8s0069uya35rizedhc",
+    "folder": "8- DACIA DUSTER",
+    "code": "V-2026-0053",
+    "photos": [
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-gris-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpptvp00ciuya3due53wnz",
+    "folder": "9- RANGE ROVER EVOQUE",
+    "code": "V-2026-0098",
+    "photos": [
+      {
+        "url": "/vehicles/range-rover-evoque-2018-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2018-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppqqr0050uya3q6zo9i2l",
+    "folder": "10- JEEP CHEROKEE",
+    "code": "V-2026-0044",
+    "photos": [
+      {
+        "url": "/vehicles/jeep-cherokee-2016-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-cherokee-2016-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppr3g005uuya36e6yi4u8",
+    "folder": "11- AUDI Q8",
+    "code": "V-2026-0050",
+    "photos": [
+      {
+        "url": "/vehicles/audi-q8-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/audi-q8-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppsae008ruya39v4j4lsm",
+    "folder": "12 - BMW 218",
+    "code": "V-2026-0071",
+    "photos": [
+      {
+        "url": "/vehicles/bmw-218-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/bmw-218-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppr6x0064uya3jk14xtqk",
+    "folder": "13- MERCEDES A220",
+    "code": "V-2026-0052",
+    "photos": [
+      {
+        "url": "/vehicles/mercedes-a220-2019-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-a220-2019-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpps3a008cuya3h48j6d0g",
+    "folder": "14- SKODA OCTAVIA",
+    "code": "V-2026-0068",
+    "photos": [
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/skoda-octavia-2019-bleu-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppqa0003ruya3lsvsr088",
+    "folder": "15- RANGE ROVER - EVOQUE DYNAMIQUE",
+    "code": "V-2026-0035",
+    "photos": [
+      {
+        "url": "/vehicles/range-rover-evoque-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpptr100c3uya38m0z64v6",
+    "folder": "16- RENAULT MEGANE",
+    "code": "V-2026-0096",
+    "photos": [
+      {
+        "url": "/vehicles/renault-megane-2018-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/renault-megane-2018-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpprl70073uya3nrioxalp",
+    "folder": "17- HYUNDAI TUCSON",
+    "code": "V-2026-0059",
+    "photos": [
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/hyundai-tucson-2023-noir-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpptng00bpuya325608s4y",
+    "folder": "18- MERCEDES GLC 250",
+    "code": "V-2026-0093",
+    "photos": [
+      {
+        "url": "/vehicles/mercedes-glc250-2019-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/mercedes-glc250-2019-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpppcw001juya3pzy072tp",
+    "folder": "19- VOLSWAGEN TOUAREG",
+    "code": "V-2026-0019",
+    "photos": [
+      {
+        "url": "/vehicles/vw-touareg-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-touareg-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpprbe006euya3ui56p5ax",
+    "folder": "20- DACIA DUSTER",
+    "code": "V-2026-0054",
+    "photos": [
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-vert-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppql3004luya3yumyqdl4",
+    "folder": "21- RANGE ROVER - EVOQUE",
+    "code": "V-2026-0041",
+    "photos": [
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/range-rover-evoque-2023-noir-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppr54005zuya3qxcn68lz",
+    "folder": "22- JEEP RENEGEDE",
+    "code": "V-2026-0051",
+    "photos": [
+      {
+        "url": "/vehicles/jeep-renegade-2019-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/jeep-renegade-2019-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwppsno009luya38mh477fy",
+    "folder": "Dacia Duster 2",
+    "code": "V-2026-0077",
+    "photos": [
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/dacia-duster-2023-nardeau-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  },
+  {
+    "vehicleId": "cmtwpptch00b9uya3o806lzbh",
+    "folder": "Volkswagen TIGOUAN 2023",
+    "code": "V-2026-0089",
+    "photos": [
+      {
+        "url": "/vehicles/vw-tiguan-2023-1.webp",
+        "isPrimary": true,
+        "order": 0,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-2.webp",
+        "isPrimary": false,
+        "order": 1,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-3.webp",
+        "isPrimary": false,
+        "order": 2,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-4.webp",
+        "isPrimary": false,
+        "order": 3,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-5.webp",
+        "isPrimary": false,
+        "order": 4,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-6.webp",
+        "isPrimary": false,
+        "order": 5,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-7.webp",
+        "isPrimary": false,
+        "order": 6,
+        "category": "EXTERIEUR"
+      },
+      {
+        "url": "/vehicles/vw-tiguan-2023-8.webp",
+        "isPrimary": false,
+        "order": 7,
+        "category": "EXTERIEUR"
+      }
+    ]
+  }
+]

@@ -130,14 +130,24 @@ export async function getExistingFilePath(relativePath: string): Promise<string 
   // Guard against directory traversal
   const sanitized = relativePath.replace(/^[/\\]+/, '').replace(/\.\.[/\\]/g, '')
 
+  const allowedRoots = [
+    STORAGE_ROOT,
+    path.resolve(process.cwd(), 'public', 'storage'),
+    path.resolve(process.cwd(), 'public'),
+  ]
+
   const candidates = [
     path.resolve(STORAGE_ROOT, sanitized),
     path.resolve(process.cwd(), 'public', 'storage', sanitized),
     path.resolve(process.cwd(), 'public', sanitized),
   ]
 
-  for (const candidate of candidates) {
-    // Ensure candidate stays within expected directory
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i]
+    // Bounds check: resolved path must stay within its allowed root
+    if (!candidate.startsWith(allowedRoots[i] + path.sep) && candidate !== allowedRoots[i]) {
+      continue
+    }
     try {
       const stat = await fs.stat(/*turbopackIgnore: true*/ candidate)
       if (stat.isFile()) {

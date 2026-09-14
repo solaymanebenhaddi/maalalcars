@@ -44,6 +44,8 @@ model User {
   saleCommissionsPaid Sale[]                  @relation("SaleCommissionPaidBy")
   salesReceived       Sale[]                  @relation("SaleReceivedBy")
   exchangesHandled    VehicleExchange[]       @relation("ExchangeHandledBy")
+  createdApprovalRequests ApprovalRequest[]   @relation("RequestedBy")
+  reviewedApprovalRequests ApprovalRequest[]  @relation("ReviewedBy")
 }
 
 model Role {
@@ -80,16 +82,64 @@ model Session {
 }
 
 model ActivityLog {
-  id         String   @id @default(cuid())
-  action     String   // VEHICLE_CREATED, SALE_CONFIRMED, PAYMENT_RECEIVED, etc.
-  entityType String   // Vehicle, Sale, Payment, Contact, etc.
-  entityId   String?
-  details    String?
-  ipAddress  String?
-  createdAt  DateTime @default(now())
+  id                String   @id @default(cuid())
+  action            String   // VEHICLE_CREATED, SALE_CONFIRMED, PAYMENT_RECEIVED, etc.
+  entityType        String   // Vehicle, Sale, Payment, Contact, etc.
+  entityId          String?
+  entityLabel       String?  // Human readable descriptor e.g. "BMW X5 2022 (12345-A-6)"
+  details           String?
+  beforeData        String?  // JSON snapshot before change
+  afterData         String?  // JSON snapshot after change
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime @default(now())
 
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  approvalRequestId String?
+  approvalRequest   ApprovalRequest? @relation(fields: [approvalRequestId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([approvalRequestId])
+}
+
+model ApprovalRequest {
+  id                String    @id @default(cuid())
+  requestNumber     String    @unique // REQ-2026-00001
+  actionType        String    // CREATE, UPDATE, DELETE, ARCHIVE, RESTORE, STATUS_CHANGE, SALE, RESERVATION, REPAIR, EXCHANGE, PRICE_CHANGE
+  entityType        String    // Vehicle, Sale, Reservation, Repair, Contact, Document, Expense
+  entityId          String?
+  entityLabel       String?   // "BMW X5 2022"
+  status            String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED, EXPIRED, CONFLICTED
+
+  beforeData        String?   // JSON snapshot before mutation
+  requestedData     String    // JSON payload of requested changes
+  entityUpdatedAt   DateTime? // Snapshot timestamp of entity for conflict detection
+  targetUrl         String?   // Direct link e.g. /vehicles/cuid123
+  reason            String?   // Justification / note from requester
+
+  requestedByUserId String
+  requestedBy       User      @relation("RequestedBy", fields: [requestedByUserId], references: [id])
+
+  reviewedByUserId  String?
+  reviewedBy        User?     @relation("ReviewedBy", fields: [reviewedByUserId], references: [id])
+  reviewedAt        DateTime?
+  rejectionReason   String?
+  conflictDetails   String?   // JSON snapshot when conflict detected
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  activityLogs      ActivityLog[]
+
+  @@index([status])
+  @@index([entityType, entityId])
+  @@index([requestedByUserId])
+  @@index([createdAt])
 }
 
 // ==========================================

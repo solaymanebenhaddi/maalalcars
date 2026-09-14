@@ -93,8 +93,9 @@ jobs:
           # Public folder
           cp -r public/* .next/standalone/public/
 
-          # Prisma schema
+          # Prisma schema & scripts
           cp prisma/schema.prisma .next/standalone/prisma/
+          cp prisma/ensure-admin.sql .next/standalone/prisma/ 2>/dev/null || true
 
           # Prisma engines (runtime query engine for the app)
           mkdir -p .next/standalone/node_modules
@@ -141,6 +142,12 @@ jobs:
             if [ ! -f /var/www/maalalcars/shared/prisma/production.db ]; then
               sqlite3 /var/www/maalalcars/shared/prisma/production.db < ${RELEASE_DIR}/prisma/init.sql
               echo "Database initialized via init.sql"
+            fi
+
+            # Ensure schema updates and Admin user exist
+            if [ -f ${RELEASE_DIR}/prisma/ensure-admin.sql ]; then
+              sqlite3 /var/www/maalalcars/shared/prisma/production.db < ${RELEASE_DIR}/prisma/ensure-admin.sql 2>/dev/null || true
+              echo "Admin user and schema verified via ensure-admin.sql"
             fi
 
             # Symlink .env.production

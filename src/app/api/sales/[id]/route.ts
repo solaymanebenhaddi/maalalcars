@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { saleService } from '@/services/sale.service'
 import { saleUpdateSchema } from '@/validation/sale.schema'
 import { getActiveUserRole, isSuperAdminRole } from '@/lib/auth-roles'
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const sale = await saleService.getSaleDetails(id)
@@ -18,6 +22,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const body = await request.json()

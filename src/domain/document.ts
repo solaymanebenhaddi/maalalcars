@@ -243,7 +243,7 @@ export function validateDocumentUpload(file: { name: string; mimeType: string; s
     file.mimeType.startsWith('image/')
   const isExtAllowed = ALLOWED_DOCUMENT_EXTENSIONS.includes(ext)
 
-  if (!isMimeAllowed && !isExtAllowed) {
+  if (!isMimeAllowed || !isExtAllowed) {
     return {
       valid: false,
       error: `Format de fichier non autorisé (${ext}). Formats acceptés : PDF, Images (JPG, PNG, WEBP), Word (DOC, DOCX).`,

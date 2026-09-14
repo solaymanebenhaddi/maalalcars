@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { reservationService } from '@/services/reservation.service'
 import { reservationCreateSchema } from '@/validation/reservation.schema'
 
 export async function GET(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') || undefined
   const search = searchParams.get('search') || undefined
@@ -12,11 +16,17 @@ export async function GET(request: Request) {
     return NextResponse.json(reservations)
   } catch (error: unknown) {
     console.error('API Reservations GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
 export async function POST(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const body = await request.json()
     const validated = reservationCreateSchema.parse(body)
@@ -24,6 +34,9 @@ export async function POST(request: Request) {
     return NextResponse.json(reservation, { status: 201 })
   } catch (error: unknown) {
     console.error('API Reservations POST error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

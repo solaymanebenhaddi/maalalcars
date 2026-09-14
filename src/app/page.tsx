@@ -9,6 +9,9 @@ import {
   ArrowUpRight,
   Eye,
   CheckCircle2,
+  Clock,
+  CheckSquare,
+  AlertTriangle,
 } from 'lucide-react'
 import { DashboardKpiCard } from '@/components/dashboard/dashboard-kpi-card'
 import {
@@ -26,6 +29,8 @@ import { reservationRepository } from '@/repositories/reservation.repository'
 import { repairRepository } from '@/repositories/repair.repository'
 import { vehicleStateMachine } from '@/services/vehicle-state-machine.service'
 import { financialService } from '@/services/financial.service'
+import { approvalService } from '@/services/approval.service'
+import { getActiveUserRole } from '@/lib/auth-roles'
 import prisma from '@/lib/db'
 import { requireAuth } from '@/lib/session'
 
@@ -61,6 +66,8 @@ export default async function DashboardPage() {
     sparkVehicles,
     sparkReservations,
     sparkRepairs,
+    activeUser,
+    approvalCounts,
   ] = await Promise.all([
     vehicleRepository.countByStatus(),
     saleRepository.countSales({ startDate: startOfMonth }),
@@ -90,11 +97,10 @@ export default async function DashboardPage() {
       include: {
         payments: true,
         vehicle: {
-          select: {
-            purchasePrice: true,
+          include: {
+            purchases: { select: { commissionAmount: true }, take: 1 },
             expenses: { select: { amountTTC: true } },
             repairs: { select: { finalAmount: true, estimatedAmount: true } },
-            purchases: { select: { commissionAmount: true }, take: 1 },
           },
         },
       },
@@ -120,6 +126,8 @@ export default async function DashboardPage() {
       where: { startedAt: { gte: twelveMonthsAgo } },
       select: { startedAt: true },
     }),
+    getActiveUserRole(),
+    approvalService.getPendingCounts(),
   ])
 
   // 2. Operational Fleet Calculations
@@ -374,6 +382,68 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* APPROVAL & VALIDATION NOTIFICATION BANNER */}
+      {activeUser.isSuperAdmin && approvalCounts.totalPending > 0 && (
+        <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-[#181610] to-amber-950/20 p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-black font-black shadow-lg shadow-amber-950/50 shrink-0">
+              <CheckSquare className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 text-xs uppercase tracking-wider border border-amber-500/30">
+                  Centre des validations
+                </span>
+                <span className="font-bold text-white text-xs">
+                  {approvalCounts.totalPending} demande(s) en attente de votre décision
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300 mt-1 font-medium">
+                {approvalCounts.creations > 0 && <span>• {approvalCounts.creations} Ajout(s)</span>}
+                {approvalCounts.updates > 0 && <span>• {approvalCounts.updates} Modification(s)</span>}
+                {approvalCounts.sales > 0 && <span>• {approvalCounts.sales} Vente(s)</span>}
+                {approvalCounts.deletions > 0 && <span>• {approvalCounts.deletions} Suppression(s)</span>}
+                {approvalCounts.urgents > 0 && (
+                  <span className="text-red-400 font-bold flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {approvalCounts.urgents} urgente(s)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/admin/requests"
+            className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
+          >
+            <span>Examiner les demandes</span>
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {!activeUser.isSuperAdmin && (
+        <div className="rounded-2xl border border-[#282834] bg-[#14141c] p-4 shadow-md flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-amber-400" />
+            <div>
+              <span className="font-bold text-white text-xs">Espace Collaborateur — Mes demandes</span>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Consultez l’état d’avancement de vos demandes d’ajout et modification soumises à la direction.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/my-requests"
+            className="shrink-0 px-3.5 py-1.5 rounded-lg border border-[#323242] bg-[#1a1a24] text-zinc-200 hover:text-white hover:border-zinc-500 text-xs font-semibold transition-colors"
+          >
+            Voir mes demandes
+          </Link>
+        </div>
+      )}
 
       {/* ROW 1: 4 Operational KPI Cards with Custom Glowing Sparklines */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

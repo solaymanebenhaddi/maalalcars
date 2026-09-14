@@ -5,18 +5,27 @@ import { SESSION_CONFIG } from '@/config/constants'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isStaticAsset = /\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|eot)$/i.test(pathname)
+  const isStaticAsset = /\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|eot)$/i.test(
+    pathname,
+  )
 
   // 0. Enforce HTTPS in production (only when SSL is configured)
   const proto = request.headers.get('x-forwarded-proto')
-  if (proto === 'http' && process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS === 'true') {
+  if (
+    proto === 'http' &&
+    process.env.NODE_ENV === 'production' &&
+    process.env.FORCE_HTTPS === 'true'
+  ) {
     const httpsUrl = new URL(request.url)
     httpsUrl.protocol = 'https:'
     return NextResponse.redirect(httpsUrl, 301)
   }
 
   // 0.b Security: Strip any accidentally leaked credentials from URL query parameters
-  if (pathname === '/login' && (request.nextUrl.searchParams.has('password') || request.nextUrl.searchParams.has('email'))) {
+  if (
+    pathname === '/login' &&
+    (request.nextUrl.searchParams.has('password') || request.nextUrl.searchParams.has('email'))
+  ) {
     const cleanUrl = new URL('/login', request.url)
     const callbackUrl = request.nextUrl.searchParams.get('callbackUrl')
     if (callbackUrl) cleanUrl.searchParams.set('callbackUrl', callbackUrl)
@@ -55,7 +64,7 @@ export function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Authentification requise. Veuillez vous connecter.' },
-        { status: 401 }
+        { status: 401 },
       )
     }
 

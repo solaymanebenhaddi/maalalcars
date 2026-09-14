@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { repairService } from '@/services/repair.service'
 import { repairCreateSchema } from '@/validation/repair.schema'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') || undefined
   const vehicleId = searchParams.get('vehicleId') || undefined
@@ -23,6 +27,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const body = await request.json()
     const validated = repairCreateSchema.parse(body)

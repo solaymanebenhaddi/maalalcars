@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 import { prisma } from './db'
 import { SESSION_CONFIG } from '@/config/constants'
 
@@ -50,6 +51,21 @@ export async function getServerSession(): Promise<SessionUser | null> {
 }
 
 /**
+ * Require an authenticated session for API routes.
+ * Returns the session user or a 401 NextResponse.
+ */
+export async function requireApiAuth(): Promise<SessionUser | NextResponse> {
+  const user = await getServerSession()
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentification requise. Veuillez vous connecter.' },
+      { status: 401 },
+    )
+  }
+  return user
+}
+
+/**
  * Require an authenticated session.
  * Redirects to /login if no valid session is active.
  */
@@ -65,10 +81,7 @@ export async function requireAuth(redirectTo = '/login'): Promise<SessionUser> {
  * Require an authenticated session with a specific role.
  * Redirects to /login if unauthenticated, or to / if role check fails.
  */
-export async function requireRole(
-  roleName: string,
-  redirectTo = '/login',
-): Promise<SessionUser> {
+export async function requireRole(roleName: string, redirectTo = '/login'): Promise<SessionUser> {
   const user = await getServerSession()
 
   if (!user) {
@@ -76,7 +89,11 @@ export async function requireRole(
   }
 
   // Super Admin bypasses specific role requirement
-  if (user.role.name !== roleName && user.role.name !== 'Super Admin' && user.role.name !== 'SUPER_ADMIN') {
+  if (
+    user.role.name !== roleName &&
+    user.role.name !== 'Super Admin' &&
+    user.role.name !== 'SUPER_ADMIN'
+  ) {
     redirect('/')
   }
 

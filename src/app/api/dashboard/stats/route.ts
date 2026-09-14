@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { financeRepository } from '@/repositories/finance.repository'
 import { vehicleRepository } from '@/repositories/vehicle.repository'
 
 export async function GET() {
   try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
     const finance = await financeRepository.getFinancialOverview()
     const vehicles = await vehicleRepository.countByStatus()
 

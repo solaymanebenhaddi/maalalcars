@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { contactService } from '@/services/contact.service'
 import { contactUpdateSchema } from '@/validation/contact.schema'
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const contact = await contactService.getContactDetails(id)
@@ -12,11 +16,17 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json(contact)
   } catch (error: unknown) {
     console.error('API Contact GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const body = await request.json()
@@ -25,6 +35,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json(updated)
   } catch (error: unknown) {
     console.error('API Contact PATCH error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

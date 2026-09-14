@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { invoiceService } from '@/services/invoice.service'
 import { invoiceUpdateSchema } from '@/validation/invoice.schema'
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const invoice = await invoiceService.getInvoiceDetails(id)
@@ -17,6 +21,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const body = await request.json()

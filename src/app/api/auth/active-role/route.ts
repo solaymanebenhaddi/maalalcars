@@ -33,6 +33,9 @@ export async function POST(request: Request) {
       cookieStore.set('maalal_active_role', 'vendeur', {
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
       })
     } else {
       cookieStore.delete('maalal_active_role')

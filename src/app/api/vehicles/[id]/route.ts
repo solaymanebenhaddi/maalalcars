@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { vehicleService } from '@/services/vehicle.service'
 import { vehicleUpdateSchema } from '@/validation/vehicle.schema'
-import { getServerSession } from '@/lib/session'
+import { getActiveUserRole } from '@/lib/auth-roles'
+import { approvalService } from '@/services/approval.service'
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params
@@ -20,10 +21,38 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params
   try {
+    const activeUser = await getActiveUserRole()
+    if (!activeUser || activeUser.role === 'Invité') {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
     const body = await request.json()
     const validated = vehicleUpdateSchema.parse(body)
-    const updated = await vehicleService.updateVehicle(id, validated)
-    return NextResponse.json(updated)
+
+    const existing = await vehicleService.getVehicleDetails(id)
+    const entityLabel = existing ? `${existing.brand} ${existing.model} (${existing.matricule || existing.vin})` : `Véhicule ${id}`
+
+    const result = await approvalService.requestMutation(
+      {
+        actionType: 'UPDATE',
+        entityType: 'Vehicle',
+        entityId: id,
+        entityLabel,
+        requestedData: validated,
+        targetUrl: `/vehicles/${id}`,
+        reason: body.changeReason || 'Mise à jour des informations du véhicule',
+      },
+      {
+        userId: activeUser.id,
+        userRole: activeUser.role,
+        userName: activeUser.name,
+      },
+      async () => {
+        return await vehicleService.updateVehicle(id, validated, activeUser.id)
+      }
+    )
+
+    return NextResponse.json(result, { status: result.appliedImmediately ? 200 : 202 })
   } catch (error: unknown) {
     console.error('API Vehicle PATCH error:', error)
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
@@ -33,9 +62,35 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params
   try {
-    const session = await getServerSession()
-    const result = await vehicleService.deleteVehicle(id, session?.id)
-    return NextResponse.json({ success: true, ...result })
+    const activeUser = await getActiveUserRole()
+    if (!activeUser || activeUser.role === 'Invité') {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
+    const existing = await vehicleService.getVehicleDetails(id)
+    const entityLabel = existing ? `${existing.brand} ${existing.model} (${existing.matricule || existing.vin})` : `Véhicule ${id}`
+
+    const result = await approvalService.requestMutation(
+      {
+        actionType: 'DELETE',
+        entityType: 'Vehicle',
+        entityId: id,
+        entityLabel,
+        requestedData: { action: 'DELETE' },
+        targetUrl: `/vehicles/${id}`,
+        reason: 'Demande de suppression du véhicule',
+      },
+      {
+        userId: activeUser.id,
+        userRole: activeUser.role,
+        userName: activeUser.name,
+      },
+      async () => {
+        return await vehicleService.deleteVehicle(id, activeUser.id)
+      }
+    )
+
+    return NextResponse.json({ success: true, ...result }, { status: result.appliedImmediately ? 200 : 202 })
   } catch (error: unknown) {
     console.error('API Vehicle DELETE error:', error)
     return NextResponse.json(

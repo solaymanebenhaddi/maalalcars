@@ -137,15 +137,30 @@ export const exchangeService = {
 
     // 3. Execute atomic transaction
     const result = await prisma.$transaction(async (tx) => {
-      // A. Generate unique codes
+      // A. Generate unique codes (collision-free)
       const vehicleCount = await tx.vehicle.count()
-      const vehicleCode = `V-${new Date().getFullYear()}-${String(vehicleCount + 1).padStart(4, '0')}`
+      let vehicleIndex = vehicleCount + 1
+      let vehicleCode = `V-${new Date().getFullYear()}-${String(vehicleIndex).padStart(4, '0')}`
+      while (await tx.vehicle.findUnique({ where: { code: vehicleCode } })) {
+        vehicleIndex++
+        vehicleCode = `V-${new Date().getFullYear()}-${String(vehicleIndex).padStart(4, '0')}`
+      }
 
       const purchaseCount = await tx.purchase.count()
-      const purchaseCode = `ACH-${new Date().getFullYear()}-${String(purchaseCount + 1).padStart(4, '0')}`
+      let purchaseIndex = purchaseCount + 1
+      let purchaseCode = `ACH-${new Date().getFullYear()}-${String(purchaseIndex).padStart(4, '0')}`
+      while (await tx.purchase.findUnique({ where: { code: purchaseCode } })) {
+        purchaseIndex++
+        purchaseCode = `ACH-${new Date().getFullYear()}-${String(purchaseIndex).padStart(4, '0')}`
+      }
 
       const exchangeCount = await tx.vehicleExchange.count()
-      const exchangeCode = `ECH-${new Date().getFullYear()}-${String(exchangeCount + 1).padStart(4, '0')}`
+      let exchangeIndex = exchangeCount + 1
+      let exchangeCode = `ECH-${new Date().getFullYear()}-${String(exchangeIndex).padStart(4, '0')}`
+      while (await tx.vehicleExchange.findUnique({ where: { code: exchangeCode } })) {
+        exchangeIndex++
+        exchangeCode = `ECH-${new Date().getFullYear()}-${String(exchangeIndex).padStart(4, '0')}`
+      }
 
       // B. Create incoming vehicle in stock
       const photos = incomingVehicle.photos || []
