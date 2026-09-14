@@ -96,6 +96,7 @@ jobs:
           # Prisma schema & scripts
           cp prisma/schema.prisma .next/standalone/prisma/
           cp prisma/ensure-admin.sql .next/standalone/prisma/ 2>/dev/null || true
+          cp prisma/production.template .next/standalone/prisma/ 2>/dev/null || true
 
           # Prisma engines (runtime query engine for the app)
           mkdir -p .next/standalone/node_modules
@@ -138,10 +139,17 @@ jobs:
             mkdir -p /var/www/maalalcars/shared/prisma
             ln -sfn /var/www/maalalcars/shared/prisma/production.db ${RELEASE_DIR}/prisma/dev.db
 
-            # Initialize DB if it doesn't exist yet (first deploy)
-            if [ ! -f /var/www/maalalcars/shared/prisma/production.db ]; then
-              sqlite3 /var/www/maalalcars/shared/prisma/production.db < ${RELEASE_DIR}/prisma/init.sql
-              echo "Database initialized via init.sql"
+            # If production.db doesn't exist OR has 0 vehicles, restore from production.template!
+            VEHICLE_COUNT=$(sqlite3 /var/www/maalalcars/shared/prisma/production.db "SELECT count(*) FROM Vehicle;" 2>/dev/null || echo 0)
+            if [ ! -f /var/www/maalalcars/shared/prisma/production.db ] || [ "$VEHICLE_COUNT" -eq 0 ]; then
+              if [ -f ${RELEASE_DIR}/prisma/production.template ]; then
+                echo "Restoring complete database with vehicles from production.template..."
+                cp ${RELEASE_DIR}/prisma/production.template /var/www/maalalcars/shared/prisma/production.db
+                chmod 664 /var/www/maalalcars/shared/prisma/production.db
+              else
+                sqlite3 /var/www/maalalcars/shared/prisma/production.db < ${RELEASE_DIR}/prisma/init.sql
+                echo "Database initialized via init.sql"
+              fi
             fi
 
             # Ensure schema updates and Admin user exist
