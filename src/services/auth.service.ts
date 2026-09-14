@@ -1,6 +1,13 @@
 import { prisma } from '@/lib/db'
 import { userRepository } from '@/repositories/user.repository'
-import { verifyPassword, hashPassword, createSession, validateSession, invalidateSession, RequestHeaders } from '@/lib/auth'
+import {
+  verifyPassword,
+  hashPassword,
+  createSession,
+  validateSession,
+  invalidateSession,
+  RequestHeaders,
+} from '@/lib/auth'
 import { auditService } from './audit.service'
 import { LoginInput, UserCreateInput } from '@/validation/auth.schema'
 
