@@ -51,7 +51,18 @@ export function middleware(request: NextRequest) {
 
   // 2. If user is accessing /login
   if (pathname === '/login') {
-    // If already authenticated with a valid session cookie, redirect to dashboard
+    // If user was redirected here by auth guard or expired session, allow login and clear cookie
+    if (
+      request.nextUrl.searchParams.has('callbackUrl') ||
+      request.nextUrl.searchParams.has('expired') ||
+      request.nextUrl.searchParams.has('clear')
+    ) {
+      const res = NextResponse.next()
+      res.cookies.delete(SESSION_CONFIG.cookieName)
+      return res
+    }
+
+    // If already authenticated with a valid session cookie format, redirect to dashboard
     if (isValidSessionToken) {
       return NextResponse.redirect(new URL('/', request.url))
     }
@@ -62,18 +73,23 @@ export function middleware(request: NextRequest) {
   if (!isValidSessionToken) {
     // If it's an API route, return 401 Unauthorized
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
+      const res = NextResponse.json(
         { error: 'Authentification requise. Veuillez vous connecter.' },
         { status: 401 },
       )
+      res.cookies.delete(SESSION_CONFIG.cookieName)
+      return res
     }
 
-    // If it's a page route, redirect to /login with callbackUrl
+    // If it's a page route, redirect to /login with callbackUrl and purge any invalid cookie
     const loginUrl = new URL('/login', request.url)
     if (pathname !== '/') {
       loginUrl.searchParams.set('callbackUrl', pathname)
     }
-    return NextResponse.redirect(loginUrl)
+
+    const res = NextResponse.redirect(loginUrl)
+    res.cookies.delete(SESSION_CONFIG.cookieName)
+    return res
   }
 
   return NextResponse.next()
