@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import prisma from '@/lib/db'
 import { approvalService } from '@/services/approval.service'
 
@@ -7,28 +7,75 @@ describe('Approval & Audit Lifecycle Integration Tests', () => {
   let regularUser: { id: string; role: { name: string } }
   let testVehicle: { id: string; brand: string; model: string; targetSalePrice: number; status: string }
 
-  beforeEach(async () => {
-    // 1. Resolve Super Admin
-    const superAdmin = await prisma.user.findFirst({
-      where: { role: { name: 'Super Admin' } },
-      include: { role: true },
+  beforeAll(async () => {
+    // 1. Resolve or create Super Admin
+    const superAdminRole = await prisma.role.upsert({
+      where: { name: 'Super Admin' },
+      update: {},
+      create: {
+        name: 'Super Admin',
+        description: 'Super Administrateur avec pouvoirs exclusifs',
+      },
     })
-    if (!superAdmin) throw new Error('Super Admin not found in test DB')
-    superAdminUser = superAdmin
 
-    // 2. Resolve Regular User (Vendeur or Commercial)
-    const vendeur = await prisma.user.findFirst({
-      where: { role: { name: { in: ['Vendeur', 'Gestionnaire'] } } },
+    superAdminUser = await prisma.user.upsert({
+      where: { email: 'integration-superadmin@maalalcars.com' },
+      update: { roleId: superAdminRole.id },
+      create: {
+        email: 'integration-superadmin@maalalcars.com',
+        name: 'Super Admin Test',
+        passwordHash: 'dummyhash',
+        roleId: superAdminRole.id,
+        isActive: true,
+      },
       include: { role: true },
     })
-    if (!vendeur) throw new Error('Regular user not found in test DB')
-    regularUser = vendeur
+
+    // 2. Resolve or create Regular User (Vendeur)
+    const vendeurRole = await prisma.role.upsert({
+      where: { name: 'Vendeur' },
+      update: {},
+      create: {
+        name: 'Vendeur',
+        description: 'Vendeur commercial',
+      },
+    })
+
+    regularUser = await prisma.user.upsert({
+      where: { email: 'integration-vendeur@maalalcars.com' },
+      update: { roleId: vendeurRole.id },
+      create: {
+        email: 'integration-vendeur@maalalcars.com',
+        name: 'Vendeur Test',
+        passwordHash: 'dummyhash',
+        roleId: vendeurRole.id,
+        isActive: true,
+      },
+      include: { role: true },
+    })
 
     // 3. Resolve or create active test vehicle
-    const vehicle = await prisma.vehicle.findFirst({
+    let vehicle = await prisma.vehicle.findFirst({
       where: { archivedAt: null, status: 'IN_STOCK' },
     })
-    if (!vehicle) throw new Error('Test vehicle not found in DB')
+    if (!vehicle) {
+      vehicle = await prisma.vehicle.create({
+        data: {
+          code: 'TEST-INT-V01',
+          vin: 'TESTINTVIN000001',
+          brand: 'Mercedes-Benz',
+          model: 'Classe C',
+          year: 2023,
+          colorExterior: 'Gris',
+          fuelType: 'DIESEL',
+          transmission: 'AUTOMATIQUE',
+          mileage: 30000,
+          purchasePrice: 280000,
+          targetSalePrice: 320000,
+          status: 'IN_STOCK',
+        },
+      })
+    }
     testVehicle = vehicle
   })
 
