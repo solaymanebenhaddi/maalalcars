@@ -63,7 +63,11 @@ async function main() {
 
   // 2. Users
   const passwordHash = await bcrypt.hash('password123', 10)
-  const maalalPasswordHash = await bcrypt.hash('Maalal@x1', 10)
+  const adminPassword = process.env.ADMIN_PASSWORD
+  if (!adminPassword) {
+    throw new Error('ADMIN_PASSWORD environment variable is required for seeding')
+  }
+  const maalalPasswordHash = await bcrypt.hash(adminPassword, 10)
 
   const adminUser = await prisma.user.upsert({
     where: { email: 'maalalcars.911@gmail.com' },
