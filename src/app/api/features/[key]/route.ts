@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth, getServerSession } from '@/lib/session'
 import prisma from '@/lib/db'
-import { getServerSession } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,6 +8,9 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ key: string }> }
 ) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { key } = await context.params
   try {
     const flag = await prisma.featureFlag.findUnique({
@@ -21,7 +24,7 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(flag)
+    return NextResponse.json({ key: flag.key, enabled: flag.enabled })
   } catch (error: unknown) {
     console.error('API Feature GET error:', error)
     return NextResponse.json(

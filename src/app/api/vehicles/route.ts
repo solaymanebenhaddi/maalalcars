@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { vehicleService } from '@/services/vehicle.service'
 import { vehicleCreateSchema } from '@/validation/vehicle.schema'
 import { getActiveUserRole } from '@/lib/auth-roles'
 import { approvalService } from '@/services/approval.service'
 
 export async function GET(request: Request) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { searchParams } = new URL(request.url)
   const brand = searchParams.get('brand') || undefined
   const status = searchParams.get('status') || undefined

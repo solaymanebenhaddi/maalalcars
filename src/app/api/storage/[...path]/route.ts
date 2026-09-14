@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -6,6 +7,9 @@ export async function GET(
   request: Request,
   context?: { params?: Promise<{ path: string[] }> | { path: string[] } }
 ) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const rawParams = context?.params ? await context.params : null
     const pathSegments = rawParams?.path

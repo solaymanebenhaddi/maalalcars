@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { vehicleService } from '@/services/vehicle.service'
 import { vehicleUpdateSchema } from '@/validation/vehicle.schema'
 import { getActiveUserRole } from '@/lib/auth-roles'
 import { approvalService } from '@/services/approval.service'
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await context.params
   try {
     const vehicle = await vehicleService.getVehicleDetails(id)

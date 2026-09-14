@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/session'
 import { vehicleImportService } from '@/services/vehicle-import.service'
 
 export async function GET() {
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const buffer = vehicleImportService.generateTemplateWorkbook()
 
