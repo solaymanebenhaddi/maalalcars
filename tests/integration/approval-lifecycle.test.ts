@@ -54,29 +54,24 @@ describe('Approval & Audit Lifecycle Integration Tests', () => {
       include: { role: true },
     })
 
-    // 3. Resolve or create active test vehicle
-    let vehicle = await prisma.vehicle.findFirst({
-      where: { archivedAt: null, status: 'IN_STOCK' },
+    // 3. Create dedicated unique test vehicle for isolated testing
+    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    testVehicle = await prisma.vehicle.create({
+      data: {
+        code: `TST-APPR-${uniqueSuffix}`.substring(0, 30),
+        vin: `VINAPPR${uniqueSuffix}`.substring(0, 17).padEnd(17, 'X'),
+        brand: 'Mercedes-Benz',
+        model: 'Classe C',
+        year: 2023,
+        colorExterior: 'Gris',
+        fuelType: 'DIESEL',
+        transmission: 'AUTOMATIQUE',
+        mileage: 30000,
+        purchasePrice: 280000,
+        targetSalePrice: 500000,
+        status: 'IN_STOCK',
+      },
     })
-    if (!vehicle) {
-      vehicle = await prisma.vehicle.create({
-        data: {
-          code: 'TEST-INT-V01',
-          vin: 'TESTINTVIN000001',
-          brand: 'Mercedes-Benz',
-          model: 'Classe C',
-          year: 2023,
-          colorExterior: 'Gris',
-          fuelType: 'DIESEL',
-          transmission: 'AUTOMATIQUE',
-          mileage: 30000,
-          purchasePrice: 280000,
-          targetSalePrice: 320000,
-          status: 'IN_STOCK',
-        },
-      })
-    }
-    testVehicle = vehicle
   })
 
   it('verifies non-Super-Admin mutation creates a PENDING ApprovalRequest without altering live vehicle', async () => {

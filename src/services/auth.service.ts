@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/db'
 import { userRepository } from '@/repositories/user.repository'
 import {
   verifyPassword,
