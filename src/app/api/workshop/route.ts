@@ -17,7 +17,10 @@ export async function GET(request: Request) {
     return NextResponse.json(orders)
   } catch (error: unknown) {
     console.error('API Workshop GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
@@ -32,6 +35,9 @@ export async function POST(request: Request) {
     return NextResponse.json(order, { status: 201 })
   } catch (error: unknown) {
     console.error('API Workshop POST error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

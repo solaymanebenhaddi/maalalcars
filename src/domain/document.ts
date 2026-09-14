@@ -14,17 +14,17 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'CARTE_GRISE',
     label: 'Carte Grise (Barrée / Initiale)',
     category: 'Achats',
-    description: 'Certificat d\'immatriculation original ou barré du véhicule',
+    description: "Certificat d'immatriculation original ou barré du véhicule",
   },
   {
     value: 'ACTE_CESSION',
-    label: 'Acte de Cession / Contrat d\'Achat',
+    label: "Acte de Cession / Contrat d'Achat",
     category: 'Achats',
-    description: 'Contrat d\'achat ou acte de cession signé avec le fournisseur/vendeur',
+    description: "Contrat d'achat ou acte de cession signé avec le fournisseur/vendeur",
   },
   {
     value: 'FACTURE_ACHAT',
-    label: 'Facture d\'Achat Fournisseur',
+    label: "Facture d'Achat Fournisseur",
     category: 'Achats',
     description: 'Facture commerciale ou justificatif de règlement du fournisseur',
   },
@@ -32,13 +32,13 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'CIN_FOURNISSEUR',
     label: 'CIN / ICE Fournisseur',
     category: 'Achats',
-    description: 'Copie de la carte d\'identité nationale ou ICE du vendeur/fournisseur',
+    description: "Copie de la carte d'identité nationale ou ICE du vendeur/fournisseur",
   },
   {
     value: 'CIN_SEMSAR_ACHAT',
-    label: 'CIN Intermédiaire / Semsar d\'Achat',
+    label: "CIN Intermédiaire / Semsar d'Achat",
     category: 'Achats',
-    description: 'Copie de la pièce d\'identité du courtier ayant facilité l\'achat',
+    description: "Copie de la pièce d'identité du courtier ayant facilité l'achat",
   },
   {
     value: 'QUITUS_FISCAL',
@@ -48,7 +48,7 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
   },
   {
     value: 'CONTROLE_TECHNIQUE',
-    label: 'Contrôle Technique d\'Entrée',
+    label: "Contrôle Technique d'Entrée",
     category: 'Achats',
     description: 'Rapport de visite technique lors de la réception en stock',
   },
@@ -56,13 +56,13 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'DECHARGE_PAIEMENT',
     label: 'Décharge / Reçu Paiement Fournisseur',
     category: 'Achats',
-    description: 'Reçu d\'encaissement signé par le vendeur ou bordereau de virement',
+    description: "Reçu d'encaissement signé par le vendeur ou bordereau de virement",
   },
   {
     value: 'AUTRE_ACHAT',
-    label: 'Autre Document d\'Achat',
+    label: "Autre Document d'Achat",
     category: 'Achats',
-    description: 'Tout autre document lié au dossier d\'achat du véhicule',
+    description: "Tout autre document lié au dossier d'achat du véhicule",
   },
 
   // --- VENTES & CLIENTS ---
@@ -82,13 +82,13 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'CIN_ACHETEUR',
     label: 'CIN / ICE Client Acheteur',
     category: 'Ventes',
-    description: 'Copie de la pièce d\'identité de l\'acquéreur ou ICE de l\'entreprise',
+    description: "Copie de la pièce d'identité de l'acquéreur ou ICE de l'entreprise",
   },
   {
     value: 'RECU_REGLEMENT',
-    label: 'Reçu d\'Acompte / Preuve Encaissement',
+    label: "Reçu d'Acompte / Preuve Encaissement",
     category: 'Ventes',
-    description: 'Reçu de versement d\'acompte ou justificatif de paiement total',
+    description: "Reçu de versement d'acompte ou justificatif de paiement total",
   },
   {
     value: 'CERTIFICAT_VENTE',
@@ -100,7 +100,7 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'CIN_SEMSAR_VENTE',
     label: 'CIN Intermédiaire / Semsar de Vente',
     category: 'Ventes',
-    description: 'Copie de la pièce d\'identité de l\'intermédiaire commercial',
+    description: "Copie de la pièce d'identité de l'intermédiaire commercial",
   },
   {
     value: 'BON_LIVRAISON',
@@ -138,25 +138,25 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'ORDRE_REPARATION',
     label: 'Ordre de Réparation / Travaux',
     category: 'Réparations',
-    description: 'Ordre d\'intervention atelier interne décrivant les tâches',
+    description: "Ordre d'intervention atelier interne décrivant les tâches",
   },
   {
     value: 'RAPPORT_DIAGNOSTIC',
     label: 'Rapport Diagnostic (Valise / Banc)',
     category: 'Réparations',
-    description: 'Rapport électronique ou relevé d\'erreurs valise de diagnostic',
+    description: "Rapport électronique ou relevé d'erreurs valise de diagnostic",
   },
   {
     value: 'BON_PIECES',
     label: 'Bon de Commande Pièces Rechange',
     category: 'Réparations',
-    description: 'Facturette ou bon d\'achat des pièces détachées neuves/occasion',
+    description: "Facturette ou bon d'achat des pièces détachées neuves/occasion",
   },
   {
     value: 'PHOTO_CONSTAT',
     label: 'Photo / Constat Avant/Après Travaux',
     category: 'Réparations',
-    description: 'Justificatif visuel de l\'état de la pièce ou carrosserie réparée',
+    description: "Justificatif visuel de l'état de la pièce ou carrosserie réparée",
   },
   {
     value: 'FICHE_RECEPTION',
@@ -168,15 +168,15 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'AUTRE_REPARATION',
     label: 'Autre Document Réparation',
     category: 'Réparations',
-    description: 'Tout autre justificatif ou document d\'atelier',
+    description: "Tout autre justificatif ou document d'atelier",
   },
 
   // --- ADMINISTRATIF & GÉNÉRAL ---
   {
     value: 'POLICE_ASSURANCE',
-    label: 'Attestation d\'Assurance',
+    label: "Attestation d'Assurance",
     category: 'Administratif',
-    description: 'Police ou attestation d\'assurance en cours de validité',
+    description: "Police ou attestation d'assurance en cours de validité",
   },
   {
     value: 'VIGNETTE_FISCALE',
@@ -188,7 +188,7 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     value: 'CERTIFICAT_NON_GAGE',
     label: 'Certificat de Non-Gage',
     category: 'Administratif',
-    description: 'État d\'opposition et de non-gage délivré par l\'administration',
+    description: "État d'opposition et de non-gage délivré par l'administration",
   },
   {
     value: 'AUTRE_ADMINISTRATIF',
@@ -220,7 +220,16 @@ export const ALLOWED_DOCUMENT_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]
 
-export const ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.avif', '.doc', '.docx']
+export const ALLOWED_DOCUMENT_EXTENSIONS = [
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.avif',
+  '.doc',
+  '.docx',
+]
 
 export function validateDocumentUpload(file: { name: string; mimeType: string; size: number }): {
   valid: boolean

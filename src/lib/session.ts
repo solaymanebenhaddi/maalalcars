@@ -34,9 +34,14 @@ export async function getServerSession(): Promise<SessionUser | null> {
     },
   })
 
-  if (!session) return null
-  if (session.expiresAt < new Date()) return null
-  if (!session.user.isActive) return null
+  if (!session || session.expiresAt < new Date() || !session.user.isActive) {
+    try {
+      cookieStore.delete(SESSION_CONFIG.cookieName)
+    } catch {
+      // In read-only contexts, cookieStore.delete might throw, ignore safely
+    }
+    return null
+  }
 
   return {
     id: session.user.id,
@@ -72,7 +77,14 @@ export async function requireApiAuth(): Promise<SessionUser | NextResponse> {
 export async function requireAuth(redirectTo = '/login'): Promise<SessionUser> {
   const user = await getServerSession()
   if (!user) {
-    redirect(redirectTo)
+    try {
+      const cookieStore = await cookies()
+      cookieStore.delete(SESSION_CONFIG.cookieName)
+    } catch {}
+    const destination = redirectTo.includes('?')
+      ? `${redirectTo}&expired=1`
+      : `${redirectTo}?expired=1`
+    redirect(destination)
   }
   return user
 }
@@ -85,6 +97,10 @@ export async function requireRole(roleName: string, redirectTo = '/login'): Prom
   const user = await getServerSession()
 
   if (!user) {
+    try {
+      const cookieStore = await cookies()
+      cookieStore.delete(SESSION_CONFIG.cookieName)
+    } catch {}
     redirect(redirectTo)
   }
 

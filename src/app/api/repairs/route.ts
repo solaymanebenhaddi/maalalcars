@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     console.error('API Repairs GET error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur serveur' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     console.error('API Repairs POST error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Validation échouée' },
-      { status: 400 }
+      { status: 400 },
     )
   }
 }

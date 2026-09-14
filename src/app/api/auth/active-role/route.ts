@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (!isSuperAdminRole(sessionUser.role.name)) {
       return NextResponse.json(
         { error: 'Seul le Super Admin peut changer de perspective de rôle' },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur lors du changement de rôle' },
-      { status: 400 }
+      { status: 400 },
     )
   }
 }

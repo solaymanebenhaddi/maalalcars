@@ -8,10 +8,7 @@ import {
   detectEntityConflict,
   generateRequestNumber,
 } from '@/domain/approval'
-import {
-  ApprovalFilterInput,
-  CreateApprovalRequestInput,
-} from '@/validation/approval.schema'
+import { ApprovalFilterInput, CreateApprovalRequestInput } from '@/validation/approval.schema'
 import { Prisma } from '@prisma/client'
 
 export interface RequestMutationContext {
@@ -31,7 +28,7 @@ export const approvalService = {
   async requestMutation<T = unknown>(
     input: CreateApprovalRequestInput,
     context: RequestMutationContext,
-    directExecutor?: () => Promise<T>
+    directExecutor?: () => Promise<T>,
   ): Promise<{
     appliedImmediately: boolean
     status: ApprovalStatus
@@ -54,7 +51,8 @@ export const approvalService = {
         entityType: input.entityType,
         entityId: input.entityId,
         entityLabel: input.entityLabel,
-        details: input.reason || `Action ${input.actionType} exécutée immédiatement par Super Admin`,
+        details:
+          input.reason || `Action ${input.actionType} exécutée immédiatement par Super Admin`,
         afterData: input.requestedData,
         userId: context.userId,
         ipAddress: context.ipAddress,
@@ -167,8 +165,13 @@ export const approvalService = {
       throw new Error('Demande d’approbation introuvable.')
     }
 
-    if (request.status !== 'PENDING' && !(request.status === 'CONFLICTED' && params.overrideConflict)) {
-      throw new Error(`Cette demande ne peut pas être approuvée (Statut actuel: ${request.status}).`)
+    if (
+      request.status !== 'PENDING' &&
+      !(request.status === 'CONFLICTED' && params.overrideConflict)
+    ) {
+      throw new Error(
+        `Cette demande ne peut pas être approuvée (Statut actuel: ${request.status}).`,
+      )
     }
 
     const requestedData = JSON.parse(request.requestedData || '{}')
@@ -200,7 +203,7 @@ export const approvalService = {
           })
 
           throw new Error(
-            'Conflit détecté : Les données de cet élément ont été modifiées depuis la soumission de la demande. Veuillez inspecter les différences.'
+            'Conflit détecté : Les données de cet élément ont été modifiées depuis la soumission de la demande. Veuillez inspecter les différences.',
           )
         }
       }

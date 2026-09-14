@@ -154,7 +154,6 @@ export async function getExistingFilePath(relativePath: string): Promise<string 
         return candidate
       }
     } catch (_) {}
-
   }
 
   return null

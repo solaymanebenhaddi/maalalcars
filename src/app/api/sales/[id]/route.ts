@@ -17,7 +17,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json(sale)
   } catch (error: unknown) {
     console.error('API Sale GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
@@ -35,9 +38,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (!isSuperAdminRole(activeUser.role)) {
         return NextResponse.json(
           {
-            error: 'Accès refusé : Seul le Super Admin est autorisé à valider définitivement la vente et la livraison.',
+            error:
+              'Accès refusé : Seul le Super Admin est autorisé à valider définitivement la vente et la livraison.',
           },
-          { status: 403 }
+          { status: 403 },
         )
       }
     }
@@ -46,6 +50,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json(updated)
   } catch (error: unknown) {
     console.error('API Sale PATCH error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

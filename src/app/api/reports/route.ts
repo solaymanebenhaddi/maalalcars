@@ -10,6 +10,9 @@ export async function GET() {
     return NextResponse.json(report)
   } catch (error: unknown) {
     console.error('API Reports GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
