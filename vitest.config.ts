@@ -10,7 +10,7 @@ export default defineConfig({
     exclude: ['node_modules', '.next'],
     env: {
       DATABASE_URL: 'file:./dev.db',
-      SESSION_SECRET: 'ci-secret-must-be-at-least-32-characters-long',
+      SESSION_SECRET: process.env.SESSION_SECRET || 'test-secret-must-be-at-least-32-characters-long',
     },
     coverage: {
       provider: 'v8',
