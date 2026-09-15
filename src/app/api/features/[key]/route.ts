@@ -4,10 +4,7 @@ import prisma from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ key: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ key: string }> }) {
   const auth = await requireApiAuth()
   if (auth instanceof NextResponse) return auth
 
@@ -18,10 +15,7 @@ export async function GET(
     })
 
     if (!flag) {
-      return NextResponse.json(
-        { error: `Fonctionnalité introuvable: ${key}` },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: `Fonctionnalité introuvable: ${key}` }, { status: 404 })
     }
 
     return NextResponse.json({ key: flag.key, enabled: flag.enabled })
@@ -29,30 +23,24 @@ export async function GET(
     console.error('API Feature GET error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur serveur' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
 
-export async function PATCH(
-  request: Request,
-  context: { params: Promise<{ key: string }> }
-) {
+export async function PATCH(request: Request, context: { params: Promise<{ key: string }> }) {
   const { key } = await context.params
   try {
     const user = await getServerSession()
     if (!user || user.role.name !== 'Administrateur') {
-      return NextResponse.json(
-        { error: 'Accès réservé aux administrateurs' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
     }
 
     const body = await request.json()
     if (typeof body.enabled !== 'boolean') {
       return NextResponse.json(
         { error: 'Le champ "enabled" (booléen) est requis' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -66,7 +54,7 @@ export async function PATCH(
     console.error('API Feature PATCH error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur mise à jour' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

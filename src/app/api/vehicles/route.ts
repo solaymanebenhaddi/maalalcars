@@ -19,7 +19,10 @@ export async function GET(request: Request) {
     return NextResponse.json(vehicles)
   } catch (error: unknown) {
     console.error('API Vehicles GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
@@ -49,15 +52,17 @@ export async function POST(request: Request) {
       },
       async () => {
         return await vehicleService.createVehicle(validated, activeUser.id)
-      }
+      },
     )
 
-    return NextResponse.json(
-      result.appliedImmediately ? result.data : result,
-      { status: result.appliedImmediately ? 201 : 202 }
-    )
+    return NextResponse.json(result.appliedImmediately ? result.data : result, {
+      status: result.appliedImmediately ? 201 : 202,
+    })
   } catch (error: unknown) {
     console.error('API Vehicles POST error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }

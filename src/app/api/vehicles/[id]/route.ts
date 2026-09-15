@@ -18,7 +18,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json(vehicle)
   } catch (error: unknown) {
     console.error('API Vehicle GET error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { status: 500 },
+    )
   }
 }
 
@@ -34,7 +37,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const validated = vehicleUpdateSchema.parse(body)
 
     const existing = await vehicleService.getVehicleDetails(id)
-    const entityLabel = existing ? `${existing.brand} ${existing.model} (${existing.matricule || existing.vin})` : `Véhicule ${id}`
+    const entityLabel = existing
+      ? `${existing.brand} ${existing.model} (${existing.matricule || existing.vin})`
+      : `Véhicule ${id}`
 
     const result = await approvalService.requestMutation(
       {
@@ -53,13 +58,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       },
       async () => {
         return await vehicleService.updateVehicle(id, validated, activeUser.id)
-      }
+      },
     )
 
     return NextResponse.json(result, { status: result.appliedImmediately ? 200 : 202 })
   } catch (error: unknown) {
     console.error('API Vehicle PATCH error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Validation échouée' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Validation échouée' },
+      { status: 400 },
+    )
   }
 }
 
@@ -72,7 +80,9 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     }
 
     const existing = await vehicleService.getVehicleDetails(id)
-    const entityLabel = existing ? `${existing.brand} ${existing.model} (${existing.matricule || existing.vin})` : `Véhicule ${id}`
+    const entityLabel = existing
+      ? `${existing.brand} ${existing.model} (${existing.matricule || existing.vin})`
+      : `Véhicule ${id}`
 
     const result = await approvalService.requestMutation(
       {
@@ -91,15 +101,18 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
       },
       async () => {
         return await vehicleService.deleteVehicle(id, activeUser.id)
-      }
+      },
     )
 
-    return NextResponse.json({ success: true, ...result }, { status: result.appliedImmediately ? 200 : 202 })
+    return NextResponse.json(
+      { success: true, ...result },
+      { status: result.appliedImmediately ? 200 : 202 },
+    )
   } catch (error: unknown) {
     console.error('API Vehicle DELETE error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur lors de la suppression' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

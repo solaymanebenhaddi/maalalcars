@@ -19,11 +19,10 @@ VALUES ('cmtja4txp0003ctmkhn29ap6j', 'Comptable', 'Gestion financière, factures
 INSERT OR IGNORE INTO "Role" ("id", "name", "description", "createdAt", "updatedAt")
 VALUES ('cmtja4txx0004ctmkb4whrvn0', 'Assistante', 'Support administratif, cartes grises, dossiers et accueil', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- 2. Ensure Super Admin user exists (maalalcars.911@gmail.com / Maalal@x1)
+-- 2. Ensure Super Admin user exists (created if not present, never overwriting password on existing user)
 INSERT INTO "User" ("id", "email", "name", "phone", "passwordHash", "roleId", "isActive", "createdAt", "updatedAt")
 VALUES ('cmtmstm6v0008cteoinwh0g3s', 'maalalcars.911@gmail.com', 'Maalal Admin', '+212 6 00 00 00 00', '$2b$10$Pe2vcutWKmFhdtjDDqOe8eJz0Wio5TrCO48HggMJ4nKv0eALjC0oq', 'cmtnlwh8s0000ctvs2g3bem3o', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT("email") DO UPDATE SET
-  "passwordHash" = excluded."passwordHash",
   "roleId" = excluded."roleId",
   "isActive" = 1;
 

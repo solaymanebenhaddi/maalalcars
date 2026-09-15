@@ -247,8 +247,7 @@ export function validateDocumentUpload(file: { name: string; mimeType: string; s
   }
 
   const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-  const isMimeAllowed =
-    ALLOWED_DOCUMENT_MIME_TYPES.includes(file.mimeType.toLowerCase())
+  const isMimeAllowed = ALLOWED_DOCUMENT_MIME_TYPES.includes(file.mimeType.toLowerCase())
   const isExtAllowed = ALLOWED_DOCUMENT_EXTENSIONS.includes(ext)
 
   if (!isMimeAllowed || !isExtAllowed) {

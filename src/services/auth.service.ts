@@ -12,7 +12,8 @@ import { LoginInput, UserCreateInput } from '@/validation/auth.schema'
 
 export const authService = {
   async login(input: LoginInput, headers: RequestHeaders) {
-    const user = await userRepository.getByEmail(input.email)
+    const normalizedEmail = input.email.trim().toLowerCase()
+    const user = await userRepository.getByEmail(normalizedEmail)
 
     if (!user) {
       throw new Error('Identifiants invalides')

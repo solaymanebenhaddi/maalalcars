@@ -21,7 +21,7 @@ export async function GET() {
     console.error('Error generating vehicle import template:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur lors de la génération du modèle' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
